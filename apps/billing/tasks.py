@@ -91,6 +91,33 @@ def renew_subscriptions(self):
 
 
 @shared_task(
+    name="billing.cancel_expired_subscriptions",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=300,
+    acks_late=True,
+)
+def cancel_expired_subscriptions(self):
+    """Cancel ACTIVE subscriptions with auto_renew=False whose period has elapsed.
+
+    M2: prevents perpetual access past the paid period (revenue leak).
+    Scheduled via django-celery-beat (every 6 hours in prod, same beat as grace expiry).
+    Idempotent: cancel_subscription is a conditional update.
+    """
+    from apps.billing.subscription_service import process_expired_non_renewal_subs
+
+    try:
+        result = process_expired_non_renewal_subs()
+        logger.info(
+            "cancel_expired_subscriptions: cancelled=%d errors=%d",
+            result["cancelled"], result["errors"],
+        )
+    except Exception as exc:
+        logger.error("cancel_expired_subscriptions task error: %s", exc)
+        raise self.retry(exc=exc)
+
+
+@shared_task(
     name="billing.expire_grace_subscriptions",
     bind=True,
     max_retries=3,

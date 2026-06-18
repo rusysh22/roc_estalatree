@@ -252,30 +252,107 @@ def process_grace_expirations() -> dict:
     return {"suspended": suspended, "errors": errors}
 
 
+# ── Non-renewing subscriptions (M2) ──────────────────────────────────────────
+
+def cancel_subscription(sub: Subscription) -> None:
+    """Cancel a subscription with auto_renew=False whose billing period has elapsed.
+
+    M2: prevents perpetual access past the paid period (revenue leak).
+    Grants are suspended before the CANCELLED status is written so access
+    is revoked atomically with the state change.
+    Idempotent: already-CANCELLED subs are a no-op.
+    """
+    from apps.provisioning.models import Grant
+    from apps.provisioning.registry import get as get_provisioner
+
+    with transaction.atomic():
+        locked_sub = Subscription.objects.select_for_update().get(pk=sub.pk)
+        if locked_sub.status == Subscription.Status.CANCELLED:
+            return
+
+        locked_sub.status = Subscription.Status.CANCELLED
+        locked_sub.save(update_fields=["status", "updated_at"])
+
+        grants = Grant.objects.filter(
+            subscription=locked_sub
+        ).exclude(status=Grant.Status.REVOKED)
+        for grant in grants:
+            provisioner = get_provisioner(grant.type)
+            provisioner.suspend(grant)
+
+    log_action(
+        action="subscription.cancelled",
+        target=sub,
+        meta={"sub_id": sub.pk, "reason": "auto_renew_expired"},
+    )
+    logger.info(
+        "cancel_subscription: sub %s cancelled (auto_renew=False, period elapsed)", sub.pk
+    )
+
+
+def process_expired_non_renewal_subs() -> dict:
+    """Cancel all ACTIVE subscriptions with auto_renew=False past their period end.
+
+    M2: state machine requires active ──period elapsed & auto_renew off──> cancelled.
+    Without this job, access continues indefinitely after the paid period ends.
+
+    Returns: {"cancelled": N, "errors": N}
+    """
+    now = timezone.now()
+    expired_subs = (
+        Subscription.objects.filter(
+            status=Subscription.Status.ACTIVE,
+            auto_renew=False,
+            current_period_end__lte=now,
+        )
+        .select_related("plan")
+        .order_by("current_period_end")
+    )
+
+    cancelled = errors = 0
+    for sub in expired_subs.iterator():
+        try:
+            cancel_subscription(sub)
+            cancelled += 1
+        except Exception as exc:
+            errors += 1
+            logger.error(
+                "process_expired_non_renewal_subs: error for sub %s: %s", sub.pk, exc
+            )
+
+    logger.info(
+        "process_expired_non_renewal_subs: cancelled=%d errors=%d", cancelled, errors
+    )
+    return {"cancelled": cancelled, "errors": errors}
+
+
 # ── Top-up trigger (called from billing/services.py after wallet credit) ──────
 
 def try_renew_grace_subscriptions(customer) -> None:
-    """Attempt renewal for all GRACE subscriptions of a customer.
+    """Attempt renewal for all GRACE or SUSPENDED subscriptions of a customer.
 
+    M1: also includes SUSPENDED subs — a customer who topped up after lapsing
+    past grace should have their access restored, not stay locked out.
     Called immediately after a TopUp is credited (wallet balance restored).
     If renewal succeeds the subscription returns to ACTIVE and grants are
     re-activated via the provisioner cascade inside renew_subscription().
     Errors are caught and logged; they never bubble up to the caller.
     """
-    grace_subs = list(
+    renewable_subs = list(
         Subscription.objects.filter(
             customer=customer,
-            status=Subscription.Status.GRACE,
+            status__in=[Subscription.Status.GRACE, Subscription.Status.SUSPENDED],
             auto_renew=True,
         ).select_related("customer__wallet", "plan")
     )
 
-    for sub in grace_subs:
+    for sub in renewable_subs:
         try:
             renewed = renew_subscription(sub)
             if renewed:
                 logger.info(
-                    "try_renew_grace_subscriptions: sub %s → ACTIVE after top-up", sub.pk
+                    "try_renew_grace_subscriptions: sub %s (%s) → ACTIVE after top-up",
+                    sub.pk, sub.status,
                 )
         except Exception as exc:
             logger.error(

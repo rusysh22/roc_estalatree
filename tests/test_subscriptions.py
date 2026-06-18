@@ -23,7 +23,9 @@ from django.utils import timezone
 
 from apps.billing.models import Order, Subscription
 from apps.billing.subscription_service import (
+    cancel_subscription,
     process_due_renewals,
+    process_expired_non_renewal_subs,
     process_grace_expirations,
     renew_subscription,
     suspend_subscription,
@@ -366,4 +368,101 @@ def test_suspension_writes_audit_log(active_subscription):
     before = AuditLog.objects.filter(action="subscription.suspended").count()
     suspend_subscription(active_subscription)
     after = AuditLog.objects.filter(action="subscription.suspended").count()
+    assert after == before + 1
+
+
+# ── Phase 6 review tests ──────────────────────────────────────────────────────
+
+@pytest.mark.django_db(transaction=True)
+def test_topup_reactivates_suspended_subscription(active_subscription, customer, recurring_plan):
+    """M1: SUSPENDED sub + top-up → ACTIVE (not just GRACE)."""
+    # Put sub into SUSPENDED state
+    suspend_subscription(active_subscription)
+    active_subscription.refresh_from_db()
+    assert active_subscription.status == Subscription.Status.SUSPENDED
+
+    # Top up enough to cover renewal
+    credit(customer.wallet, 200_000, LedgerEntry.Type.ADJUSTMENT,
+           ref="test:m1:topup", note="")
+
+    try_renew_grace_subscriptions(customer)
+
+    active_subscription.refresh_from_db()
+    assert active_subscription.status == Subscription.Status.ACTIVE
+
+    grant = Grant.objects.filter(subscription=active_subscription).first()
+    grant.refresh_from_db()
+    assert grant.status == Grant.Status.ACTIVE
+
+    from apps.licensing.models import License
+    license = License.objects.get(grant=grant)
+    assert license.status == License.Status.ACTIVE
+
+
+@pytest.mark.django_db
+def test_cancel_subscription_cascades_to_grants(active_subscription):
+    """M2: cancel_subscription → CANCELLED + grants SUSPENDED."""
+    Subscription.objects.filter(pk=active_subscription.pk).update(auto_renew=False)
+
+    cancel_subscription(active_subscription)
+
+    active_subscription.refresh_from_db()
+    assert active_subscription.status == Subscription.Status.CANCELLED
+
+    grant = Grant.objects.filter(subscription=active_subscription).first()
+    grant.refresh_from_db()
+    assert grant.status == Grant.Status.SUSPENDED
+
+    from apps.licensing.models import License
+    license = License.objects.get(grant=grant)
+    assert license.status == License.Status.SUSPENDED
+
+
+@pytest.mark.django_db
+def test_cancel_subscription_idempotent(active_subscription):
+    """M2: calling cancel_subscription twice is a no-op on the second call."""
+    Subscription.objects.filter(pk=active_subscription.pk).update(auto_renew=False)
+    cancel_subscription(active_subscription)
+    cancel_subscription(active_subscription)  # should not raise
+
+    active_subscription.refresh_from_db()
+    assert active_subscription.status == Subscription.Status.CANCELLED
+
+
+@pytest.mark.django_db
+def test_process_expired_non_renewal_cancels_past_subs(active_subscription):
+    """M2: process_expired_non_renewal_subs cancels ACTIVE+auto_renew=False past period."""
+    Subscription.objects.filter(pk=active_subscription.pk).update(
+        auto_renew=False,
+        current_period_end=timezone.now() - timedelta(days=1),
+    )
+
+    result = process_expired_non_renewal_subs()
+
+    assert result["cancelled"] >= 1
+    active_subscription.refresh_from_db()
+    assert active_subscription.status == Subscription.Status.CANCELLED
+
+
+@pytest.mark.django_db
+def test_process_expired_non_renewal_skips_future_subs(active_subscription):
+    """M2: subs with future period_end are not cancelled."""
+    Subscription.objects.filter(pk=active_subscription.pk).update(
+        auto_renew=False,
+        current_period_end=timezone.now() + timedelta(days=15),
+    )
+
+    result = process_expired_non_renewal_subs()
+
+    active_subscription.refresh_from_db()
+    assert active_subscription.status == Subscription.Status.ACTIVE  # untouched
+
+
+@pytest.mark.django_db
+def test_cancel_writes_audit_log(active_subscription):
+    """M2: cancel_subscription writes a 'subscription.cancelled' AuditLog entry."""
+    Subscription.objects.filter(pk=active_subscription.pk).update(auto_renew=False)
+    before = AuditLog.objects.filter(action="subscription.cancelled").count()
+    cancel_subscription(active_subscription)
+    after = AuditLog.objects.filter(action="subscription.cancelled").count()
     assert after == before + 1
