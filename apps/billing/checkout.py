@@ -6,10 +6,14 @@ Money rules:
 - checkout() is idempotent via checkout_key (maps to Order.idempotency_key).
 
 Flow:
-  FREE  → Order(PAID, amount=0) → provision → grants
-  PAID, balance >= price → debit → Order(PAID) → [subscription] → provision → grants
-  PAID, balance <  price → TopUp(delta) + Order(PENDING, linked) → payment_url
+  FREE  → Order(PAID, amount=0) [atomic: create + provision] → grants
+  PAID, balance >= price → [atomic: debit + Order(PAID) + subscription + provision] → grants
+  PAID, balance <  price → Order(PENDING) + TopUp(delta) → payment_url
   CONTACT → raises ContactPlanError
+
+H1 (review): provisioning runs INSIDE the atomic block (pure-DB provisioners only).
+  If a provisioner raises, the debit and Order status change roll back atomically.
+  Phase 5+: external provisioners must use async fulfillment + idempotent retry.
 
 See ADR-015 for top-up-and-buy design.
 """
@@ -22,6 +26,7 @@ from django.utils import timezone
 from apps.billing.models import Order, Subscription
 from apps.catalog.models import Plan, Product
 from apps.provisioning.models import Grant
+from apps.wallet.exceptions import InsufficientBalance
 from apps.wallet.models import LedgerEntry
 from apps.wallet.services import debit
 
@@ -39,10 +44,13 @@ class CheckoutIdempotencyError(Exception):
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
 def _create_subscription(customer, plan: Plan, order: Order) -> Subscription:
+    """Create and return a Subscription for a recurring plan."""
     if plan.interval == Plan.Interval.MONTHLY:
         period_end = timezone.now() + relativedelta(months=1)
-    else:
+    elif plan.interval == Plan.Interval.YEARLY:  # LOW: explicit branch
         period_end = timezone.now() + relativedelta(years=1)
+    else:
+        raise ValueError(f"Cannot create subscription for interval {plan.interval!r}")
     return Subscription.objects.create(
         customer=customer,
         plan=plan,
@@ -51,24 +59,21 @@ def _create_subscription(customer, plan: Plan, order: Order) -> Subscription:
     )
 
 
-def _provision_order(order: Order) -> list[Grant]:
-    """Dispatch all deliverables for a paid order."""
+def _provision_order(order: Order, *, subscription=None) -> list[Grant]:
+    """Dispatch all deliverables for a paid order.
+
+    H1: must be called INSIDE a transaction.atomic() so that a provisioner
+    failure rolls back the debit and Order status change.
+    H2: subscription passed through so Grant.subscription is set for recurring plans.
+    """
     from apps.provisioning.registry import get as get_provisioner
 
     grants = []
     for deliverable in order.plan.deliverables.all():
         provisioner = get_provisioner(deliverable.type)
-        grant = provisioner.provision(order, deliverable)
+        grant = provisioner.provision(order, deliverable, subscription=subscription)
         grants.append(grant)
     return grants
-
-
-def _fulfill_paid_order(order: Order) -> list[Grant]:
-    """Create subscription (if recurring) and provision. Call after Order is PAID."""
-    plan = order.plan
-    if plan.interval != Plan.Interval.NONE:
-        _create_subscription(order.customer, plan, order)
-    return _provision_order(order)
 
 
 # ── Top-up-and-buy completion (called from billing/services.py) ──────────────
@@ -78,25 +83,52 @@ def complete_pending_order(order: Order) -> list[Grant]:
 
     Idempotent: if order is already PAID, returns empty list.
     Called from _apply_topup_success (ADR-015).
+
+    M2 (review): if the customer spent the credited balance before this debit
+    runs, InsufficientBalance is caught and logged. The Order stays PENDING —
+    recoverable by Phase 6 support/job. Balance is not lost.
     """
-    with transaction.atomic():
-        locked = Order.objects.select_for_update().get(pk=order.pk)
-        if locked.status != Order.Status.PENDING:
-            logger.info("complete_pending_order: order %s already %s", locked.public_id, locked.status)
-            return []
+    try:
+        with transaction.atomic():
+            locked = Order.objects.select_for_update().get(pk=order.pk)
+            if locked.status != Order.Status.PENDING:
+                logger.info(
+                    "complete_pending_order: order %s already %s — skipping",
+                    locked.public_id, locked.status,
+                )
+                return []
 
-        entry = debit(
-            wallet=locked.customer.wallet,
-            amount=locked.amount,
-            entry_type=LedgerEntry.Type.PURCHASE,
-            ref=f"order:{locked.public_id}",
-            note=f"Purchase: {locked.plan}",
+            entry = debit(
+                wallet=locked.customer.wallet,
+                amount=locked.amount,
+                entry_type=LedgerEntry.Type.PURCHASE,
+                ref=f"order:{locked.public_id}",
+                note=f"Purchase: {locked.plan}",
+            )
+            locked.ledger_entry = entry
+            locked.status = Order.Status.PAID
+
+            subscription = None
+            if locked.plan.interval != Plan.Interval.NONE:
+                subscription = _create_subscription(locked.customer, locked.plan, locked)
+                locked.subscription = subscription
+
+            locked.save(update_fields=["ledger_entry", "status", "subscription", "updated_at"])
+
+            # H1: provision inside atomic — failure rolls back debit + PAID
+            grants = _provision_order(locked, subscription=subscription)
+
+        return grants
+
+    except InsufficientBalance:
+        # M2: race — balance spent between TopUp credit and this debit.
+        # Order stays PENDING (no money lost); Phase 6 job can retry or support can refund TopUp.
+        logger.error(
+            "complete_pending_order: InsufficientBalance for order %s after TopUp credit — "
+            "Order stays PENDING; manual resolution required",
+            order.pk,
         )
-        locked.ledger_entry = entry
-        locked.status = Order.Status.PAID
-        locked.save(update_fields=["ledger_entry", "status", "updated_at"])
-
-    return _fulfill_paid_order(locked)
+        return []
 
 
 # ── Main checkout entrypoint ──────────────────────────────────────────────────
@@ -144,24 +176,30 @@ def checkout(
             raise CheckoutIdempotencyError(
                 f"checkout_key {checkout_key!r} was already used for a different order"
             )
-        existing_grants = list(
-            Grant.objects.filter(
-                customer=customer,
-                deliverable__plan=plan,
-            ).order_by("-created_at")
-        )
+        # LOW: precise grant lookup via Grant.order (no plan-conflation)
+        existing_grants = list(Grant.objects.filter(order=existing).order_by("-created_at"))
         return existing, existing_grants, None
 
-    # ── FREE plan ─────────────────────────────────────────────────────────────
+    # ── FREE plan (M1 + H1: IntegrityError guard + provision inside atomic) ──
     if plan.price == 0 or product.type == Product.Type.FREE:
-        order = Order.objects.create(
-            customer=customer,
-            plan=plan,
-            amount=0,
-            status=Order.Status.PAID,
-            idempotency_key=checkout_key,
-        )
-        grants = _fulfill_paid_order(order)
+        with transaction.atomic():
+            try:
+                order = Order.objects.create(
+                    customer=customer,
+                    plan=plan,
+                    amount=0,
+                    status=Order.Status.PAID,
+                    idempotency_key=checkout_key,
+                )
+            except IntegrityError:
+                # M1: concurrent same-key race
+                order = Order.objects.get(idempotency_key=checkout_key)
+                grants = list(Grant.objects.filter(order=order).order_by("-created_at"))
+                return order, grants, None
+
+            # H1: provision inside atomic — KeyError rolls back Order creation
+            grants = _provision_order(order, subscription=None)
+
         return order, grants, None
 
     # ── Paid plan — check balance ─────────────────────────────────────────────
@@ -169,7 +207,7 @@ def checkout(
     wallet.refresh_from_db()
 
     if wallet.balance >= plan.price:
-        # Sufficient balance — debit and fulfill
+        # Sufficient balance — debit and fulfill atomically (H1)
         with transaction.atomic():
             try:
                 order = Order.objects.create(
@@ -180,9 +218,8 @@ def checkout(
                     idempotency_key=checkout_key,
                 )
             except IntegrityError:
-                # Race: another request created the order with same key
                 order = Order.objects.get(idempotency_key=checkout_key)
-                grants = list(Grant.objects.filter(customer=customer, deliverable__plan=plan).order_by("-created_at"))
+                grants = list(Grant.objects.filter(order=order).order_by("-created_at"))
                 return order, grants, None
 
             entry = debit(
@@ -194,9 +231,18 @@ def checkout(
             )
             order.ledger_entry = entry
             order.status = Order.Status.PAID
-            order.save(update_fields=["ledger_entry", "status", "updated_at"])
 
-        grants = _fulfill_paid_order(order)
+            # M3: link Order ↔ Subscription; H2: pass subscription to provisioner
+            subscription = None
+            if plan.interval != Plan.Interval.NONE:
+                subscription = _create_subscription(customer, plan, order)
+                order.subscription = subscription
+
+            order.save(update_fields=["ledger_entry", "status", "subscription", "updated_at"])
+
+            # H1: provision inside atomic — failure rolls back debit + PAID
+            grants = _provision_order(order, subscription=subscription)
+
         return order, grants, None
 
     else:

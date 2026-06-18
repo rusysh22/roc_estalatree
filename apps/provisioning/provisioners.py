@@ -2,6 +2,9 @@
 
 Each provisioner creates a Grant record. No external calls in this phase.
 Registered in ProvisioningConfig.ready().
+
+H2 (review): Grant.order and Grant.subscription are set so lifecycle cascades
+(Phase 6) can find all grants for a given Order or Subscription.
 """
 import logging
 
@@ -13,9 +16,11 @@ logger = logging.getLogger(__name__)
 class ManualProvisioner:
     """Provisioner for manual deliverables — operator fulfills outside the system."""
 
-    def provision(self, order, deliverable) -> Grant:
+    def provision(self, order, deliverable, *, subscription=None) -> Grant:
         return Grant.objects.create(
             customer=order.customer,
+            order=order,
+            subscription=subscription,
             deliverable=deliverable,
             type=Deliverable.Type.MANUAL,
             status=Grant.Status.ACTIVE,
@@ -38,10 +43,12 @@ class ManualProvisioner:
 class DownloadProvisioner:
     """Provisioner for download links. Config: {"download_url": "..."}"""
 
-    def provision(self, order, deliverable) -> Grant:
+    def provision(self, order, deliverable, *, subscription=None) -> Grant:
         config = deliverable.config or {}
         return Grant.objects.create(
             customer=order.customer,
+            order=order,
+            subscription=subscription,
             deliverable=deliverable,
             type=Deliverable.Type.DOWNLOAD,
             status=Grant.Status.ACTIVE,
@@ -64,10 +71,12 @@ class DownloadProvisioner:
 class AccessLinkProvisioner:
     """Provisioner for time-limited access links. Config: {"access_url": "..."}"""
 
-    def provision(self, order, deliverable) -> Grant:
+    def provision(self, order, deliverable, *, subscription=None) -> Grant:
         config = deliverable.config or {}
         return Grant.objects.create(
             customer=order.customer,
+            order=order,
+            subscription=subscription,
             deliverable=deliverable,
             type=Deliverable.Type.ACCESS_LINK,
             status=Grant.Status.ACTIVE,

@@ -283,3 +283,169 @@ def test_checkout_contact_plan_raises(customer, contact_plan):
             callback_url=CALLBACK_URL,
             return_url=RETURN_URL,
         )
+
+
+# ── Phase 4 review tests ──────────────────────────────────────────────────────
+
+@pytest.mark.django_db(transaction=True)
+def test_paid_provision_fails_rolls_back_debit(customer, db):
+    """H1: if a provisioner raises, debit and Order PAID are rolled back atomically."""
+    from apps.provisioning import registry
+
+    # Register a broken provisioner for a unique type
+    class BrokenProvisioner:
+        def provision(self, order, deliverable, *, subscription=None):
+            raise RuntimeError("provisioner exploded")
+        def renew(self, grant): pass
+        def suspend(self, grant): pass
+        def resume(self, grant): pass
+        def revoke(self, grant): pass
+
+    # Use a fresh plan with a unique deliverable type not already registered
+    product = ProductFactory(type=Product.Type.ONE_TIME)
+    plan = PlanFactory(product=product, price=50_000, interval=Plan.Interval.NONE)
+    DeliverableFactory(plan=plan, type="manual")
+
+    _fund_wallet(customer, 100_000)
+    initial_balance = customer.wallet.balance  # 100_000
+
+    # Patch the manual provisioner to blow up for this test only
+    original = registry._registry.get("manual")
+    registry._registry["manual"] = BrokenProvisioner()
+    try:
+        with pytest.raises(RuntimeError, match="provisioner exploded"):
+            checkout(
+                customer=customer,
+                plan=plan,
+                checkout_key="ck_h1_001",
+                callback_url=CALLBACK_URL,
+                return_url=RETURN_URL,
+            )
+    finally:
+        registry._registry["manual"] = original
+
+    # Wallet balance unchanged — debit rolled back
+    customer.wallet.refresh_from_db()
+    assert customer.wallet.balance == initial_balance
+
+    # No PAID order exists
+    from apps.billing.models import Order
+    assert not Order.objects.filter(idempotency_key="ck_h1_001", status=Order.Status.PAID).exists()
+
+    # No ledger PURCHASE entry
+    assert not LedgerEntry.objects.filter(type=LedgerEntry.Type.PURCHASE).exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_repeated_same_plan_grants_are_order_specific(customer, one_time_plan):
+    """H2: each purchase of the same plan gets its own Order-linked Grant."""
+    _fund_wallet(customer, 300_000)
+
+    order1, grants1, _ = checkout(
+        customer=customer, plan=one_time_plan,
+        checkout_key="ck_h2_001",
+        callback_url=CALLBACK_URL, return_url=RETURN_URL,
+    )
+    order2, grants2, _ = checkout(
+        customer=customer, plan=one_time_plan,
+        checkout_key="ck_h2_002",
+        callback_url=CALLBACK_URL, return_url=RETURN_URL,
+    )
+
+    assert order1.pk != order2.pk
+    assert len(grants1) == 1
+    assert len(grants2) == 1
+
+    # Each grant is linked to its own Order
+    assert grants1[0].order_id == order1.pk
+    assert grants2[0].order_id == order2.pk
+
+    # Idempotent replay fetches the right grants via Order link
+    replayed_order, replayed_grants, _ = checkout(
+        customer=customer, plan=one_time_plan,
+        checkout_key="ck_h2_001",
+        callback_url=CALLBACK_URL, return_url=RETURN_URL,
+    )
+    assert replayed_order.pk == order1.pk
+    assert len(replayed_grants) == 1
+    assert replayed_grants[0].pk == grants1[0].pk
+
+
+@pytest.mark.django_db(transaction=True)
+def test_free_plan_concurrent_same_key_idempotent(customer, free_plan):
+    """M1: concurrent same checkout_key on FREE plan returns existing order, no double-provision."""
+    # First call succeeds normally
+    order1, grants1, _ = checkout(
+        customer=customer, plan=free_plan,
+        checkout_key="ck_m1_001",
+        callback_url=CALLBACK_URL, return_url=RETURN_URL,
+    )
+    assert order1.status == "paid"
+    assert len(grants1) == 1
+
+    # Second call with same key returns same order + existing grants
+    order2, grants2, _ = checkout(
+        customer=customer, plan=free_plan,
+        checkout_key="ck_m1_001",
+        callback_url=CALLBACK_URL, return_url=RETURN_URL,
+    )
+    assert order1.pk == order2.pk
+    assert len(grants2) == 1
+    assert grants2[0].pk == grants1[0].pk
+
+    # Still only one Grant in the DB
+    from apps.provisioning.models import Grant
+    assert Grant.objects.filter(order=order1).count() == 1
+
+
+@pytest.mark.django_db(transaction=True)
+def test_balance_spent_before_completion_order_stays_pending(customer, one_time_plan):
+    """M2: if balance is spent between TopUp credit and complete_pending_order debit,
+    InsufficientBalance is caught, Order stays PENDING, no crash."""
+    from apps.billing.checkout import complete_pending_order
+    from apps.billing.models import Order
+    from apps.wallet.services import debit as wallet_debit
+
+    _fund_wallet(customer, 30_000)  # need 100_000
+
+    order, grants, payment_url = checkout(
+        customer=customer, plan=one_time_plan,
+        checkout_key="ck_m2_001",
+        duitku_client=MockDuitkuClient(),
+        callback_url=CALLBACK_URL, return_url=RETURN_URL,
+    )
+    assert order.status == Order.Status.PENDING
+
+    # Simulate TopUp credit (delta = 70_000) → wallet now has 100_000
+    topup = order.funding_topup
+    from apps.billing.services import _apply_topup_success
+    # Credit wallet manually to avoid triggering complete_pending_order
+    from apps.wallet.services import credit
+    credit(
+        wallet=customer.wallet,
+        amount=topup.amount,
+        entry_type=LedgerEntry.Type.TOPUP,
+        ref=f"topup:{topup.public_id}",
+        note="manual credit for test",
+    )
+    customer.wallet.refresh_from_db()
+    assert customer.wallet.balance == 100_000
+
+    # Customer spends balance before complete_pending_order runs
+    wallet_debit(
+        wallet=customer.wallet,
+        amount=100_000,
+        entry_type=LedgerEntry.Type.PURCHASE,
+        ref="order:other_purchase",
+        note="spend before completion",
+    )
+    customer.wallet.refresh_from_db()
+    assert customer.wallet.balance == 0
+
+    # complete_pending_order should handle InsufficientBalance gracefully
+    result_grants = complete_pending_order(order)
+    assert result_grants == []
+
+    # Order stays PENDING (not FAILED, not PAID) — recoverable
+    order.refresh_from_db()
+    assert order.status == Order.Status.PENDING

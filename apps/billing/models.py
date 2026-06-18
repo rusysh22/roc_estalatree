@@ -89,6 +89,14 @@ class Order(TimestampedModel):
         blank=True,
         help_text="Caller-supplied key for safe checkout retry",
     )
+    subscription = models.ForeignKey(
+        "billing.Subscription",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orders",
+        help_text="Subscription created by this Order (recurring plans only)",
+    )
 
     class Meta:
         ordering = ["-created_at"]

@@ -19,7 +19,7 @@ _registry: dict[str, "BaseProvisioner"] = {}
 class BaseProvisioner(Protocol):
     """Interface every provisioner must satisfy."""
 
-    def provision(self, order, deliverable) -> object:
+    def provision(self, order, deliverable, *, subscription=None) -> object:
         """Fulfill one deliverable for an order; return a Grant instance."""
         ...
 

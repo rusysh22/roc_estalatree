@@ -69,6 +69,14 @@ class Grant(TimestampedModel):
     customer = models.ForeignKey(
         "accounts.Customer", on_delete=models.PROTECT, related_name="grants"
     )
+    order = models.ForeignKey(
+        "billing.Order",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="grants",
+        help_text="The Order that created this Grant — null for manually issued grants",
+    )
     subscription = models.ForeignKey(
         "billing.Subscription",
         null=True,
