@@ -22,6 +22,7 @@ from django.utils import timezone
 from apps.billing.models import Order, Subscription
 from apps.catalog.models import Plan
 from apps.core.audit import log_action
+from apps.core.events import emit
 from apps.core.models import Setting
 from apps.wallet.exceptions import InsufficientBalance
 from apps.wallet.models import LedgerEntry
@@ -119,6 +120,13 @@ def renew_subscription(sub: Subscription) -> bool:
             target=sub,
             meta={"sub_id": sub.pk, "new_period_end": next_end.isoformat()},
         )
+        emit(
+            "subscription.renewed",
+            customer_id=sub.customer_id,
+            sub_id=sub.pk,
+            plan_name=str(sub.plan),
+            new_period_end=next_end.isoformat(),
+        )
         logger.info(
             "renew_subscription: sub %s renewed → period_end=%s", sub.pk, next_end
         )
@@ -160,6 +168,7 @@ def suspend_subscription(sub: Subscription) -> None:
         target=sub,
         meta={"sub_id": sub.pk},
     )
+    emit("subscription.suspended", customer_id=sub.customer_id, sub_id=sub.pk, plan_name=str(sub.plan))
     logger.info("suspend_subscription: sub %s suspended + grants cascaded", sub.pk)
 
 
@@ -198,10 +207,18 @@ def process_due_renewals() -> dict:
                     pk=sub.pk, status=Subscription.Status.ACTIVE
                 ).update(status=Subscription.Status.GRACE, updated_at=timezone.now())
                 if updated:
+                    grace_days = int(Setting.get("SUBSCRIPTION_GRACE_DAYS", "3"))
                     log_action(
                         action="subscription.graced",
                         target=sub,
                         meta={"sub_id": sub.pk, "reason": "insufficient_balance"},
+                    )
+                    emit(
+                        "subscription.graced",
+                        customer_id=sub.customer_id,
+                        sub_id=sub.pk,
+                        plan_name=str(sub.plan),
+                        grace_days=grace_days,
                     )
                     graced += 1
                     logger.warning(
@@ -285,6 +302,7 @@ def cancel_subscription(sub: Subscription) -> None:
         target=sub,
         meta={"sub_id": sub.pk, "reason": "auto_renew_expired"},
     )
+    emit("subscription.cancelled", customer_id=sub.customer_id, sub_id=sub.pk, plan_name=str(sub.plan))
     logger.info(
         "cancel_subscription: sub %s cancelled (auto_renew=False, period elapsed)", sub.pk
     )

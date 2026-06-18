@@ -115,6 +115,10 @@ def _apply_topup_success(topup: TopUp) -> bool:
         locked.status = TopUp.Status.PAID
         locked.save(update_fields=["status", "ledger_entry", "updated_at"])
 
+        # Emit after commit — handler dispatches notification tasks
+        from apps.core.events import emit
+        emit("topup.paid", customer_id=locked.customer_id, amount=locked.amount, bonus=locked.bonus)
+
         # Capture checkout_order reference before the atomic block exits
         if locked.checkout_order_id:
             checkout_order = locked.checkout_order

@@ -25,6 +25,7 @@ from django.utils import timezone
 
 from apps.billing.models import Order, Subscription
 from apps.catalog.models import Plan, Product
+from apps.core.events import emit
 from apps.provisioning.models import Grant
 from apps.wallet.exceptions import InsufficientBalance
 from apps.wallet.models import LedgerEntry
@@ -117,6 +118,8 @@ def complete_pending_order(order: Order) -> list[Grant]:
 
             # H1: provision inside atomic — failure rolls back debit + PAID
             grants = _provision_order(locked, subscription=subscription)
+            emit("order.paid", customer_id=locked.customer_id, order_id=locked.pk,
+                 plan_name=str(locked.plan))
 
         return grants
 
@@ -199,6 +202,8 @@ def checkout(
 
             # H1: provision inside atomic — KeyError rolls back Order creation
             grants = _provision_order(order, subscription=None)
+            emit("order.paid", customer_id=order.customer_id, order_id=order.pk,
+                 plan_name=str(order.plan))
 
         return order, grants, None
 
@@ -242,6 +247,8 @@ def checkout(
 
             # H1: provision inside atomic — failure rolls back debit + PAID
             grants = _provision_order(order, subscription=subscription)
+            emit("order.paid", customer_id=order.customer_id, order_id=order.pk,
+                 plan_name=str(order.plan))
 
         return order, grants, None
 
