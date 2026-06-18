@@ -2,7 +2,7 @@
 
 > **Update this file whenever a task is completed.** It is the source of truth for cross-agent handoff. Format: check `[x]` + date + short note.
 
-**Active phase:** **Phase 3** — Top-up (Duitku) — next.
+**Active phase:** **Phase 4** — Catalog & Checkout — next.
 **Last updated:** 2026-06-18 — Phase 2 complete: wallet service layer (credit/debit atomic+idempotent), auto-create wallet signal, 21 tests green.
 
 ---
@@ -12,7 +12,7 @@
 - [x] **Phase 0** — Setup & Project Standards *(2026-06-18)*
 - [x] **Phase 1** — Domain Models (Spine) *(2026-06-18)*
 - [x] **Phase 2** — Wallet & Ledger (MONEY) *(2026-06-18)*
-- [ ] **Phase 3** — Top-up (Duitku)
+- [x] **Phase 3** — Top-up (Duitku) *(2026-06-18)*
 - [ ] **Phase 4** — Catalog & Checkout
 - [ ] **Phase 5** — Licensing & Activation API
 - [ ] **Phase 6** — Subscriptions & Background Jobs
@@ -30,6 +30,7 @@
 
 ## Work Log (per task)
 - 2026-06-18 — Docs: ADR closed-loop locked (ADR-019 Python/Django pin, compliance quick-ref table). Build plan reconciled with journey requirements (top-up-and-buy Phase 4, inline SSO Phase 4, webhook safety net Phase 3, unified work queue Phase 10, Superadmin first-run Phase 10, self-serve device mgmt Phase 8, panic controls Phase 5b/10e, Customer 360 Phase 10c, provisioning layer explicit Phase 1/5).
+- 2026-06-18 — Phase 3: billing/duitku.py (DuitkuClient, InvoiceResult, TransactionStatus, signature verification); billing/services.py (initiate_topup, process_webhook_payload with savepoint idempotency, recheck_topup_status safety-net); billing/views.py (duitku_webhook, csrf_exempt, 200/400/500 responses); billing/tasks.py (poll_pending_topups Celery safety-net); tests/test_topup.py (13 tests: initiate, success, bonus, duplicate, invalid-sig, non-success, view HTTP, recheck). All 38 tests pass.
 - 2026-06-18 — Phase 2: wallet/services.py (credit + debit — atomic select_for_update, idempotent ref, InsufficientBalance guard); wallet/signals.py auto-creates Wallet on Customer.post_save (H3); tests/factories.py (User/Customer/Wallet); tests/test_wallet.py (21 tests: balance invariant, idempotency, overdraw, concurrency, immutability). docker-compose postgres remapped to port 5434 (5432 occupied by roc_support_desk).
 - 2026-06-18 — Phase 1 review fixes: H1 custom User (email/password, no username, AbstractBaseUser+PermissionsMixin, AUTH_USER_MODEL=accounts.User); H2 LedgerEntry+AuditLog save/delete raise TypeError at model level; H4 events.emit() via transaction.on_commit; M3 assign_unique_public_id/assign_unique_license_key with retry loop; L1 removed redundant Index on LedgerEntry.ref + License.key (unique=True already indexes). All migrations reset and regenerated.
 - 2026-06-18 — Phase 1: All domain models written + 9 initial migrations. SellerProfile, Customer, Wallet, LedgerEntry (immutable admin), Product, Plan, Order, TopUp, PaymentWebhook, Subscription, Deliverable, Entitlement (M2M Plans), Grant (has_entitlement/get_entitlements), Secret, License (XXXX-XXXX-XXXX Crockford key auto-gen, active_seat_count property), Installation (partial-unique constraint), Lead. All models in Django Admin (LedgerEntry/PaymentWebhook read-only). `manage.py check` 0 issues; `makemigrations --check` no changes.
