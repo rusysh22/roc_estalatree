@@ -193,7 +193,14 @@ def test_ledger_entry_cannot_be_deleted(wallet):
 
 @pytest.mark.django_db(transaction=True)
 def test_concurrent_credits_are_serialised(wallet):
-    """Ten concurrent credit calls must each write exactly once; final balance correct."""
+    """Ten concurrent credit calls must each write exactly once; final balance correct.
+
+    MH2: select_for_update is a no-op on SQLite — skip on non-PostgreSQL.
+    """
+    from django.db import connection as _conn
+    if _conn.vendor != "postgresql":
+        pytest.skip("select_for_update is a no-op on SQLite; run on PostgreSQL only")
+
     errors = []
     threads = []
 
@@ -219,3 +226,69 @@ def test_concurrent_credits_are_serialised(wallet):
     assert wallet.balance == 100_000
     assert LedgerEntry.objects.filter(wallet=wallet).count() == 10
     assert _balance_invariant(wallet)
+
+
+# ── Ref-match guards (MH1 / L2) ──────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_cross_operation_ref_reuse_raises(wallet):
+    """Reusing a credit ref for a debit raises ValueError (direction mismatch).
+
+    Uses ADJUSTMENT type for both calls so the direction check fires (not the type check).
+    """
+    credit(wallet, 100_000, LedgerEntry.Type.ADJUSTMENT, ref="adj:ref-x01")
+    with pytest.raises(ValueError, match="credit"):
+        debit(wallet, 50_000, LedgerEntry.Type.ADJUSTMENT, ref="adj:ref-x01")
+
+
+@pytest.mark.django_db
+def test_cross_wallet_ref_reuse_raises():
+    """Reusing a ref on a different wallet raises ValueError (wallet mismatch)."""
+    customer_a = CustomerFactory()
+    customer_b = CustomerFactory()
+    credit(customer_a.wallet, 50_000, LedgerEntry.Type.TOPUP, ref="topup:shared-ref")
+    with pytest.raises(ValueError, match="wallet"):
+        credit(customer_b.wallet, 50_000, LedgerEntry.Type.TOPUP, ref="topup:shared-ref")
+
+
+@pytest.mark.django_db
+def test_invalid_entry_type_rejected(wallet):
+    """Unknown entry_type raises ValueError before any DB write (M1)."""
+    with pytest.raises(ValueError, match="Invalid entry_type"):
+        credit(wallet, 10_000, "FAKE_TYPE", ref="fake-type-ref")
+    assert not LedgerEntry.objects.filter(ref="fake-type-ref").exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_same_ref_concurrent_yields_one_entry(wallet):
+    """Two concurrent credits with identical ref produce exactly one ledger entry (L2).
+
+    MH2: skip on non-PostgreSQL.
+    """
+    from django.db import connection as _conn
+    if _conn.vendor != "postgresql":
+        pytest.skip("select_for_update is a no-op on SQLite; run on PostgreSQL only")
+
+    credit(wallet, 100_000, LedgerEntry.Type.TOPUP, ref="conc-base-same")
+
+    results: list = []
+    errors: list = []
+
+    def do_same_ref():
+        try:
+            from django.db import connection
+            connection.close()
+            entry = credit(wallet, 5_000, LedgerEntry.Type.BONUS, ref="conc-same-ref")
+            results.append(entry.pk)
+        except Exception as exc:
+            errors.append(exc)
+
+    threads = [threading.Thread(target=do_same_ref) for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not errors, f"Thread errors: {errors}"
+    assert LedgerEntry.objects.filter(ref="conc-same-ref").count() == 1
+    assert results[0] == results[1]

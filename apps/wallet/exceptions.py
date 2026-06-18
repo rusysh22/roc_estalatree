@@ -2,4 +2,4 @@
 
 
 class InsufficientBalance(Exception):
-    """Raised when a debit would take the wallet balance below zero."""
+    """Raised when the wallet balance is insufficient to cover the requested debit."""
