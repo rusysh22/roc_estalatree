@@ -85,11 +85,13 @@ def _apply_topup_success(topup: TopUp) -> bool:
     Returns True if credit was applied, False if TopUp was already PAID.
     """
     checkout_order = None
+    customer = None
     with transaction.atomic():
         locked = TopUp.objects.select_for_update().get(pk=topup.pk)
         if locked.status == TopUp.Status.PAID:
             return False
 
+        customer = locked.customer  # captured for post-commit actions
         wallet = locked.customer.wallet
 
         topup_entry = credit(
@@ -121,6 +123,11 @@ def _apply_topup_success(topup: TopUp) -> bool:
     if checkout_order is not None:
         from apps.billing.checkout import complete_pending_order
         complete_pending_order(checkout_order)
+
+    # Phase 6: wallet funded — attempt renewal for any GRACE subscriptions
+    if customer is not None:
+        from apps.billing.subscription_service import try_renew_grace_subscriptions
+        try_renew_grace_subscriptions(customer)
 
     return True
 

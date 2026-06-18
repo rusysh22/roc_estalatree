@@ -2,7 +2,7 @@
 
 > **Update this file whenever a task is completed.** It is the source of truth for cross-agent handoff. Format: check `[x]` + date + short note.
 
-**Active phase:** **Phase 6** — Subscriptions & Background Jobs — next.
+**Active phase:** **Phase 7** — Notifications — next.
 **Last updated:** 2026-06-18 — Phase 2 complete: wallet service layer (credit/debit atomic+idempotent), auto-create wallet signal, 21 tests green.
 
 ---
@@ -15,7 +15,7 @@
 - [x] **Phase 3** — Top-up (Duitku) *(2026-06-18)*
 - [x] **Phase 4** — Catalog & Checkout *(2026-06-18)*
 - [x] **Phase 5** — Licensing & Activation API *(2026-06-18)*
-- [ ] **Phase 6** — Subscriptions & Background Jobs
+- [x] **Phase 6** — Subscriptions & Background Jobs *(2026-06-18)*
 - [ ] **Phase 7** — Notifications
 - [ ] **Phase 8** — Customer Dashboard (HTMX)
 - [ ] **Phase 9** — Public Storefront

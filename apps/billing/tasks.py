@@ -61,3 +61,56 @@ def poll_pending_topups(self):
             logger.error("Error rechecking TopUp %s: %s", topup.public_id, exc)
 
     logger.info("Safety-net: resolved %d / %d pending TopUps", resolved, count)
+
+
+@shared_task(
+    name="billing.renew_subscriptions",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=300,
+    acks_late=True,
+)
+def renew_subscriptions(self):
+    """Renew all subscriptions due within RENEWAL_ADVANCE_HOURS.
+
+    Subscriptions that cannot be charged (InsufficientBalance) are moved to GRACE.
+    Scheduled via django-celery-beat (every hour in prod).
+    Idempotent: each renewal period is guarded by Order.idempotency_key.
+    """
+    from apps.billing.subscription_service import process_due_renewals
+
+    try:
+        result = process_due_renewals()
+        logger.info(
+            "renew_subscriptions: renewed=%d graced=%d errors=%d",
+            result["renewed"], result["graced"], result["errors"],
+        )
+    except Exception as exc:
+        logger.error("renew_subscriptions task error: %s", exc)
+        raise self.retry(exc=exc)
+
+
+@shared_task(
+    name="billing.expire_grace_subscriptions",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=300,
+    acks_late=True,
+)
+def expire_grace_subscriptions(self):
+    """Suspend GRACE subscriptions whose grace window has elapsed.
+
+    Scheduled via django-celery-beat (every 6 hours in prod).
+    Idempotent: suspend_subscription is a conditional update + no-op if already SUSPENDED.
+    """
+    from apps.billing.subscription_service import process_grace_expirations
+
+    try:
+        result = process_grace_expirations()
+        logger.info(
+            "expire_grace_subscriptions: suspended=%d errors=%d",
+            result["suspended"], result["errors"],
+        )
+    except Exception as exc:
+        logger.error("expire_grace_subscriptions task error: %s", exc)
+        raise self.retry(exc=exc)

@@ -119,8 +119,54 @@ def test_golden_path_activate():
     ).exists()
 
 
-@pytest.mark.xfail(reason="Phase 6: Subscription renewal not yet implemented", strict=False)
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_golden_path_renew():
     """Renewal job deducts balance, extends subscription, grant stays active."""
-    raise NotImplementedError
+    from apps.billing.checkout import checkout
+    from apps.billing.models import Subscription
+    from apps.billing.subscription_service import renew_subscription
+    from apps.catalog.models import Plan, Product
+    from apps.licensing.models import License
+    from apps.provisioning.models import Grant
+    from apps.wallet.models import LedgerEntry
+    from apps.wallet.services import credit
+    from tests.factories import CustomerFactory, DeliverableFactory, PlanFactory, ProductFactory
+
+    customer = CustomerFactory()
+    credit(customer.wallet, 200_000, LedgerEntry.Type.ADJUSTMENT,
+           ref="smoke:renew:fund", note="smoke test setup")
+
+    product = ProductFactory(type=Product.Type.RECURRING)
+    plan = PlanFactory(product=product, price=50_000, interval=Plan.Interval.MONTHLY)
+    DeliverableFactory(plan=plan, type="license_key")
+
+    _, grants, _ = checkout(
+        customer=customer,
+        plan=plan,
+        checkout_key="smoke:renew:ck001",
+        callback_url="https://example.com/cb/",
+        return_url="https://example.com/ret/",
+    )
+    assert len(grants) == 1
+
+    sub = Subscription.objects.get(customer=customer, plan=plan)
+    original_end = sub.current_period_end
+    customer.wallet.refresh_from_db()
+    wallet_after_purchase = customer.wallet.balance
+
+    renewed = renew_subscription(sub)
+
+    assert renewed is True
+    sub.refresh_from_db()
+    assert sub.status == Subscription.Status.ACTIVE
+    assert sub.current_period_end > original_end
+
+    customer.wallet.refresh_from_db()
+    assert customer.wallet.balance == wallet_after_purchase - plan.price
+
+    grant = grants[0]
+    grant.refresh_from_db()
+    assert grant.status == Grant.Status.ACTIVE
+
+    license = License.objects.get(grant=grant)
+    assert license.status == License.Status.ACTIVE
