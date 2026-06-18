@@ -37,6 +37,14 @@ class TopUp(TimestampedModel):
         on_delete=models.SET_NULL,
         related_name="topup",
     )
+    checkout_order = models.OneToOneField(
+        "billing.Order",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="funding_topup",
+        help_text="Top-up-and-buy: complete this Order after TopUp is credited",
+    )
 
     class Meta:
         ordering = ["-created_at"]
@@ -73,6 +81,13 @@ class Order(TimestampedModel):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="order",
+    )
+    idempotency_key = models.CharField(
+        max_length=200,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="Caller-supplied key for safe checkout retry",
     )
 
     class Meta:

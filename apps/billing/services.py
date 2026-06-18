@@ -79,8 +79,12 @@ def _apply_topup_success(topup: TopUp) -> bool:
     either both happen or neither (atomicity). The bonus:<id> ref keeps it
     idempotent on retries.
 
+    ADR-015: if the TopUp has a linked checkout_order, complete it after
+    the TopUp transaction commits (separate atomic — debit from newly funded wallet).
+
     Returns True if credit was applied, False if TopUp was already PAID.
     """
+    checkout_order = None
     with transaction.atomic():
         locked = TopUp.objects.select_for_update().get(pk=topup.pk)
         if locked.status == TopUp.Status.PAID:
@@ -108,6 +112,15 @@ def _apply_topup_success(topup: TopUp) -> bool:
         locked.ledger_entry = topup_entry
         locked.status = TopUp.Status.PAID
         locked.save(update_fields=["status", "ledger_entry", "updated_at"])
+
+        # Capture checkout_order reference before the atomic block exits
+        if locked.checkout_order_id:
+            checkout_order = locked.checkout_order
+
+    # ADR-015: complete the linked checkout order after TopUp credit commits
+    if checkout_order is not None:
+        from apps.billing.checkout import complete_pending_order
+        complete_pending_order(checkout_order)
 
     return True
 
