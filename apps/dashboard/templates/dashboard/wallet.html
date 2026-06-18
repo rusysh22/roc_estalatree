@@ -1,0 +1,25 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Wallet{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Wallet & Balance</h1>
+
+<div class="bg-white rounded-lg border border-gray-200 p-6 mb-6 flex items-center justify-between">
+  <div>
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Current Balance</p>
+    <p class="text-3xl font-bold text-indigo-600">Rp{{ wallet.balance|floatformat:0 }}</p>
+  </div>
+  <a href="/billing/topup/"
+     class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm">
+    Top up
+  </a>
+</div>
+
+<!-- Ledger history -->
+<section>
+  <h2 class="text-lg font-semibold mb-3">Transaction History</h2>
+  <div id="ledger-table" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    {% include "dashboard/partials/ledger_rows.html" %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,26 @@
+<tr class="hover:bg-gray-50" id="device-{{ installation.pk }}">
+  <td class="px-5 py-3 font-mono text-xs text-gray-500">{{ installation.fingerprint|truncatechars:20 }}</td>
+  <td class="px-5 py-3 text-sm">{{ installation.name|default:"—" }}</td>
+  <td class="px-5 py-3 text-xs text-gray-500">{{ installation.license.plan.name }}</td>
+  <td class="px-5 py-3 text-xs text-gray-400">{{ installation.activated_at|date:"d M Y" }}</td>
+  <td class="px-5 py-3">
+    <span class="text-xs px-2 py-0.5 rounded-full
+      {% if installation.status == 'active' %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-500{% endif %}">
+      {{ installation.get_status_display }}
+    </span>
+  </td>
+  <td class="px-5 py-3 text-right">
+    {% if installation.status == 'active' %}
+    <button
+      hx-post="{% url 'dashboard:deactivate_device' installation.pk %}"
+      hx-target="#device-{{ installation.pk }}"
+      hx-swap="outerHTML"
+      hx-confirm="Deactivate this device? This frees a seat."
+      class="text-xs text-red-500 hover:text-red-700 font-medium">
+      Deactivate
+    </button>
+    {% else %}
+    <span class="text-xs text-gray-300">Deactivated</span>
+    {% endif %}
+  </td>
+</tr>

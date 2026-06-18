@@ -1,0 +1,56 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Subscriptions{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Subscriptions</h1>
+
+{% if subs_with_shortfall %}
+<div class="space-y-4">
+  {% for sub, shortfall in subs_with_shortfall %}
+  <div class="bg-white rounded-lg border border-gray-200 p-5">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="font-semibold">{{ sub.plan.name }}</p>
+        <p class="text-xs text-gray-500 mt-0.5">
+          {% if sub.status == 'active' %}Renews {{ sub.current_period_end|date:"d M Y" }}
+          {% elif sub.status == 'grace' %}Grace period — top up before {{ sub.current_period_end|date:"d M Y" }}
+          {% elif sub.status == 'suspended' %}Suspended — top up to reactivate
+          {% else %}Ended {{ sub.current_period_end|date:"d M Y" }}{% endif %}
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs px-2 py-0.5 rounded-full
+          {% if sub.status == 'active' %}bg-green-100 text-green-700
+          {% elif sub.status == 'grace' %}bg-amber-100 text-amber-700
+          {% elif sub.status == 'suspended' %}bg-red-100 text-red-700
+          {% else %}bg-gray-100 text-gray-500{% endif %}">
+          {{ sub.get_status_display }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Shortfall banner -->
+    {% if shortfall > 0 and sub.status == 'active' %}
+    <div class="mt-3 bg-amber-50 border border-amber-200 rounded px-3 py-2 flex items-center justify-between text-sm">
+      <span class="text-amber-800">Balance short by <strong>Rp{{ shortfall|floatformat:0 }}</strong></span>
+      <a href="{% url 'dashboard:wallet' %}" class="text-xs text-amber-700 font-medium hover:underline">Top up</a>
+    </div>
+    {% endif %}
+
+    <!-- Auto-renew toggle -->
+    {% if sub.status != 'cancelled' %}
+    <div class="mt-3 flex items-center gap-3 text-sm text-gray-600">
+      <span>Auto-renew</span>
+      {% include "dashboard/partials/auto_renew_toggle.html" %}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white rounded-lg border border-gray-200 px-5 py-12 text-center text-gray-400">
+  <p class="text-sm">No subscriptions yet.</p>
+  <a href="/" class="mt-2 inline-block text-sm text-indigo-500 hover:underline">Browse store</a>
+</div>
+{% endif %}
+{% endblock %}

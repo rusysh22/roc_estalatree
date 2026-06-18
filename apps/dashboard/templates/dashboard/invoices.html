@@ -1,0 +1,52 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Invoices{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Invoices & Transactions</h1>
+
+<!-- Orders -->
+<section class="mb-8">
+  <h2 class="text-lg font-semibold mb-3">Orders</h2>
+  {% if orders %}
+  <div class="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+    {% for order in orders %}
+    <div class="flex items-center justify-between px-5 py-3">
+      <div>
+        <p class="font-medium text-sm">{{ order.plan }}</p>
+        <p class="text-xs text-gray-400">{{ order.created_at|date:"d M Y" }} · #{{ order.public_id }}</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-sm font-mono text-gray-700">Rp{{ order.amount|floatformat:0 }}</span>
+        <a href="{% url 'dashboard:refund_request' order.public_id %}"
+           class="text-xs text-gray-400 hover:text-red-500">Refund</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-sm text-gray-400">No orders yet.</p>
+  {% endif %}
+</section>
+
+<!-- Top-ups -->
+<section>
+  <h2 class="text-lg font-semibold mb-3">Top-ups</h2>
+  {% if topups %}
+  <div class="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+    {% for topup in topups %}
+    <div class="flex items-center justify-between px-5 py-3">
+      <div>
+        <p class="font-medium text-sm">Top-up</p>
+        <p class="text-xs text-gray-400">{{ topup.created_at|date:"d M Y" }} · #{{ topup.public_id }}</p>
+      </div>
+      <span class="text-sm font-mono text-green-600">+Rp{{ topup.amount|floatformat:0 }}
+        {% if topup.bonus %}<span class="text-xs text-green-400">+{{ topup.bonus|floatformat:0 }}</span>{% endif %}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-sm text-gray-400">No top-ups yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

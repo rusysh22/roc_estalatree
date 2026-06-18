@@ -1,0 +1,33 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Devices{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Devices & Installations</h1>
+
+{% if installations %}
+<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
+        <th class="text-left px-5 py-3">Fingerprint</th>
+        <th class="text-left px-5 py-3">Device name</th>
+        <th class="text-left px-5 py-3">License</th>
+        <th class="text-left px-5 py-3">Activated</th>
+        <th class="text-left px-5 py-3">Status</th>
+        <th class="text-right px-5 py-3">Action</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for installation in installations %}
+        {% include "dashboard/partials/device_row.html" %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-lg border border-gray-200 px-5 py-12 text-center text-gray-400">
+  <p class="text-sm">No devices registered.</p>
+  <p class="text-xs mt-1">Activate a license in your product to see it here.</p>
+</div>
+{% endif %}
+{% endblock %}

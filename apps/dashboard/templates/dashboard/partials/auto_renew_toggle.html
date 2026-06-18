@@ -1,0 +1,10 @@
+<button
+  hx-post="{% url 'dashboard:toggle_auto_renew' sub.pk %}"
+  hx-target="this"
+  hx-swap="outerHTML"
+  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none
+    {% if sub.auto_renew %}bg-indigo-600{% else %}bg-gray-200{% endif %}"
+  title="{% if sub.auto_renew %}Auto-renew on — click to turn off{% else %}Auto-renew off — click to turn on{% endif %}">
+  <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform
+    {% if sub.auto_renew %}translate-x-6{% else %}translate-x-1{% endif %}"></span>
+</button>

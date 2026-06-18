@@ -1,0 +1,48 @@
+{% extends "dashboard/base.html" %}
+{% block title %}My Products{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">My Products</h1>
+
+{% if licenses %}
+<div class="space-y-4">
+  {% for license in licenses %}
+  <div class="bg-white rounded-lg border border-gray-200 p-5">
+    <div class="flex items-start justify-between mb-3">
+      <div>
+        <p class="font-semibold">{{ license.plan.product.name }}</p>
+        <p class="text-xs text-gray-500">{{ license.plan.name }}</p>
+      </div>
+      <span class="text-xs px-2 py-0.5 rounded-full
+        {% if license.status == 'active' %}bg-green-100 text-green-700
+        {% elif license.status == 'suspended' %}bg-amber-100 text-amber-700
+        {% else %}bg-red-100 text-red-700{% endif %}">
+        {{ license.get_status_display }}
+      </span>
+    </div>
+
+    <!-- License key with copy -->
+    <div class="bg-gray-50 rounded border border-gray-200 flex items-center gap-2 px-3 py-2 mb-3">
+      <code class="flex-1 font-mono text-sm tracking-widest text-gray-800" id="key-{{ license.pk }}">{{ license.key }}</code>
+      <button
+        onclick="navigator.clipboard.writeText('{{ license.key }}').then(() => this.textContent='Copied!')"
+        class="text-xs text-indigo-600 hover:text-indigo-800 font-medium shrink-0 transition-all">
+        Copy
+      </button>
+    </div>
+
+    <!-- Seat usage -->
+    <div class="text-xs text-gray-500 flex items-center gap-4">
+      <span>Seats: {{ license.active_seat_count }}/{{ license.seat_limit }}</span>
+      <a href="{% url 'dashboard:devices' %}" class="text-indigo-500 hover:underline">Manage devices</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white rounded-lg border border-gray-200 px-5 py-12 text-center text-gray-400">
+  <p class="text-sm">No products yet.</p>
+  <a href="/" class="mt-2 inline-block text-sm text-indigo-500 hover:underline">Browse store</a>
+</div>
+{% endif %}
+{% endblock %}
