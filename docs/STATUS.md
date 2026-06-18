@@ -2,8 +2,8 @@
 
 > **Update this file whenever a task is completed.** It is the source of truth for cross-agent handoff. Format: check `[x]` + date + short note.
 
-**Active phase:** **Phase 2** — Wallet & Ledger (MONEY) — next.
-**Last updated:** 2026-06-18 — ADR closed-loop locked (ADR-019, compliance quick-ref); build plan reconciled with journey requirements + provisioning model; Phase 0 scaffold started.
+**Active phase:** **Phase 3** — Top-up (Duitku) — next.
+**Last updated:** 2026-06-18 — Phase 2 complete: wallet service layer (credit/debit atomic+idempotent), auto-create wallet signal, 21 tests green.
 
 ---
 
@@ -11,7 +11,7 @@
 
 - [x] **Phase 0** — Setup & Project Standards *(2026-06-18)*
 - [x] **Phase 1** — Domain Models (Spine) *(2026-06-18)*
-- [ ] **Phase 2** — Wallet & Ledger (MONEY)
+- [x] **Phase 2** — Wallet & Ledger (MONEY) *(2026-06-18)*
 - [ ] **Phase 3** — Top-up (Duitku)
 - [ ] **Phase 4** — Catalog & Checkout
 - [ ] **Phase 5** — Licensing & Activation API
@@ -30,6 +30,7 @@
 
 ## Work Log (per task)
 - 2026-06-18 — Docs: ADR closed-loop locked (ADR-019 Python/Django pin, compliance quick-ref table). Build plan reconciled with journey requirements (top-up-and-buy Phase 4, inline SSO Phase 4, webhook safety net Phase 3, unified work queue Phase 10, Superadmin first-run Phase 10, self-serve device mgmt Phase 8, panic controls Phase 5b/10e, Customer 360 Phase 10c, provisioning layer explicit Phase 1/5).
+- 2026-06-18 — Phase 2: wallet/services.py (credit + debit — atomic select_for_update, idempotent ref, InsufficientBalance guard); wallet/signals.py auto-creates Wallet on Customer.post_save (H3); tests/factories.py (User/Customer/Wallet); tests/test_wallet.py (21 tests: balance invariant, idempotency, overdraw, concurrency, immutability). docker-compose postgres remapped to port 5434 (5432 occupied by roc_support_desk).
 - 2026-06-18 — Phase 1 review fixes: H1 custom User (email/password, no username, AbstractBaseUser+PermissionsMixin, AUTH_USER_MODEL=accounts.User); H2 LedgerEntry+AuditLog save/delete raise TypeError at model level; H4 events.emit() via transaction.on_commit; M3 assign_unique_public_id/assign_unique_license_key with retry loop; L1 removed redundant Index on LedgerEntry.ref + License.key (unique=True already indexes). All migrations reset and regenerated.
 - 2026-06-18 — Phase 1: All domain models written + 9 initial migrations. SellerProfile, Customer, Wallet, LedgerEntry (immutable admin), Product, Plan, Order, TopUp, PaymentWebhook, Subscription, Deliverable, Entitlement (M2M Plans), Grant (has_entitlement/get_entitlements), Secret, License (XXXX-XXXX-XXXX Crockford key auto-gen, active_seat_count property), Installation (partial-unique constraint), Lead. All models in Django Admin (LedgerEntry/PaymentWebhook read-only). `manage.py check` 0 issues; `makemigrations --check` no changes.
 - 2026-06-18 — Phase 0: Full scaffold committed. `manage.py check` → 0 issues. uv lockfile committed. Includes: pyproject.toml (Django 5.2 + Ninja + allauth + Celery + Sentry + structlog), settings base/dev/prod, docker-compose.yml (pg+redis), .env.example, all 12 app skeletons (accounts wallet catalog billing provisioning licensing storefront console dashboard crm notifications core), core base models (TimestampedModel, SellerScopedModel, AuditLog, Setting), event bus (core/events.py), audit helper (core/audit.py), provisioner registry (provisioning/registry.py), CI (GitHub Actions: lint+test+makemigrations+pip-audit), pre-commit (black+ruff+isort+detect-secrets), golden-path smoke test stub (4 xfail stubs + 4 structural assertions).
