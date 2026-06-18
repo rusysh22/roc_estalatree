@@ -16,11 +16,16 @@ class TimestampedModel(models.Model):
 class SellerScopedModel(TimestampedModel):
     """Abstract base for business entities scoped to a seller (multi-tenant ready).
 
-    Single-merchant now: seller FK present but defaults to the one SellerProfile row.
-    See ADR-005.
+    Single-merchant now: seller is nullable (one default row). See ADR-005.
     """
 
-    # seller FK will be added in Phase 1 once SellerProfile exists.
+    seller = models.ForeignKey(
+        "accounts.SellerProfile",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
 
     class Meta:
         abstract = True
