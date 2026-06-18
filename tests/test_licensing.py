@@ -337,3 +337,108 @@ def test_activate_invalid_key():
     """Unknown license key returns invalid status."""
     result = activate("ZZZZ-ZZZZ-ZZZZ", fingerprint="fp-none")
     assert result["status"] == "invalid"
+
+
+# ── Phase 5 review tests ──────────────────────────────────────────────────────
+
+@pytest.mark.django_db(transaction=True)
+def test_activate_seat_limit_not_exceeded_sequentially(active_license):
+    """H1: seat limit is never exceeded even under rapid sequential activations."""
+    limit = active_license.seat_limit  # 2
+    results = [activate(active_license.key, fingerprint=f"fp-race-{i}") for i in range(limit + 1)]
+
+    statuses = [r["status"] for r in results]
+    assert statuses.count("active") == limit
+    assert statuses.count("seat_full") == 1
+
+    active_license.refresh_from_db()
+    assert active_license.active_seat_count == limit
+
+
+@pytest.mark.django_db
+def test_validate_after_deactivate_returns_deactivated(active_license):
+    """M1: validate after deactivation returns 'deactivated' — old token no longer works."""
+    activate(active_license.key, fingerprint="fp-m1-val")
+    token, _ = _issue_token(active_license.key, "fp-m1-val")
+
+    deactivate(active_license.key, fingerprint="fp-m1-val")
+
+    result = validate(active_license.key, "fp-m1-val", token)
+    assert result["status"] == "deactivated"
+
+
+@pytest.mark.django_db
+def test_revoke_writes_audit_log(active_license):
+    """M2: revoke() writes an AuditLog entry."""
+    from apps.core.models import AuditLog
+    from apps.provisioning.registry import get as get_provisioner
+
+    provisioner = get_provisioner("license_key")
+    grant = active_license.grant
+
+    before_count = AuditLog.objects.filter(action="license.revoked").count()
+    provisioner.revoke(grant)
+    after_count = AuditLog.objects.filter(action="license.revoked").count()
+
+    assert after_count == before_count + 1
+    entry = AuditLog.objects.filter(action="license.revoked").latest("created_at")
+    assert entry.target_type == "Grant"
+    assert entry.target_id == str(grant.pk)
+
+
+@pytest.mark.django_db
+def test_suspend_writes_audit_log(active_license):
+    """M2: suspend() writes an AuditLog entry."""
+    from apps.core.models import AuditLog
+    from apps.provisioning.registry import get as get_provisioner
+
+    provisioner = get_provisioner("license_key")
+    grant = active_license.grant
+
+    before_count = AuditLog.objects.filter(action="license.suspended").count()
+    provisioner.suspend(grant)
+    after_count = AuditLog.objects.filter(action="license.suspended").count()
+
+    assert after_count == before_count + 1
+
+
+@pytest.mark.django_db
+def test_api_requires_secret_when_configured(client, active_license):
+    """H2: when ACTIVATION_API_SECRET is set, requests without the header get 401."""
+    import json
+    from apps.core.models import Setting
+
+    Setting.objects.update_or_create(
+        key="ACTIVATION_API_SECRET", defaults={"value": "super-secret-123"}
+    )
+    try:
+        payload = json.dumps({"license_key": active_license.key, "fingerprint": "fp-h2"})
+
+        # No header → 401
+        response = client.post(
+            "/v1/activate",
+            data=payload,
+            content_type="application/json",
+        )
+        assert response.status_code == 401
+
+        # Wrong header → 401
+        response = client.post(
+            "/v1/activate",
+            data=payload,
+            content_type="application/json",
+            headers={"X-Estalatree-Secret": "wrong"},
+        )
+        assert response.status_code == 401
+
+        # Correct header → 200
+        response = client.post(
+            "/v1/activate",
+            data=payload,
+            content_type="application/json",
+            headers={"X-Estalatree-Secret": "super-secret-123"},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "active"
+    finally:
+        Setting.objects.filter(key="ACTIVATION_API_SECRET").delete()

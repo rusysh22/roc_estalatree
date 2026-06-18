@@ -63,19 +63,34 @@ class LicenseKeyProvisioner:
         logger.info("LicenseKeyProvisioner: renewed grant %s", grant.pk)
 
     def suspend(self, grant) -> None:
-        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.SUSPENDED)
+        from apps.core.audit import log_action
         from apps.licensing.models import License
+
+        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.SUSPENDED)
         License.objects.filter(grant=grant).update(status=License.Status.SUSPENDED)
+        log_action(
+            action="license.suspended",
+            target=grant,
+            meta={"grant_id": grant.pk, "provisioner": "license_key"},
+        )
         logger.info("LicenseKeyProvisioner: suspended grant %s", grant.pk)
 
     def resume(self, grant) -> None:
-        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.ACTIVE)
         from apps.licensing.models import License
+
+        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.ACTIVE)
         License.objects.filter(grant=grant).update(status=License.Status.ACTIVE)
         logger.info("LicenseKeyProvisioner: resumed grant %s", grant.pk)
 
     def revoke(self, grant) -> None:
-        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.REVOKED)
+        from apps.core.audit import log_action
         from apps.licensing.models import License
+
+        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.REVOKED)
         License.objects.filter(grant=grant).update(status=License.Status.REVOKED)
+        log_action(
+            action="license.revoked",
+            target=grant,
+            meta={"grant_id": grant.pk, "provisioner": "license_key"},
+        )
         logger.info("LicenseKeyProvisioner: revoked grant %s", grant.pk)
