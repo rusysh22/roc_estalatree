@@ -235,13 +235,24 @@ def test_normalize_number_already_normalized():
     assert normalize_number("6281234567890") == "6281234567890"
 
 
-# ── 10 + 11. Renewal reminders ────────────────────────────────────────────────
+# ── 10 + 11 + 12. Renewal reminders ──────────────────────────────────────────
+
+def _drain_wallet(customer):
+    """Drain wallet to 0 so shortfall > 0 (reminders only fire on shortfall)."""
+    from apps.wallet.models import LedgerEntry
+    from apps.wallet.services import debit
+    customer.wallet.refresh_from_db()
+    bal = customer.wallet.balance
+    if bal > 0:
+        debit(customer.wallet, bal, LedgerEntry.Type.PURCHASE,
+              ref="test:drain:reminders", note="")
+
 
 @pytest.mark.django_db
 @patch("apps.notifications.tasks.deliver_whatsapp")
 @patch("apps.notifications.tasks.deliver_email")
 def test_h3_reminder_dispatches_for_upcoming_sub(mock_email, mock_wa, active_subscription, customer_with_wa):
-    # Move period_end to ~3h from now (within H-3 window)
+    _drain_wallet(customer_with_wa)
     Subscription.objects.filter(pk=active_subscription.pk).update(
         current_period_end=timezone.now() + timedelta(hours=3)
     )
@@ -256,6 +267,7 @@ def test_h3_reminder_dispatches_for_upcoming_sub(mock_email, mock_wa, active_sub
 @patch("apps.notifications.tasks.deliver_whatsapp")
 @patch("apps.notifications.tasks.deliver_email")
 def test_h1_reminder_dispatches_for_very_soon_sub(mock_email, mock_wa, active_subscription, customer_with_wa):
+    _drain_wallet(customer_with_wa)
     Subscription.objects.filter(pk=active_subscription.pk).update(
         current_period_end=timezone.now() + timedelta(hours=1)
     )
@@ -269,8 +281,24 @@ def test_h1_reminder_dispatches_for_very_soon_sub(mock_email, mock_wa, active_su
 @pytest.mark.django_db
 @patch("apps.notifications.tasks.deliver_whatsapp")
 @patch("apps.notifications.tasks.deliver_email")
-def test_no_reminder_for_distant_subs(mock_email, mock_wa, active_subscription):
-    # 30 days out — outside both windows
+def test_no_reminder_when_balance_sufficient(mock_email, mock_wa, active_subscription):
+    # Balance (150_000) > plan price (50_000) — M2: no reminder needed
+    Subscription.objects.filter(pk=active_subscription.pk).update(
+        current_period_end=timezone.now() + timedelta(hours=3)
+    )
+
+    result = dispatch_renewal_reminders()
+
+    assert result["h3"] == 0
+    mock_wa.delay.assert_not_called()
+    mock_email.delay.assert_not_called()
+
+
+@pytest.mark.django_db
+@patch("apps.notifications.tasks.deliver_whatsapp")
+@patch("apps.notifications.tasks.deliver_email")
+def test_no_reminder_for_distant_subs(mock_email, mock_wa, active_subscription, customer_with_wa):
+    _drain_wallet(customer_with_wa)
     Subscription.objects.filter(pk=active_subscription.pk).update(
         current_period_end=timezone.now() + timedelta(days=30)
     )
@@ -281,3 +309,20 @@ def test_no_reminder_for_distant_subs(mock_email, mock_wa, active_subscription):
     assert result["h1"] == 0
     mock_wa.delay.assert_not_called()
     mock_email.delay.assert_not_called()
+
+
+@pytest.mark.django_db
+@patch("apps.notifications.tasks.deliver_whatsapp")
+@patch("apps.notifications.tasks.deliver_email")
+def test_reminder_dedup_prevents_double_send(mock_email, mock_wa, active_subscription, customer_with_wa):
+    """Calling dispatch_renewal_reminders twice for the same window must not double-send."""
+    _drain_wallet(customer_with_wa)
+    Subscription.objects.filter(pk=active_subscription.pk).update(
+        current_period_end=timezone.now() + timedelta(hours=3)
+    )
+
+    dispatch_renewal_reminders()
+    dispatch_renewal_reminders()
+
+    # Email sent exactly once despite two runs
+    assert mock_email.delay.call_count == 1

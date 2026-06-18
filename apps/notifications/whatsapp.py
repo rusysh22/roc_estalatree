@@ -14,8 +14,6 @@ import urllib.error
 import urllib.request
 from typing import Protocol, runtime_checkable
 
-from apps.core.models import Setting
-
 logger = logging.getLogger(__name__)
 
 
@@ -32,14 +30,18 @@ class ConsoleBackend:
 
 
 class FonnteBackend:
-    """Fonnte WA gateway. Requires WA_TOKEN Setting (device token from fonnte.com)."""
+    """Fonnte WA gateway. Requires WA_TOKEN env var (device token from fonnte.com).
+
+    H1: WA_TOKEN is a secret API credential — read from env only, never DB Setting.
+    """
 
     API_URL = "https://api.fonnte.com/send"
 
     def send(self, to_number: str, message: str) -> None:
-        token = Setting.get("WA_TOKEN", "")
+        import os
+        token = os.environ.get("WA_TOKEN", "")
         if not token:
-            logger.warning("FonnteBackend: WA_TOKEN not configured — message not sent to %s", to_number)
+            logger.warning("FonnteBackend: WA_TOKEN env var not set — message not sent to %s", to_number)
             return
 
         payload = json.dumps({"target": to_number, "message": message}).encode()
