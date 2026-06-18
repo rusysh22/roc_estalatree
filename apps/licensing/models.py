@@ -8,7 +8,7 @@ Status transitions per docs/14-state-machines.md — enforced in services.
 from django.db import models
 
 from apps.core.models import TimestampedModel
-from apps.licensing.utils import generate_license_key
+from apps.licensing.utils import assign_unique_license_key
 
 
 class License(TimestampedModel):
@@ -50,7 +50,7 @@ class License(TimestampedModel):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["key"]),
+            # L1 fix: key is unique=True so no separate Index needed
             models.Index(fields=["customer", "status"]),
         ]
 
@@ -59,7 +59,7 @@ class License(TimestampedModel):
 
     def save(self, *args, **kwargs):
         if not self.key:
-            self.key = generate_license_key()
+            assign_unique_license_key(self)
         super().save(*args, **kwargs)
 
     @property

@@ -93,6 +93,7 @@ DATABASES = {
     "default": env.db("DATABASE_URL", default="postgres://estalatree:estalatree@localhost:5432/estalatree")
 }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+AUTH_USER_MODEL = "accounts.User"
 
 # ── Cache / Redis ─────────────────────────────────────────────────────────────
 REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")

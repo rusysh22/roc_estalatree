@@ -32,7 +32,7 @@ class SellerScopedModel(TimestampedModel):
 
 
 class AuditLog(models.Model):
-    """Immutable audit trail. Never update or delete rows."""
+    """Immutable audit trail. Never update or delete rows — enforced at model level."""
 
     actor = models.ForeignKey(
         get_user_model(),
@@ -53,6 +53,14 @@ class AuditLog(models.Model):
             models.Index(fields=["target_type", "target_id"]),
             models.Index(fields=["actor", "created_at"]),
         ]
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None:
+            raise TypeError("AuditLog entries are immutable — updates are not allowed.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise TypeError("AuditLog entries are immutable — deletion is not allowed.")
 
     def __str__(self) -> str:
         return f"{self.actor} · {self.action} · {self.created_at:%Y-%m-%d %H:%M}"

@@ -24,7 +24,7 @@ class Wallet(TimestampedModel):
 
 
 class LedgerEntry(models.Model):
-    """Immutable ledger record. Never update or delete — enforced in service layer + Admin."""
+    """Immutable ledger record. Never update or delete — enforced at model level + Admin."""
 
     class Type(models.TextChoices):
         TOPUP = "topup", "Top-up"
@@ -46,8 +46,16 @@ class LedgerEntry(models.Model):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["wallet", "created_at"]),
-            models.Index(fields=["ref"]),
+            # L1 fix: ref is unique=True so no separate Index needed
         ]
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None:
+            raise TypeError("LedgerEntry records are immutable — updates are not allowed.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise TypeError("LedgerEntry records are immutable — deletion is not allowed.")
 
     def __str__(self) -> str:
         sign = "+" if self.amount >= 0 else ""

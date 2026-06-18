@@ -6,7 +6,7 @@ public_id values are generated via apps.core.utils.generate_public_id.
 from django.db import models
 
 from apps.core.models import TimestampedModel
-from apps.core.utils import generate_public_id
+from apps.core.utils import assign_unique_public_id
 
 
 class TopUp(TimestampedModel):
@@ -47,7 +47,7 @@ class TopUp(TimestampedModel):
 
     def save(self, *args, **kwargs):
         if not self.public_id:
-            self.public_id = generate_public_id("top_")
+            assign_unique_public_id(self, "top_")
         super().save(*args, **kwargs)
 
 
@@ -84,7 +84,7 @@ class Order(TimestampedModel):
 
     def save(self, *args, **kwargs):
         if not self.public_id:
-            self.public_id = generate_public_id("ord_")
+            assign_unique_public_id(self, "ord_")
         super().save(*args, **kwargs)
 
 

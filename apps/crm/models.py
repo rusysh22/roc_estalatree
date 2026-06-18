@@ -3,7 +3,7 @@ from django.conf import settings
 from django.db import models
 
 from apps.core.models import TimestampedModel
-from apps.core.utils import generate_public_id
+from apps.core.utils import assign_unique_public_id
 
 
 class Lead(TimestampedModel):
@@ -45,5 +45,5 @@ class Lead(TimestampedModel):
 
     def save(self, *args, **kwargs):
         if not self.public_id:
-            self.public_id = generate_public_id("lead_")
+            assign_unique_public_id(self, "lead_")
         super().save(*args, **kwargs)
