@@ -76,11 +76,47 @@ def test_golden_path_buy():
     raise NotImplementedError
 
 
-@pytest.mark.xfail(reason="Phase 5: Activation API not yet implemented", strict=False)
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_golden_path_activate():
     """OSS product activates a license key; token returned; seat counted."""
-    raise NotImplementedError
+    from apps.billing.checkout import checkout
+    from apps.catalog.models import Plan, Product
+    from apps.licensing.models import Installation, License
+    from apps.licensing.services import activate
+    from apps.wallet.models import LedgerEntry
+    from apps.wallet.services import credit
+    from tests.factories import CustomerFactory, DeliverableFactory, PlanFactory, ProductFactory
+
+    customer = CustomerFactory()
+    credit(
+        customer.wallet,
+        100_000,
+        LedgerEntry.Type.ADJUSTMENT,
+        ref="smoke:activate:fund",
+        note="smoke test setup",
+    )
+
+    product = ProductFactory(type=Product.Type.ONE_TIME)
+    plan = PlanFactory(product=product, price=100_000, interval=Plan.Interval.NONE)
+    DeliverableFactory(plan=plan, type="license_key")
+
+    order, grants, _ = checkout(
+        customer=customer,
+        plan=plan,
+        checkout_key="smoke:activate:ck001",
+        callback_url="https://example.com/webhook/",
+        return_url="https://example.com/return/",
+    )
+    assert len(grants) == 1
+    license = License.objects.get(grant=grants[0])
+    assert license.status == License.Status.ACTIVE
+
+    result = activate(license.key, fingerprint="smoke-fp-001", machine_name="SMOKE-PC")
+    assert result["status"] == "active"
+    assert result["token"]
+    assert Installation.objects.filter(
+        license=license, fingerprint="smoke-fp-001", status=Installation.Status.ACTIVE
+    ).exists()
 
 
 @pytest.mark.xfail(reason="Phase 6: Subscription renewal not yet implemented", strict=False)

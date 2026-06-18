@@ -2,7 +2,7 @@
 
 > **Update this file whenever a task is completed.** It is the source of truth for cross-agent handoff. Format: check `[x]` + date + short note.
 
-**Active phase:** **Phase 4** — Catalog & Checkout — next.
+**Active phase:** **Phase 6** — Subscriptions & Background Jobs — next.
 **Last updated:** 2026-06-18 — Phase 2 complete: wallet service layer (credit/debit atomic+idempotent), auto-create wallet signal, 21 tests green.
 
 ---
@@ -13,8 +13,8 @@
 - [x] **Phase 1** — Domain Models (Spine) *(2026-06-18)*
 - [x] **Phase 2** — Wallet & Ledger (MONEY) *(2026-06-18)*
 - [x] **Phase 3** — Top-up (Duitku) *(2026-06-18)*
-- [ ] **Phase 4** — Catalog & Checkout
-- [ ] **Phase 5** — Licensing & Activation API
+- [x] **Phase 4** — Catalog & Checkout *(2026-06-18)*
+- [x] **Phase 5** — Licensing & Activation API *(2026-06-18)*
 - [ ] **Phase 6** — Subscriptions & Background Jobs
 - [ ] **Phase 7** — Notifications
 - [ ] **Phase 8** — Customer Dashboard (HTMX)
