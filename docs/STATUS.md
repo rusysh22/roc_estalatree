@@ -2,8 +2,8 @@
 
 > **Update this file whenever a task is completed.** It is the source of truth for cross-agent handoff. Format: check `[x]` + date + short note.
 
-**Active phase:** **Phase 9** — Public Storefront — next.
-**Last updated:** 2026-06-18 — Phase 8 complete: customer dashboard (home, wallet, products, devices, subscriptions, invoices, profile, support, refund request), HTMX auto-renew toggle + device deactivate, renewal CTA banner, 21 tests green (136 total).
+**Active phase:** **Phase 10** — Superadmin & Admin Tooling — next.
+**Last updated:** 2026-06-18 — Phase 9 complete: public storefront (store page with blocks, product detail, checkout, top-up-and-buy, contact Lead flow, order status), 17 tests green (153 total).
 
 ---
 
@@ -18,7 +18,7 @@
 - [x] **Phase 6** — Subscriptions & Background Jobs *(2026-06-18)*
 - [x] **Phase 7** — Notifications *(2026-06-18)*
 - [x] **Phase 8** — Customer Dashboard (HTMX) *(2026-06-18)*
-- [ ] **Phase 9** — Public Storefront
+- [x] **Phase 9** — Public Storefront *(2026-06-18)*
 - [ ] **Phase 10** — Superadmin & Admin Tooling
 - [ ] **Phase 11** — Polish & Multi-ready
 

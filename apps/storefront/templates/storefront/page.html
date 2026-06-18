@@ -1,0 +1,96 @@
+{% extends "storefront/base.html" %}
+{% block title %}{% if store_page %}{{ store_page.title }}{% else %}Store{% endif %}{% endblock %}
+
+{% block content %}
+{% if store_page %}
+  <!-- Store header -->
+  <div class="text-center mb-10">
+    {% if store_page.avatar_url %}
+    <img src="{{ store_page.avatar_url }}" alt="{{ store_page.title }}"
+         class="w-20 h-20 rounded-full mx-auto mb-4 object-cover">
+    {% endif %}
+    <h1 class="text-2xl font-bold text-gray-900">{{ store_page.title }}</h1>
+    {% if store_page.description %}
+    <p class="text-gray-500 mt-2 max-w-md mx-auto">{{ store_page.description }}</p>
+    {% endif %}
+  </div>
+
+  <!-- Blocks -->
+  <div class="space-y-4">
+    {% for block in blocks %}
+
+      {% if block.type == "heading" %}
+        <h2 class="text-lg font-semibold text-gray-700 pt-2">{{ block.config.text }}</h2>
+
+      {% elif block.type == "text" %}
+        <p class="text-gray-600 text-sm">{{ block.config.text }}</p>
+
+      {% elif block.type == "link" %}
+        <a href="{{ block.config.url }}" target="_blank" rel="noopener noreferrer"
+           class="block bg-white rounded-xl border border-gray-200 px-5 py-4 hover:border-indigo-300 hover:shadow-sm transition text-center font-medium text-gray-800">
+          {{ block.config.label|default:block.config.url }}
+        </a>
+
+      {% elif block.type == "product" and block.product %}
+        {% with product=block.product %}
+        <div class="bg-white rounded-xl border border-gray-200 p-5">
+          <div class="flex items-start justify-between mb-3">
+            <div>
+              <h3 class="font-semibold text-gray-900">{{ product.name }}</h3>
+              {% if product.description %}
+              <p class="text-sm text-gray-500 mt-0.5 line-clamp-2">{{ product.description }}</p>
+              {% endif %}
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded-full ml-3
+              {% if product.type == 'free' %}bg-green-100 text-green-700
+              {% elif product.type == 'contact' %}bg-purple-100 text-purple-700
+              {% elif product.type == 'recurring' %}bg-blue-100 text-blue-700
+              {% else %}bg-gray-100 text-gray-600{% endif %}">
+              {{ product.get_type_display }}
+            </span>
+          </div>
+
+          {% if product.type == "contact" %}
+            <a href="{% url 'storefront:contact' product.pk %}"
+               class="inline-block bg-green-500 hover:bg-green-600 text-white font-medium text-sm px-5 py-2 rounded-lg">
+              Contact via WhatsApp
+            </a>
+          {% else %}
+            {% for plan in product.plans.all %}
+            {% if plan.is_active %}
+            <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-100 first:border-0 first:pt-0 first:mt-0">
+              <div>
+                <span class="text-sm font-medium text-gray-800">{{ plan.name }}</span>
+                {% if plan.interval != "none" %}
+                <span class="text-xs text-gray-400 ml-1">/ {{ plan.get_interval_display }}</span>
+                {% endif %}
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="font-semibold text-gray-900">
+                  {% if plan.price == 0 %}Free{% else %}Rp{{ plan.price|floatformat:0 }}{% endif %}
+                </span>
+                <a href="{% url 'storefront:checkout' plan.pk %}"
+                   class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-4 py-1.5 rounded-lg">
+                  {% if plan.price == 0 %}Get free{% else %}Buy{% endif %}
+                </a>
+              </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+          {% endif %}
+        </div>
+        {% endwith %}
+      {% endif %}
+
+    {% empty %}
+      <p class="text-center text-gray-400 text-sm py-8">No products yet.</p>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="text-center py-20">
+    <h1 class="text-2xl font-bold text-gray-900 mb-2">Store coming soon</h1>
+    <p class="text-gray-500 text-sm">Check back later.</p>
+  </div>
+{% endif %}
+{% endblock %}
