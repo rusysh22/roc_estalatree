@@ -2,11 +2,13 @@
 
 Money rules:
 - Wallet is ONLY credited through wallet/services.py credit().
-- ref namespacing: topup:<public_id>, bonus:<public_id>
+- refs namespaced: topup:<public_id>, bonus:<public_id>
 - Every credit call is idempotent — safe to retry.
 - Webhook processing is guarded by PaymentWebhook.idempotency_key (unique).
+- Bonus credit lives inside the same atomic block as the topup credit (H2).
 """
 import logging
+from datetime import timedelta
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -16,6 +18,13 @@ from apps.wallet.models import LedgerEntry
 from apps.wallet.services import credit
 
 logger = logging.getLogger(__name__)
+
+# Must match expiryPeriod sent to Duitku in create_invoice().
+TOPUP_EXPIRY_MINUTES = 1440  # 24 hours
+
+
+class TopUpNotFoundError(Exception):
+    """Raised when a Duitku webhook references a TopUp that doesn't exist locally (M3)."""
 
 
 # ── Top-up initiation ─────────────────────────────────────────────────────────
@@ -66,8 +75,11 @@ def initiate_topup(
 def _apply_topup_success(topup: TopUp) -> bool:
     """Credit the wallet for a confirmed-paid TopUp. Idempotent.
 
-    Returns True if the credit was applied, False if TopUp was already PAID.
-    Uses select_for_update to prevent concurrent double-credit.
+    H2: bonus credit is inside the same atomic block as the topup credit —
+    either both happen or neither (atomicity). The bonus:<id> ref keeps it
+    idempotent on retries.
+
+    Returns True if credit was applied, False if TopUp was already PAID.
     """
     with transaction.atomic():
         locked = TopUp.objects.select_for_update().get(pk=topup.pk)
@@ -84,19 +96,18 @@ def _apply_topup_success(topup: TopUp) -> bool:
             note=f"Duitku top-up {locked.gateway_ref or locked.public_id}",
         )
 
+        if locked.bonus > 0:
+            credit(
+                wallet=wallet,
+                amount=locked.bonus,
+                entry_type=LedgerEntry.Type.BONUS,
+                ref=f"bonus:{locked.public_id}",
+                note=f"Top-up promotional bonus for {locked.public_id}",
+            )
+
         locked.ledger_entry = topup_entry
         locked.status = TopUp.Status.PAID
         locked.save(update_fields=["status", "ledger_entry", "updated_at"])
-
-    # Bonus credited outside the topup lock (already idempotent via credit() ref).
-    if topup.bonus > 0:
-        credit(
-            wallet=topup.customer.wallet,
-            amount=topup.bonus,
-            entry_type=LedgerEntry.Type.BONUS,
-            ref=f"bonus:{topup.public_id}",
-            note=f"Top-up promotional bonus for {topup.public_id}",
-        )
 
     return True
 
@@ -113,26 +124,33 @@ def process_webhook_payload(
     """Verify, record, and process a Duitku payment webhook.
 
     Idempotent: same idempotency_key → returns existing record, no double-credit.
-    Raises ValueError on invalid signature — caller should return HTTP 400.
+    Raises ValueError on invalid signature or unparseable amount.
+    Raises TopUpNotFoundError when no TopUp matches the order ID (M3 → 500).
     """
     # ── Signature verification (before touching the DB) ───────────────────────
     if duitku_client is None:
         from apps.billing.duitku import DuitkuClient
         duitku_client = DuitkuClient.from_settings()
 
-    merchant_code = payload.get("merchantCode", "")
-    amount = int(payload.get("amount", 0))
+    merchant_code = str(payload.get("merchantCode", ""))
     merchant_order_id = str(payload.get("merchantOrderId", ""))
-    signature = payload.get("signature", "")
     result_code = str(payload.get("resultCode", ""))
+    signature = str(payload.get("signature", ""))
+
+    # LOW: defensive amount parsing — Duitku may send int or string
+    try:
+        amount = int(float(payload.get("amount", 0)))
+    except (ValueError, TypeError) as exc:
+        raise ValueError(
+            f"Invalid amount in webhook payload: {payload.get('amount')!r}"
+        ) from exc
 
     if not duitku_client.verify_webhook_signature(merchant_code, amount, merchant_order_id, signature):
         raise ValueError(
             f"Invalid Duitku webhook signature for order {merchant_order_id!r}"
         )
 
-    # ── Idempotency gate ──────────────────────────────────────────────────────
-    # Wrapped in a savepoint so IntegrityError doesn't abort the outer transaction.
+    # ── Idempotency gate (savepoint so IntegrityError doesn't abort outer tx) ──
     try:
         with transaction.atomic():
             webhook = PaymentWebhook.objects.create(
@@ -141,7 +159,6 @@ def process_webhook_payload(
                 payload=payload,
             )
     except IntegrityError:
-        # Already recorded — fetch and return (idempotent no-op).
         webhook = PaymentWebhook.objects.get(idempotency_key=idempotency_key)
         logger.info("Duplicate webhook ignored: %s", idempotency_key)
         return webhook
@@ -155,15 +172,31 @@ def process_webhook_payload(
         )
         return webhook
 
-    # ── Apply credit ──────────────────────────────────────────────────────────
+    # ── Find the TopUp ────────────────────────────────────────────────────────
     try:
         topup = TopUp.objects.get(public_id=merchant_order_id)
     except TopUp.DoesNotExist:
+        # M3: raise so the view returns 500 — lets Duitku retry (race/lag plausible).
         logger.error(
-            "Duitku webhook: no TopUp found for merchantOrderId=%s", merchant_order_id
+            "Duitku webhook: no TopUp found for merchantOrderId=%s — will retry",
+            merchant_order_id,
+        )
+        raise TopUpNotFoundError(
+            f"No TopUp found for merchantOrderId={merchant_order_id!r}"
+        )
+
+    # ── M1: amount cross-check ─────────────────────────────────────────────────
+    if amount != topup.amount:
+        # M1: do not credit; leave processed_at=None so System Health can surface it.
+        logger.error(
+            "Duitku webhook amount mismatch: order=%s claimed=%s expected=%s — not crediting",
+            merchant_order_id,
+            amount,
+            topup.amount,
         )
         return webhook
 
+    # ── Apply credit ──────────────────────────────────────────────────────────
     applied = _apply_topup_success(topup)
     if applied:
         logger.info("TopUp %s credited via webhook %s", topup.public_id, idempotency_key)
@@ -179,6 +212,8 @@ def recheck_topup_status(topup: TopUp, *, duitku_client=None) -> None:
     """Poll Duitku for a single pending TopUp and apply if confirmed paid.
 
     Called by the Celery safety-net task for TopUps whose webhook never arrived.
+    M1: cross-checks Duitku-reported amount against local record before crediting.
+    M4: marks EXPIRED when still pending after TOPUP_EXPIRY_MINUTES.
     """
     topup.refresh_from_db()  # caller's instance may be stale
     if topup.status != TopUp.Status.PENDING:
@@ -195,13 +230,36 @@ def recheck_topup_status(topup: TopUp, *, duitku_client=None) -> None:
         return
 
     if status.is_success:
+        # M1: cross-check amount when Duitku provides it
+        if status.amount > 0 and status.amount != topup.amount:
+            logger.error(
+                "Safety-net amount mismatch: order=%s duitku=%s expected=%s — not crediting",
+                topup.public_id,
+                status.amount,
+                topup.amount,
+            )
+            return
         logger.info(
             "Safety-net: Duitku confirms payment for %s — applying credit", topup.public_id
         )
         _apply_topup_success(topup)
+
     elif status.is_failed:
         logger.info("Safety-net: Duitku reports failed for %s", topup.public_id)
         TopUp.objects.filter(pk=topup.pk, status=TopUp.Status.PENDING).update(
             status=TopUp.Status.FAILED
         )
-    # is_pending → no action; task will retry on next run
+
+    else:
+        # M4: still pending — mark EXPIRED if past the invoice expiry window
+        expiry_time = topup.created_at + timedelta(minutes=TOPUP_EXPIRY_MINUTES)
+        if timezone.now() > expiry_time:
+            updated = TopUp.objects.filter(
+                pk=topup.pk, status=TopUp.Status.PENDING
+            ).update(status=TopUp.Status.EXPIRED)
+            if updated:
+                logger.info(
+                    "Safety-net: TopUp %s marked EXPIRED (past %d min window)",
+                    topup.public_id,
+                    TOPUP_EXPIRY_MINUTES,
+                )

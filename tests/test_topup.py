@@ -12,10 +12,12 @@ All Duitku network calls are replaced by MockDuitkuClient — no real credential
 """
 import hashlib
 import json
+from datetime import timedelta
 
 import pytest
 from django.test import Client
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.billing.duitku import InvoiceResult, TransactionStatus
 from apps.billing.models import PaymentWebhook, TopUp
@@ -181,6 +183,7 @@ def test_webhook_with_bonus_creates_two_entries(customer, mock_client):
 
 @pytest.mark.django_db
 def test_webhook_duplicate_no_double_credit(customer, mock_client):
+    """Same resultCode + same order → idempotency key dedupes correctly (M2 key format)."""
     topup, _ = initiate_topup(
         customer, 50_000,
         callback_url="https://example.com/cb",
@@ -188,7 +191,7 @@ def test_webhook_duplicate_no_double_credit(customer, mock_client):
         duitku_client=mock_client,
     )
     payload = make_webhook_payload(mock_client, topup.public_id, 50_000)
-    idem_key = f"duitku:{topup.public_id}"
+    idem_key = f"duitku:{topup.public_id}:00"  # M2: key includes resultCode
 
     process_webhook_payload("duitku", idem_key, payload, duitku_client=mock_client)
     process_webhook_payload("duitku", idem_key, payload, duitku_client=mock_client)
@@ -343,7 +346,7 @@ def test_recheck_already_paid_is_noop(customer, mock_client):
         duitku_client=mock_client,
     )
     payload = make_webhook_payload(mock_client, topup.public_id, 80_000)
-    process_webhook_payload("duitku", f"duitku:{topup.public_id}", payload, duitku_client=mock_client)
+    process_webhook_payload("duitku", f"duitku:{topup.public_id}:00", payload, duitku_client=mock_client)
 
     success_client = MockDuitkuClient(check_status_code="00")
     recheck_topup_status(topup, duitku_client=success_client)
@@ -353,3 +356,125 @@ def test_recheck_already_paid_is_noop(customer, mock_client):
 
     customer.wallet.refresh_from_db()
     assert customer.wallet.balance == 80_000  # unchanged — idempotent
+
+
+# ── M1: amount mismatch ───────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_webhook_amount_mismatch_not_credited(customer, mock_client):
+    """Webhook with amount != topup.amount must not credit the wallet (M1)."""
+    topup, _ = initiate_topup(
+        customer, 100_000,
+        callback_url="https://example.com/cb",
+        return_url="https://example.com/return",
+        duitku_client=mock_client,
+    )
+    # Duitku reports a different amount (e.g. underpayment)
+    payload = make_webhook_payload(mock_client, topup.public_id, 50_000)  # wrong amount
+    webhook = process_webhook_payload(
+        "duitku", f"duitku:{topup.public_id}:00", payload, duitku_client=mock_client
+    )
+
+    topup.refresh_from_db()
+    assert topup.status == TopUp.Status.PENDING  # unchanged
+    customer.wallet.refresh_from_db()
+    assert customer.wallet.balance == 0
+    # Webhook is recorded but processed_at stays None — anomaly visible in System Health (Phase 10)
+    assert webhook.processed_at is None
+
+
+@pytest.mark.django_db
+def test_recheck_amount_mismatch_not_credited(customer, mock_client):
+    """Safety-net: Duitku-reported amount != topup.amount → not credited (M1)."""
+    topup, _ = initiate_topup(
+        customer, 100_000,
+        callback_url="https://example.com/cb",
+        return_url="https://example.com/return",
+        duitku_client=mock_client,
+    )
+
+    class MismatchDuitkuClient(MockDuitkuClient):
+        def check_transaction(self, merchant_order_id):
+            self.check_calls.append(merchant_order_id)
+            return TransactionStatus(
+                status_code="00",
+                status_message="Success",
+                amount=50_000,  # wrong — should be 100_000
+                reference=f"REF-{merchant_order_id}",
+            )
+
+    recheck_topup_status(topup, duitku_client=MismatchDuitkuClient())
+
+    topup.refresh_from_db()
+    assert topup.status == TopUp.Status.PENDING
+    customer.wallet.refresh_from_db()
+    assert customer.wallet.balance == 0
+
+
+# ── M2: non-success then success callback ─────────────────────────────────────
+
+@pytest.mark.django_db
+def test_non_success_then_success_credits(customer, mock_client):
+    """Non-success callback followed by success callback must credit the wallet (M2).
+
+    With resultCode in the idempotency key, the success callback is a distinct
+    record and is not deduped against the earlier non-success one.
+    """
+    topup, _ = initiate_topup(
+        customer, 70_000,
+        callback_url="https://example.com/cb",
+        return_url="https://example.com/return",
+        duitku_client=mock_client,
+    )
+
+    # First callback: payment pending / failed
+    non_success_payload = make_webhook_payload(mock_client, topup.public_id, 70_000, result_code="01")
+    process_webhook_payload(
+        "duitku", f"duitku:{topup.public_id}:01", non_success_payload, duitku_client=mock_client
+    )
+
+    topup.refresh_from_db()
+    assert topup.status == TopUp.Status.PENDING  # not yet paid
+
+    # Second callback: payment confirmed
+    success_payload = make_webhook_payload(mock_client, topup.public_id, 70_000, result_code="00")
+    process_webhook_payload(
+        "duitku", f"duitku:{topup.public_id}:00", success_payload, duitku_client=mock_client
+    )
+
+    topup.refresh_from_db()
+    assert topup.status == TopUp.Status.PAID
+    customer.wallet.refresh_from_db()
+    assert customer.wallet.balance == 70_000
+    # Two webhook records: one per resultCode
+    assert PaymentWebhook.objects.filter(gateway="duitku").count() == 2
+
+
+# ── M4: expiry handling ───────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_recheck_marks_expired_after_window(customer, mock_client):
+    """Safety-net marks EXPIRED when still pending after TOPUP_EXPIRY_MINUTES (M4)."""
+    from apps.billing.services import TOPUP_EXPIRY_MINUTES
+    from unittest.mock import patch
+
+    topup, _ = initiate_topup(
+        customer, 50_000,
+        callback_url="https://example.com/cb",
+        return_url="https://example.com/return",
+        duitku_client=mock_client,
+    )
+
+    pending_client = MockDuitkuClient(check_status_code="02")  # still pending
+
+    # Simulate time past expiry by backdating created_at
+    past_time = timezone.now() - timedelta(minutes=TOPUP_EXPIRY_MINUTES + 1)
+    TopUp.objects.filter(pk=topup.pk).update(created_at=past_time)
+    topup.refresh_from_db()
+
+    recheck_topup_status(topup, duitku_client=pending_client)
+
+    topup.refresh_from_db()
+    assert topup.status == TopUp.Status.EXPIRED
+    customer.wallet.refresh_from_db()
+    assert customer.wallet.balance == 0

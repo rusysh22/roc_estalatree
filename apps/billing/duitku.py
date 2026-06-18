@@ -65,25 +65,42 @@ class DuitkuClient:
 
     @classmethod
     def from_settings(cls) -> "DuitkuClient":
-        """Instantiate from Setting model or Django settings. Raises DuitkuError if unconfigured."""
+        """Instantiate from Setting model / env. Raises DuitkuError if unconfigured.
+
+        Security (H1):
+          DUITKU_MERCHANT_CODE — non-sensitive; readable from Setting model OR env.
+          DUITKU_API_KEY       — secret; read from env ONLY (os.environ / Django settings
+                                 attr which itself comes from .env). Never from Setting/DB
+                                 to prevent leakage via DB backups or Admin.
+          DUITKU_SANDBOX       — flag; readable from Setting model OR env.
+        """
+        import os
+
         from django.conf import settings as django_settings
 
         from apps.core.models import Setting
 
+        # Non-sensitive: Setting model → env fallback
         merchant_code = Setting.get("DUITKU_MERCHANT_CODE") or getattr(
             django_settings, "DUITKU_MERCHANT_CODE", ""
-        )
-        api_key = Setting.get("DUITKU_API_KEY") or getattr(
+        ) or os.environ.get("DUITKU_MERCHANT_CODE", "")
+
+        # Secret: env ONLY — never Setting/DB
+        api_key = os.environ.get("DUITKU_API_KEY", "") or getattr(
             django_settings, "DUITKU_API_KEY", ""
         )
-        sandbox_raw = Setting.get("DUITKU_SANDBOX", "true")
+
+        sandbox_raw = Setting.get("DUITKU_SANDBOX", "true") or os.environ.get(
+            "DUITKU_SANDBOX", "true"
+        )
         sandbox = sandbox_raw.strip().lower() != "false"
         base_url = SANDBOX_URL if sandbox else PRODUCTION_URL
 
         if not merchant_code or not api_key:
             raise DuitkuError(
-                "Duitku credentials not configured. Set DUITKU_MERCHANT_CODE and "
-                "DUITKU_API_KEY via Setting model or Django settings."
+                "Duitku credentials not configured. "
+                "DUITKU_MERCHANT_CODE: Setting model or env. "
+                "DUITKU_API_KEY: env only (never DB)."
             )
         return cls(merchant_code=merchant_code, api_key=api_key, base_url=base_url)
 
