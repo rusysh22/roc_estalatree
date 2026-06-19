@@ -114,11 +114,14 @@ def wallet(request):
         customer=customer, status=TopUp.Status.PENDING
     ).order_by("-created_at")
 
+    _next_sub, _hours, shortfall = _renewal_forecast(customer)
+
     return render(request, "dashboard/wallet.html", {
         "customer": customer,
         "wallet": customer.wallet,
         "page": page,
         "pending_topups": pending_topups,
+        "shortfall": shortfall,
     })
 
 

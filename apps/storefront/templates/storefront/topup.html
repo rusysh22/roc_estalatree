@@ -36,6 +36,7 @@
           max="{{ max_topup }}"
           step="1000"
           placeholder="Enter amount"
+          value="{% if prefill_amount %}{{ prefill_amount }}{% endif %}"
           required
           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
         <p class="text-xs text-gray-400 mt-1">Min {{ min_topup|rupiah }} &middot; Max {{ max_topup|rupiah }}</p>

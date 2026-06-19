@@ -254,6 +254,11 @@ def topup(request):
                 logger.error("topup initiation failed: %s", exc)
                 messages.error(request, "Top-up unavailable right now. Please try again.")
 
+    try:
+        prefill_amount = int(request.GET.get("amount", 0))
+    except (ValueError, TypeError):
+        prefill_amount = 0
+
     quick_amounts = [
         {"value": v, "label": f"{v:,}"}
         for v in [50_000, 100_000, 200_000, 500_000, 1_000_000, 2_000_000]
@@ -264,6 +269,7 @@ def topup(request):
         "quick_amounts": quick_amounts,
         "min_topup": MIN_TOPUP,
         "max_topup": MAX_TOPUP,
+        "prefill_amount": prefill_amount,
     })
 
 

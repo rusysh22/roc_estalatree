@@ -1,25 +1,45 @@
-﻿{% extends "dashboard/base.html" %}
+{% extends "dashboard/base.html" %}
 {% load money %}
 {% block page_title %}Wallet{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">Wallet & Balance</h1>
+<h1 class="text-2xl font-bold mb-6">Wallet &amp; Balance</h1>
 
-<div class="bg-white rounded-lg border border-gray-200 p-6 mb-6 flex items-center justify-between">
-  <div>
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Current Balance</p>
-    <p class="text-3xl font-bold text-indigo-600">{{ wallet.balance|rupiah }}</p>
+<!-- Balance card -->
+<div class="bg-white rounded-xl border border-gray-200 p-6 mb-4">
+  <div class="flex items-start justify-between">
+    <div>
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Current Balance</p>
+      <p class="text-3xl font-bold text-indigo-600">{{ wallet.balance|rupiah }}</p>
+      {% if shortfall and shortfall > 0 %}
+      <p class="text-xs text-red-600 mt-1 flex items-center gap-1">
+        <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+        Balance short {{ shortfall|rupiah }} for next renewal
+      </p>
+      {% endif %}
+    </div>
+    <a href="{% url 'storefront:topup' %}"
+       class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm shrink-0">
+      Top up
+    </a>
   </div>
-  <a href="{% url 'storefront:topup' %}"
-     class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm">
-    Top up
-  </a>
+
+  <!-- Quick top-up chips -->
+  <div class="mt-4 pt-4 border-t border-gray-100">
+    <p class="text-xs text-gray-500 mb-2">Quick top-up</p>
+    <div class="flex flex-wrap gap-2">
+      <a href="{% url 'storefront:topup' %}?amount=50000"  class="border border-indigo-200 text-indigo-700 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors">Rp50.000</a>
+      <a href="{% url 'storefront:topup' %}?amount=100000" class="border border-indigo-200 text-indigo-700 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors">Rp100.000</a>
+      <a href="{% url 'storefront:topup' %}?amount=200000" class="border border-indigo-200 text-indigo-700 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors">Rp200.000</a>
+      <a href="{% url 'storefront:topup' %}?amount=500000" class="border border-indigo-200 text-indigo-700 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors">Rp500.000</a>
+    </div>
+  </div>
 </div>
 
 {% if pending_topups %}
 <!-- Pending top-ups -->
-<div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-  <p class="text-sm font-medium text-amber-800 mb-2">Pending Top-ups</p>
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+  <p class="text-sm font-semibold text-amber-800 mb-2">Pending Top-ups</p>
   <div class="space-y-2">
     {% for topup in pending_topups %}
     <div class="flex items-center justify-between text-sm">
@@ -28,16 +48,15 @@
     </div>
     {% endfor %}
   </div>
-  <p class="text-xs text-amber-600 mt-2">Complete payment via the checkout link sent to you. Balance will update once confirmed.</p>
+  <p class="text-xs text-amber-600 mt-2">Complete payment via the checkout link. Balance updates automatically once confirmed.</p>
 </div>
 {% endif %}
 
 <!-- Ledger history -->
 <section>
   <h2 class="text-lg font-semibold mb-3">Transaction History</h2>
-  <div id="ledger-table" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+  <div id="ledger-table" class="bg-white rounded-xl border border-gray-200 overflow-hidden">
     {% include "dashboard/partials/ledger_rows.html" %}
   </div>
 </section>
 {% endblock %}
-
