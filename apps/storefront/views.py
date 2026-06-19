@@ -100,8 +100,29 @@ def checkout_plan(request, plan_pk):
         request.session[_SESSION_KEY] = checkout_token
 
         customer.wallet.refresh_from_db()
-        shortfall = max(0, plan.price - customer.wallet.balance)
-        balance_after = customer.wallet.balance - plan.price if shortfall == 0 else 0
+
+        # Coupon preview (GET ?coupon_code=XXX)
+        from apps.billing.models import Coupon
+        discount = 0
+        coupon_obj = None
+        coupon_error = None
+        coupon_code_get = request.GET.get("coupon_code", "").strip().upper()
+        if coupon_code_get:
+            try:
+                coupon_obj = Coupon.objects.get(code=coupon_code_get)
+                valid, reason = coupon_obj.is_valid_for(plan)
+                if valid:
+                    discount = coupon_obj.compute_discount(plan.price)
+                else:
+                    coupon_error = reason
+                    coupon_obj = None
+            except Coupon.DoesNotExist:
+                coupon_error = "Coupon code not found."
+
+        effective_price = max(0, plan.price - discount)
+        shortfall = max(0, effective_price - customer.wallet.balance)
+        balance_after = customer.wallet.balance - effective_price if shortfall == 0 else 0
+
         return render(request, "storefront/checkout.html", {
             "plan": plan,
             "product": product,
@@ -109,6 +130,11 @@ def checkout_plan(request, plan_pk):
             "shortfall": shortfall,
             "balance_after": balance_after,
             "checkout_token": checkout_token,
+            "coupon": coupon_obj,
+            "coupon_code": coupon_code_get,
+            "coupon_error": coupon_error,
+            "discount": discount,
+            "effective_price": effective_price,
         })
 
     # POST — run checkout
