@@ -240,8 +240,9 @@ def checkout(
                 return order, grants, None
 
             if coupon is not None and discount > 0:
+                from django.db.models import F
                 from apps.billing.models import Coupon as CouponModel
-                CouponModel.objects.filter(pk=coupon.pk).update(used_count=coupon.used_count + 1)
+                CouponModel.objects.filter(pk=coupon.pk).update(used_count=F("used_count") + 1)
 
             if effective_price > 0:
                 entry = debit(
