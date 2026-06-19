@@ -40,6 +40,15 @@ def user_surfaces(context):
 
 
 @register.filter
+def dict_get(d, key):
+    """Lookup d[key] in a template. Works for integer keys unlike dot notation."""
+    try:
+        return d.get(key) or d.get(int(key))
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
+@register.filter
 def rupiah(value):
     """Format value as dot-grouped rupiah: 99000 -> Rp99.000"""
     return format_rupiah(value)

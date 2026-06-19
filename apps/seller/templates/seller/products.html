@@ -27,6 +27,16 @@
         {% if product.description %}
         <p class="text-sm text-gray-500 mt-1 line-clamp-2">{{ product.description }}</p>
         {% endif %}
+        <!-- Per-product stats -->
+        {% with stats=product_stats|dict_get:product.pk %}
+        {% if stats %}
+        <div class="flex items-center gap-3 mt-2">
+          <span class="text-xs text-gray-400"><span class="font-semibold text-gray-600">{{ stats.orders }}</span> sold</span>
+          <span class="text-xs text-gray-400">&middot;</span>
+          <span class="text-xs text-gray-400"><span class="font-semibold text-gray-600">{{ stats.revenue|rupiah }}</span> revenue</span>
+        </div>
+        {% endif %}
+        {% endwith %}
 
         <!-- Plans -->
         {% if product.plans.all %}

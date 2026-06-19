@@ -1,63 +1,180 @@
-﻿{% extends "storefront/base.html" %}
+{% extends "storefront/base.html" %}
 {% load money %}
 {% block page_title %}{{ product.name }}{% endblock %}
 
 {% block content %}
-<div class="mb-6">
-  <a href="/" class="text-sm text-indigo-500 hover:underline">&larr; Back to store</a>
-</div>
-
-<div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-  <div class="flex items-start justify-between mb-3">
-    <h1 class="text-2xl font-bold text-gray-900">{{ product.name }}</h1>
-    <span class="text-xs px-2 py-0.5 rounded-full
-      {% if product.type == 'free' %}bg-green-100 text-green-700
-      {% elif product.type == 'contact' %}bg-purple-100 text-purple-700
-      {% elif product.type == 'recurring' %}bg-blue-100 text-blue-700
-      {% else %}bg-gray-100 text-gray-600{% endif %}">
-      {{ product.get_type_display }}
-    </span>
-  </div>
-  {% if product.description %}
-  <p class="text-gray-600">{{ product.description }}</p>
-  {% endif %}
-</div>
-
-{% if product.type == "contact" %}
-  <a href="{% url 'storefront:contact' product.pk %}"
-     class="inline-block bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-3 rounded-xl">
-    Contact via WhatsApp
+<div class="mb-5">
+  <a href="/" class="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-indigo-600 transition-colors">
+    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    Back to store
   </a>
-{% else %}
-  <h2 class="text-lg font-semibold mb-4">Choose a plan</h2>
-  <div class="grid grid-cols-1 sm:grid-cols-{% if plans|length > 2 %}3{% else %}2{% endif %} gap-4">
-    {% for plan in plans %}
-    <div class="bg-white rounded-xl border border-gray-200 p-5 flex flex-col">
-      <p class="font-semibold text-gray-900 mb-1">{{ plan.name }}</p>
-      <p class="text-2xl font-bold text-indigo-600 mb-1">
-        {% if plan.price == 0 %}Free{% else %}{{ plan.price|rupiah }}{% endif %}
-        {% if plan.interval != "none" %}
-        <span class="text-sm font-normal text-gray-400">/ {{ plan.get_interval_display }}</span>
-        {% endif %}
-      </p>
-      {% if plan.features %}
-      <ul class="text-sm text-gray-500 space-y-1 mb-4 flex-1">
-        {% for k, v in plan.features.items %}
-        <li class="flex items-center gap-1.5">
-          <span class="text-green-500">&#10003;</span> {{ k }}: {{ v }}
-        </li>
-        {% endfor %}
-      </ul>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  <!-- Left: product info -->
+  <div class="lg:col-span-2 space-y-5">
+
+    <!-- Product header card -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <div class="flex items-center gap-2 flex-wrap mb-1">
+            <h1 class="text-2xl font-bold text-gray-900">{{ product.name }}</h1>
+            {% if product.type == 'recurring' %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">Recurring</span>
+            {% elif product.type == 'free' %}
+            <span class="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium">Free</span>
+            {% endif %}
+          </div>
+          {% if sold_count > 0 %}
+          <p class="text-sm text-gray-500">
+            <span class="font-semibold text-gray-700">{{ sold_count }}</span> sold
+            {% if product.type == 'recurring' %}&middot; <span class="text-green-600 font-medium">Active subscribers</span>{% endif %}
+          </p>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if product.description %}
+      <p class="text-gray-600 leading-relaxed">{{ product.description }}</p>
       {% endif %}
-      <a href="{% url 'storefront:checkout' plan.pk %}"
-         class="mt-auto block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm">
-        {% if plan.price == 0 %}Get free{% else %}Buy now{% endif %}
+    </div>
+
+    <!-- Plans (contact type) -->
+    {% if product.type == "contact" %}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="font-semibold text-gray-800 mb-4">Get in Touch</h2>
+      <a href="{% url 'storefront:contact' product.pk %}"
+         class="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-3 rounded-xl transition-colors">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+        Contact via WhatsApp
       </a>
     </div>
-    {% empty %}
-    <p class="text-gray-400 col-span-3 py-8 text-center text-sm">No plans available.</p>
-    {% endfor %}
-  </div>
-{% endif %}
-{% endblock %}
 
+    {% else %}
+    <!-- Plans grid -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="font-semibold text-gray-800 mb-4">Choose a Plan</h2>
+      <div class="grid grid-cols-1 {% if plans|length > 1 %}sm:grid-cols-{{ plans|length|default:1 }}{% endif %} gap-4">
+        {% for plan in plans %}
+        <div class="relative border {% if forloop.first and plans|length > 1 %}border-indigo-300 bg-indigo-50{% else %}border-gray-200 bg-white{% endif %} rounded-xl p-5 flex flex-col">
+          {% if forloop.first and plans|length > 1 %}
+          <span class="absolute -top-2.5 left-4 bg-indigo-600 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">Most popular</span>
+          {% endif %}
+          <p class="font-semibold text-gray-900 mb-1">{{ plan.name }}</p>
+          <div class="mb-3">
+            <span class="text-2xl font-bold text-indigo-600">
+              {% if plan.price == 0 %}Free{% else %}{{ plan.price|rupiah }}{% endif %}
+            </span>
+            {% if plan.interval != "none" %}
+            <span class="text-sm text-gray-400"> / {{ plan.get_interval_display }}</span>
+            {% endif %}
+          </div>
+          {% if plan.seat_limit > 1 %}
+          <p class="text-xs text-gray-500 mb-2">{{ plan.seat_limit }} seat(s) included</p>
+          {% endif %}
+          {% if plan.features %}
+          <ul class="text-sm text-gray-600 space-y-1.5 mb-4 flex-1">
+            {% for k, v in plan.features.items %}
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span>{{ k }}{% if v and v != "true" %}: {{ v }}{% endif %}</span>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          <a href="{% url 'storefront:checkout' plan.pk %}"
+             class="mt-auto block text-center font-semibold py-2.5 rounded-lg text-sm transition-colors
+               {% if forloop.first and plans|length > 1 %}bg-indigo-600 hover:bg-indigo-700 text-white
+               {% else %}bg-gray-100 hover:bg-indigo-600 hover:text-white text-gray-800{% endif %}">
+            {% if plan.price == 0 %}Get free{% else %}Buy now{% endif %}
+          </a>
+        </div>
+        {% empty %}
+        <p class="text-gray-400 text-sm py-8 text-center">No plans available.</p>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Right: trust sidebar -->
+  <div class="space-y-4">
+
+    <!-- Seller card -->
+    {% if product.seller %}
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Sold by</p>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+          {{ product.seller.name|slice:":1"|upper }}
+        </div>
+        <div>
+          <p class="font-medium text-gray-900 text-sm">{{ product.seller.name }}</p>
+          {% if product.seller.bio %}
+          <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">{{ product.seller.bio }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Trust badges -->
+    <div class="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+      <p class="text-xs text-gray-400 uppercase tracking-wide font-medium">Guaranteed</p>
+      <div class="flex items-start gap-3">
+        <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-800">Secure payment</p>
+          <p class="text-xs text-gray-500">Processed safely via Duitku</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <div class="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-800">Instant delivery</p>
+          <p class="text-xs text-gray-500">License key sent immediately</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-800">Email support</p>
+          <p class="text-xs text-gray-500">Questions? We're here to help</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Refund policy -->
+    <div class="bg-gray-50 rounded-xl border border-gray-200 p-4">
+      <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-2">Refund policy</p>
+      <p class="text-xs text-gray-600 leading-relaxed">
+        Refund requests can be submitted within 7 days of purchase via your dashboard if the product was not delivered or does not match the description.
+      </p>
+    </div>
+
+    <!-- Payment methods -->
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Payment methods</p>
+      <div class="flex flex-wrap gap-2">
+        <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-600 bg-gray-50">Virtual Account</span>
+        <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-600 bg-gray-50">QRIS</span>
+        <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-600 bg-gray-50">GoPay</span>
+        <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-600 bg-gray-50">OVO</span>
+        <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-600 bg-gray-50">Dana</span>
+        <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-600 bg-gray-50">ShopeePay</span>
+      </div>
+      <p class="text-xs text-gray-400 mt-2">Top up wallet, then purchase instantly.</p>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

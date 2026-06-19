@@ -1,7 +1,7 @@
 """Seller Dashboard views — Lynk.id-style creator interface at /seller/."""
 import json
 from django.contrib import messages
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Q
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -64,6 +64,25 @@ def home(request):
     recent_orders = orders_qs.order_by("-created_at")[:8]
     products_count = _seller_products(seller).count()
 
+    # 7-day revenue chart data
+    from django.db.models.functions import TruncDate
+    today = timezone.now().date()
+    week_ago = today - timezone.timedelta(days=6)
+    daily_qs = (
+        orders_qs
+        .filter(status=Order.Status.PAID, created_at__date__gte=week_ago)
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(total=Sum("amount"))
+        .order_by("day")
+    )
+    daily_map = {row["day"]: row["total"] for row in daily_qs}
+    chart_days = []
+    for i in range(7):
+        d = week_ago + timezone.timedelta(days=i)
+        chart_days.append({"date": d, "label": d.strftime("%d/%m"), "total": daily_map.get(d, 0)})
+    chart_max = max((d["total"] for d in chart_days), default=1) or 1
+
     return render(request, "seller/home.html", {
         "seller": seller,
         "revenue": revenue,
@@ -72,6 +91,8 @@ def home(request):
         "pending_orders": pending_orders,
         "recent_orders": recent_orders,
         "products_count": products_count,
+        "chart_days": chart_days,
+        "chart_max": chart_max,
     })
 
 
@@ -81,9 +102,23 @@ def home(request):
 def products(request):
     seller = request.seller
     product_list = _seller_products(seller).prefetch_related("plans").order_by("name")
+
+    # Per-product stats: paid order count + revenue
+    product_pks = list(product_list.values_list("pk", flat=True))
+    stats_qs = (
+        Order.objects.filter(plan__product_id__in=product_pks, status=Order.Status.PAID)
+        .values("plan__product_id")
+        .annotate(orders=Count("id"), revenue=Sum("amount"))
+    )
+    product_stats = {
+        row["plan__product_id"]: {"orders": row["orders"], "revenue": row["revenue"]}
+        for row in stats_qs
+    }
+
     return render(request, "seller/products.html", {
         "seller": seller,
         "products": product_list,
+        "product_stats": product_stats,
     })
 
 

@@ -50,17 +50,32 @@ def page(request, slug=None):
         store_page = StorePage.objects.filter(is_published=True).first()
 
     blocks = []
+    sold_counts = {}
     if store_page:
         blocks = (
             store_page.blocks.filter(is_visible=True)
-            .select_related("product")
+            .select_related("product__seller")
             .prefetch_related("product__plans")
             .order_by("position")
         )
+        # Annotate each product with sold count (paid orders only)
+        product_pks = [b.product_id for b in blocks if b.product_id]
+        if product_pks:
+            from django.db.models import Count as DCount
+            sold_qs = (
+                Order.objects.filter(
+                    plan__product_id__in=product_pks,
+                    status=Order.Status.PAID,
+                )
+                .values("plan__product_id")
+                .annotate(cnt=DCount("id"))
+            )
+            sold_counts = {row["plan__product_id"]: row["cnt"] for row in sold_qs}
 
     return render(request, "storefront/page.html", {
         "store_page": store_page,
         "blocks": blocks,
+        "sold_counts": sold_counts,
     })
 
 
@@ -72,9 +87,13 @@ def product_detail(request, slug):
         visibility__in=[Product.Visibility.PUBLIC, Product.Visibility.UNLISTED],
     )
     plans = product.plans.filter(is_active=True).order_by("sort_order", "price")
+    sold_count = Order.objects.filter(
+        plan__product=product, status=Order.Status.PAID
+    ).count()
     return render(request, "storefront/product.html", {
         "product": product,
         "plans": plans,
+        "sold_count": sold_count,
     })
 
 
@@ -183,7 +202,11 @@ def checkout_plan(request, plan_pk):
 @login_required
 def order_status(request, public_id):
     customer, _ = _get_or_create_customer(request.user)
-    order = get_object_or_404(Order, public_id=public_id, customer=customer)
+    order = get_object_or_404(
+        Order.objects.select_related("plan__product"),
+        public_id=public_id,
+        customer=customer,
+    )
     return render(request, "storefront/order_status.html", {
         "order": order,
         "customer": customer,

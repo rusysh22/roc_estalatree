@@ -1,47 +1,131 @@
-﻿{% extends "storefront/base.html" %}
+{% extends "storefront/base.html" %}
 {% load money %}
-{% block page_title %}Order Status{% endblock %}
+{% block page_title %}Order {{ order.public_id }}{% endblock %}
 
 {% block content %}
-<div class="max-w-md mx-auto text-center">
+<div class="max-w-md mx-auto">
+
   {% if order.status == "paid" %}
-  <div class="bg-green-50 border border-green-200 rounded-2xl p-8 mb-6">
-    <div class="text-4xl mb-3">&#10003;</div>
-    <h1 class="text-xl font-bold text-green-800 mb-1">Purchase complete!</h1>
-    <p class=”text-green-700 text-sm”>{{ order.plan }} &mdash; {{ order.amount|rupiah }}</p>
+  <!-- Success state -->
+  <div class="text-center mb-6">
+    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+    </div>
+    <h1 class="text-2xl font-bold text-green-800">Payment complete!</h1>
+    <p class="text-gray-500 text-sm mt-1">Your access has been activated immediately.</p>
   </div>
-  <p class="text-gray-500 text-sm mb-6">
-    Your license key and details have been sent to <strong>{{ customer.user.email }}</strong>.
+
+  <!-- Receipt card -->
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden mb-5">
+    <div class="bg-gray-50 px-5 py-3 border-b border-gray-200 flex items-center justify-between">
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Receipt</p>
+      <p class="text-xs text-gray-400 font-mono">{{ order.public_id }}</p>
+    </div>
+    <div class="px-5 py-4 space-y-3">
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">Product</span>
+        <span class="font-medium text-gray-900">{{ order.plan.product.name }}</span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">Plan</span>
+        <span class="font-medium text-gray-900">{{ order.plan.name }}</span>
+      </div>
+      {% if order.plan.interval != 'none' %}
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">Billing</span>
+        <span class="font-medium text-gray-900">{{ order.plan.get_interval_display }}</span>
+      </div>
+      {% endif %}
+      {% if order.discount %}
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">Original price</span>
+        <span class="text-gray-500 line-through">{{ order.plan.price|rupiah }}</span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">Coupon discount</span>
+        <span class="text-green-600 font-medium">-{{ order.discount|rupiah }}</span>
+      </div>
+      {% endif %}
+      <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
+        <span class="font-semibold text-gray-800">Amount paid</span>
+        <span class="font-bold text-gray-900">{{ order.amount|rupiah }}</span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">Date</span>
+        <span class="text-gray-700">{{ order.created_at|date:"d M Y, H:i" }}</span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">Status</span>
+        <span class="text-green-600 font-semibold">{{ order.get_status_display }}</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-gray-500 text-sm text-center mb-5">
+    Access your license key and all active products in <strong>My Products</strong>.
   </p>
-  <a href="{% url 'dashboard:products' %}"
-     class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 rounded-lg">
-    View my products
+
+  <div class="flex flex-col gap-3">
+    <a href="{% url 'dashboard:products' %}"
+       class="block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors">
+      View my products &rarr;
+    </a>
+    <a href="/" class="block text-center text-sm text-gray-400 hover:text-gray-600">
+      Back to store
+    </a>
+  </div>
+
+  {% elif order.status == "refunded" %}
+  <!-- Refunded state -->
+  <div class="text-center mb-6">
+    <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+    </div>
+    <h1 class="text-xl font-bold text-purple-800">Order Refunded</h1>
+    <p class="text-gray-500 text-sm mt-1">{{ order.amount|rupiah }} has been returned to your wallet.</p>
+  </div>
+  <a href="{% url 'dashboard:wallet' %}" class="block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors">
+    View wallet balance
   </a>
 
   {% else %}
-  <div class="bg-amber-50 border border-amber-200 rounded-2xl p-8 mb-6">
-    <div class="text-4xl mb-3">&#9203;</div>
-    <h1 class="text-xl font-bold text-amber-800 mb-1">Payment pending</h1>
-    <p class="text-amber-700 text-sm">Order #{{ order.public_id }}</p>
+  <!-- Pending state -->
+  <div class="text-center mb-6">
+    <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <h1 class="text-xl font-bold text-amber-800">Payment pending</h1>
+    <p class="text-gray-500 text-sm mt-1">Order <span class="font-mono text-xs">{{ order.public_id }}</span></p>
   </div>
-  <p class="text-gray-500 text-sm mb-2">
+
+  <div class="bg-white rounded-xl border border-gray-200 p-5 mb-5">
+    <div class="flex justify-between text-sm mb-3">
+      <span class="text-gray-500">Product</span>
+      <span class="font-medium">{{ order.plan.product.name }} &middot; {{ order.plan.name }}</span>
+    </div>
+    <div class="flex justify-between text-sm">
+      <span class="text-gray-500">Amount</span>
+      <span class="font-semibold text-amber-700">{{ order.amount|rupiah }}</span>
+    </div>
+  </div>
+
+  <p class="text-gray-500 text-sm text-center mb-2">
     Your order will be fulfilled automatically once payment is confirmed.
-    This usually takes a few seconds.
   </p>
-  <p class="text-gray-400 text-xs mb-6">
-    If it's been more than a few minutes, our system will retry automatically.
-    You'll receive a confirmation via WhatsApp and email.
+  <p class="text-gray-400 text-xs text-center mb-5">
+    Usually takes a few seconds. You'll receive confirmation via WhatsApp.
   </p>
+
   <div class="flex flex-col gap-3 items-center">
-    <a href="" onclick="location.reload()"
-       class="inline-block bg-amber-500 hover:bg-amber-600 text-white font-medium px-6 py-2.5 rounded-lg">
-      Check status
-    </a>
+    <button onclick="location.reload()"
+       class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-xl transition-colors">
+      Check payment status
+    </button>
     <a href="{% url 'dashboard:support' %}" class="text-sm text-gray-400 hover:underline">
       Contact support
     </a>
   </div>
   {% endif %}
+
 </div>
 {% endblock %}
-

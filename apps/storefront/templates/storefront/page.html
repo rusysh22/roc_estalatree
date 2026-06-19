@@ -1,19 +1,39 @@
-﻿{% extends "storefront/base.html" %}
+{% extends "storefront/base.html" %}
 {% load money %}
 {% block page_title %}{% if store_page %}{{ store_page.title }}{% else %}Store{% endif %}{% endblock %}
 
 {% block content %}
 {% if store_page %}
+
   <!-- Store header -->
   <div class="text-center mb-10">
     {% if store_page.avatar_url %}
     <img src="{{ store_page.avatar_url }}" alt="{{ store_page.title }}"
-         class="w-20 h-20 rounded-full mx-auto mb-4 object-cover">
+         class="w-20 h-20 rounded-full mx-auto mb-4 object-cover ring-4 ring-white shadow-md">
+    {% else %}
+    <div class="w-20 h-20 rounded-full mx-auto mb-4 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md">
+      <span class="text-2xl font-bold text-white">{{ store_page.title|slice:":1"|upper }}</span>
+    </div>
     {% endif %}
     <h1 class="text-2xl font-bold text-gray-900">{{ store_page.title }}</h1>
     {% if store_page.description %}
-    <p class="text-gray-500 mt-2 max-w-md mx-auto">{{ store_page.description }}</p>
+    <p class="text-gray-500 mt-2 max-w-md mx-auto text-sm leading-relaxed">{{ store_page.description }}</p>
     {% endif %}
+    <!-- Trust line -->
+    <div class="flex items-center justify-center gap-4 mt-4 text-xs text-gray-400">
+      <span class="flex items-center gap-1">
+        <svg class="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+        Secure payment
+      </span>
+      <span class="flex items-center gap-1">
+        <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Instant delivery
+      </span>
+      <span class="flex items-center gap-1">
+        <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        Trusted seller
+      </span>
+    </div>
   </div>
 
   <!-- Blocks -->
@@ -21,71 +41,102 @@
     {% for block in blocks %}
 
       {% if block.type == "heading" %}
-        <h2 class="text-lg font-semibold text-gray-700 pt-2">{{ block.config.text }}</h2>
+        <h2 class="text-base font-semibold text-gray-700 pt-2">{{ block.config.text }}</h2>
 
       {% elif block.type == "text" %}
         <p class="text-gray-600 text-sm">{{ block.config.text }}</p>
 
       {% elif block.type == "link" %}
         <a href="{{ block.config.url }}" target="_blank" rel="noopener noreferrer"
-           class="block bg-white rounded-xl border border-gray-200 px-5 py-4 hover:border-indigo-300 hover:shadow-sm transition text-center font-medium text-gray-800">
-          {{ block.config.label|default:block.config.url }}
+           class="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-5 py-4 hover:border-indigo-300 hover:shadow-sm transition group">
+          <span class="font-medium text-gray-800 group-hover:text-indigo-700">{{ block.config.label|default:block.config.url }}</span>
+          <svg class="w-4 h-4 text-gray-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         </a>
 
       {% elif block.type == "product" and block.product %}
         {% with product=block.product %}
-        <div class="bg-white rounded-xl border border-gray-200 p-5">
-          <div class="flex items-start justify-between mb-3">
-            <div>
-              <h3 class="font-semibold text-gray-900">{{ product.name }}</h3>
-              {% if product.description %}
-              <p class="text-sm text-gray-500 mt-0.5 line-clamp-2">{{ product.description }}</p>
-              {% endif %}
-            </div>
-            <span class="text-xs px-2 py-0.5 rounded-full ml-3
-              {% if product.type == 'free' %}bg-green-100 text-green-700
-              {% elif product.type == 'contact' %}bg-purple-100 text-purple-700
-              {% elif product.type == 'recurring' %}bg-blue-100 text-blue-700
-              {% else %}bg-gray-100 text-gray-600{% endif %}">
-              {{ product.get_type_display }}
-            </span>
-          </div>
-
-          {% if product.type == "contact" %}
-            <a href="{% url 'storefront:contact' product.pk %}"
-               class="inline-block bg-green-500 hover:bg-green-600 text-white font-medium text-sm px-5 py-2 rounded-lg">
-              Contact via WhatsApp
-            </a>
-          {% else %}
-            {% for plan in product.plans.all %}
-            {% if plan.is_active %}
-            <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-100 first:border-0 first:pt-0 first:mt-0">
-              <div>
-                <span class="text-sm font-medium text-gray-800">{{ plan.name }}</span>
-                {% if plan.interval != "none" %}
-                <span class="text-xs text-gray-400 ml-1">/ {{ plan.get_interval_display }}</span>
+        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden hover:border-indigo-200 hover:shadow-sm transition-all">
+          <!-- Product card header -->
+          <div class="p-5">
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex-1 min-w-0 mr-3">
+                <div class="flex items-center gap-2 flex-wrap mb-1">
+                  <h3 class="font-semibold text-gray-900">{{ product.name }}</h3>
+                  {% if product.type == 'recurring' %}
+                  <span class="text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-medium">Recurring</span>
+                  {% elif product.type == 'free' %}
+                  <span class="text-xs px-1.5 py-0.5 rounded bg-green-50 text-green-600 font-medium">Free</span>
+                  {% endif %}
+                </div>
+                {% if product.description %}
+                <p class="text-sm text-gray-500 line-clamp-2">{{ product.description }}</p>
                 {% endif %}
               </div>
-              <div class="flex items-center gap-3">
-                <span class="font-semibold text-gray-900">
-                  {% if plan.price == 0 %}Free{% else %}{{ plan.price|rupiah }}{% endif %}
-                </span>
-                <a href="{% url 'storefront:checkout' plan.pk %}"
-                   class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-4 py-1.5 rounded-lg">
-                  {% if plan.price == 0 %}Get free{% else %}Buy{% endif %}
-                </a>
+              <!-- Sold count badge -->
+                      {% with cnt=sold_counts|dict_get:product.pk %}
+              {% if cnt %}
+              <div class="shrink-0 text-right ml-2">
+                <p class="text-xs text-gray-400 whitespace-nowrap"><span class="font-semibold text-gray-600">{{ cnt }}</span> sold</p>
               </div>
+              {% endif %}
+              {% endwith %}
             </div>
+
+            {% if product.type == "contact" %}
+              <a href="{% url 'storefront:contact' product.pk %}"
+                 class="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white font-medium text-sm px-5 py-2.5 rounded-lg transition-colors mt-2">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.003 2C6.479 2 2 6.479 2 12.003c0 1.992.585 3.842 1.594 5.393L2 22l4.728-1.562A9.954 9.954 0 0012.003 22C17.523 22 22 17.521 22 12.003 22 6.479 17.523 2 12.003 2z"/></svg>
+                Chat via WhatsApp
+              </a>
+            {% else %}
+              <!-- Plans list -->
+              <div class="mt-3 space-y-2">
+                {% for plan in product.plans.all %}
+                {% if plan.is_active %}
+                <div class="flex items-center justify-between py-2.5 px-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div>
+                    <span class="text-sm font-medium text-gray-800">{{ plan.name }}</span>
+                    {% if plan.interval != "none" %}
+                    <span class="text-xs text-gray-400 ml-1">/ {{ plan.get_interval_display }}</span>
+                    {% endif %}
+                    {% if plan.seat_limit > 1 %}
+                    <span class="text-xs text-gray-400 ml-1">&middot; {{ plan.seat_limit }} seats</span>
+                    {% endif %}
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span class="font-bold text-gray-900">
+                      {% if plan.price == 0 %}Free{% else %}{{ plan.price|rupiah }}{% endif %}
+                    </span>
+                    <a href="{% url 'storefront:checkout' plan.pk %}"
+                       class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition-colors">
+                      {% if plan.price == 0 %}Get free{% else %}Buy{% endif %}
+                    </a>
+                  </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+              </div>
+              <!-- View detail link -->
+              <a href="{% url 'storefront:product' product.slug %}" class="inline-block mt-2 text-xs text-indigo-500 hover:underline">
+                View details &rarr;
+              </a>
             {% endif %}
-            {% endfor %}
-          {% endif %}
+          </div>
         </div>
         {% endwith %}
       {% endif %}
 
     {% empty %}
-      <p class="text-center text-gray-400 text-sm py-8">No products yet.</p>
+      <div class="text-center py-16 text-gray-400">
+        <svg class="w-10 h-10 mx-auto mb-3 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        <p class="text-sm">No products yet.</p>
+      </div>
     {% endfor %}
+  </div>
+
+  <!-- Footer trust -->
+  <div class="mt-12 pt-6 border-t border-gray-100 text-center text-xs text-gray-400">
+    <p>Powered by <span class="font-medium text-indigo-500">Estalatree</span> &middot; Secure checkout &middot; Instant delivery</p>
   </div>
 
 {% else %}
@@ -95,4 +146,3 @@
   </div>
 {% endif %}
 {% endblock %}
-

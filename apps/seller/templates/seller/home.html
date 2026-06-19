@@ -1,14 +1,29 @@
-﻿{% extends "seller/base.html" %}
+{% extends "seller/base.html" %}
 {% load money %}
 {% block topbar_title %}{% block page_title %}Dashboard{% endblock %}{% endblock %}
 
 {% block content %}
+
+{% if pending_orders > 0 %}
+<!-- New order alert -->
+<div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 mb-5 flex items-center justify-between">
+  <div class="flex items-center gap-3">
+    <span class="relative flex h-3 w-3">
+      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+      <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+    </span>
+    <p class="text-sm font-medium text-amber-800">{{ pending_orders }} pending order{{ pending_orders|pluralize }} awaiting payment</p>
+  </div>
+  <a href="{% url 'seller:orders' %}?status=pending" class="text-xs font-semibold text-amber-700 hover:text-amber-900 underline">View &rarr;</a>
+</div>
+{% endif %}
+
 <!-- KPI Cards -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   <div class="bg-white rounded-xl border border-gray-200 p-4">
     <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Revenue</p>
     <p class="text-2xl font-bold text-gray-900 mt-1">{{ revenue|rupiah }}</p>
-    <p class="text-xs text-green-600 mt-1">Paid orders</p>
+    <p class="text-xs text-green-600 mt-1">Paid orders only</p>
   </div>
   <div class="bg-white rounded-xl border border-gray-200 p-4">
     <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Orders</p>
@@ -21,9 +36,38 @@
     <p class="text-xs text-gray-500 mt-1">Currently active</p>
   </div>
   <div class="bg-white rounded-xl border border-gray-200 p-4">
-    <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Pending Orders</p>
+    <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Pending</p>
     <p class="text-2xl font-bold {% if pending_orders > 0 %}text-amber-600{% else %}text-gray-900{% endif %} mt-1">{{ pending_orders }}</p>
     <p class="text-xs text-gray-500 mt-1">Awaiting payment</p>
+  </div>
+</div>
+
+<!-- 7-day Revenue Chart -->
+<div class="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-semibold text-gray-800 text-sm">Revenue — Last 7 Days</h2>
+    <span class="text-xs text-gray-400">{{ chart_days.0.date|date:"d M" }} – {{ chart_days.6.date|date:"d M Y" }}</span>
+  </div>
+  <div class="flex items-end gap-2 h-28">
+    {% for day in chart_days %}
+    {% widthratio day.total chart_max 100 as pct %}
+    <div class="flex-1 flex flex-col items-center gap-1 group">
+      <div class="relative w-full flex items-end justify-center">
+        {% if day.total > 0 %}
+        <div class="w-full bg-indigo-500 hover:bg-indigo-600 rounded-t transition-colors"
+             style="height: {% widthratio day.total chart_max 96 %}px; min-height: 4px;"
+             title="{{ day.label }}: {{ day.total|rupiah }}"></div>
+        {% else %}
+        <div class="w-full bg-gray-100 rounded-t" style="height: 4px;"></div>
+        {% endif %}
+      </div>
+      <p class="text-xs text-gray-400 whitespace-nowrap">{{ day.label }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+    <span>This week: <strong class="text-gray-800">{% with week_total=chart_days|length %}{% for d in chart_days %}{% if d.total %}{{ d.total }}{% endif %}{% endfor %}{% endwith %}</strong></span>
+    <a href="{% url 'seller:orders' %}" class="text-indigo-600 hover:underline">All orders &rarr;</a>
   </div>
 </div>
 
@@ -66,6 +110,7 @@
             <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
               {% if order.status == 'paid' %}bg-green-100 text-green-700
               {% elif order.status == 'pending' %}bg-amber-100 text-amber-700
+              {% elif order.status == 'refunded' %}bg-purple-100 text-purple-700
               {% elif order.status == 'cancelled' %}bg-red-100 text-red-700
               {% else %}bg-gray-100 text-gray-600{% endif %}">
               {{ order.get_status_display }}
@@ -82,4 +127,3 @@
   {% endif %}
 </div>
 {% endblock %}
-
