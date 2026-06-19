@@ -94,3 +94,69 @@ class AccessLinkProvisioner:
 
     def revoke(self, grant) -> None:
         Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.REVOKED)
+
+
+class CredentialsProvisioner:
+    """Provisioner for username/password credentials.
+
+    Config: {"username": "...", "password": "..."}
+    Payload stores the config as-is so the customer dashboard can display it.
+    """
+
+    def provision(self, order, deliverable, *, subscription=None) -> Grant:
+        config = deliverable.config or {}
+        return Grant.objects.create(
+            customer=order.customer,
+            order=order,
+            subscription=subscription,
+            deliverable=deliverable,
+            type=Deliverable.Type.CREDENTIALS,
+            status=Grant.Status.ACTIVE,
+            payload={
+                "username": config.get("username", ""),
+                "password": config.get("password", ""),
+            },
+        )
+
+    def renew(self, grant) -> None:
+        pass
+
+    def suspend(self, grant) -> None:
+        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.SUSPENDED)
+
+    def resume(self, grant) -> None:
+        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.ACTIVE)
+
+    def revoke(self, grant) -> None:
+        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.REVOKED)
+
+
+class ApiKeyProvisioner:
+    """Provisioner for API key delivery.
+
+    Config: {"api_key": "sk-..."}
+    """
+
+    def provision(self, order, deliverable, *, subscription=None) -> Grant:
+        config = deliverable.config or {}
+        return Grant.objects.create(
+            customer=order.customer,
+            order=order,
+            subscription=subscription,
+            deliverable=deliverable,
+            type=Deliverable.Type.API_KEY,
+            status=Grant.Status.ACTIVE,
+            payload={"api_key": config.get("api_key", "")},
+        )
+
+    def renew(self, grant) -> None:
+        pass
+
+    def suspend(self, grant) -> None:
+        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.SUSPENDED)
+
+    def resume(self, grant) -> None:
+        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.ACTIVE)
+
+    def revoke(self, grant) -> None:
+        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.REVOKED)

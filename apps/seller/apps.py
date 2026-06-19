@@ -1,0 +1,7 @@
+from django.apps import AppConfig
+
+
+class SellerConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.seller"
+    verbose_name = "Seller Dashboard"

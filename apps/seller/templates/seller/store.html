@@ -1,0 +1,91 @@
+{% extends "seller/base.html" %}
+{% block page_title %}My Store{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+  <!-- Store page settings -->
+  <div class="lg:col-span-2 space-y-5">
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="font-semibold text-gray-800 mb-4">Store Settings</h2>
+      <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {% for field in form %}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn-primary w-full">Save Changes</button>
+      </form>
+    </div>
+
+    {% if store_page %}
+    <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+      <p class="text-xs text-indigo-700 font-medium mb-1">Public store URL</p>
+      <a href="{{ seller.store_url }}" target="_blank" class="text-sm text-indigo-600 hover:underline break-all">
+        {{ request.get_host }}{{ seller.store_url }}
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- Add product block -->
+    {% if available_products %}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h3 class="font-semibold text-gray-800 mb-3 text-sm">Add Product to Store</h3>
+      <form method="post" action="{% url 'seller:block_add' %}">
+        {% csrf_token %}
+        <div class="flex gap-2">
+          <select name="product_pk" class="input-field flex-1">
+            <option value="">Select a product…</option>
+            {% for product in available_products %}
+            <option value="{{ product.pk }}">{{ product.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn-primary whitespace-nowrap">Add</button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Blocks list -->
+  <div class="lg:col-span-3">
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100">
+        <h2 class="font-semibold text-gray-800 text-sm">Store Blocks</h2>
+        <p class="text-xs text-gray-400 mt-0.5">Products shown on your public store page</p>
+      </div>
+
+      {% if blocks %}
+      <ul class="divide-y divide-gray-100" id="blocks-list">
+        {% for block in blocks %}
+        <li class="flex items-center justify-between px-5 py-4">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-400 flex-shrink-0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-800">{{ block.product.name }}</p>
+              <p class="text-xs text-gray-400">Position {{ block.position }} · {{ block.get_type_display }}</p>
+            </div>
+          </div>
+          <form method="post" action="{% url 'seller:block_remove' block.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-red-400 hover:text-red-600 transition-colors px-2 py-1 rounded hover:bg-red-50"
+              onclick="return confirm('Remove this block?')">Remove</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="px-5 py-12 text-center text-gray-400 text-sm">
+        No blocks yet. Add products from the panel on the left.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -18,5 +18,6 @@ urlpatterns = [
     path("console/", include("apps.console.urls")),
     path("dashboard/", include("apps.dashboard.urls")),
     path("billing/", include("apps.billing.urls")),
+    path("seller/", include("apps.seller.urls", namespace="seller")),
     path("", include("apps.storefront.urls")),
 ]

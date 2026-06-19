@@ -1,0 +1,77 @@
+{% extends "seller/base.html" %}
+{% block page_title %}Vouchers{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-5">
+  <p class="text-sm text-gray-500">{{ coupons|length }} voucher(s)</p>
+  <a href="{% url 'seller:voucher_create' %}" class="btn-primary">+ New Voucher</a>
+</div>
+
+{% if coupons %}
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+        <tr>
+          <th class="px-5 py-3 text-left">Code</th>
+          <th class="px-5 py-3 text-left">Discount</th>
+          <th class="px-5 py-3 text-center">Used / Limit</th>
+          <th class="px-5 py-3 text-left">Valid Until</th>
+          <th class="px-5 py-3 text-center">Status</th>
+          <th class="px-5 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for coupon in coupons %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-5 py-3 font-mono font-semibold text-indigo-700">{{ coupon.code }}</td>
+          <td class="px-5 py-3 text-gray-700">
+            {% if coupon.discount_type == 'percent' %}
+            {{ coupon.value }}%
+            {% else %}
+            Rp{{ coupon.value|floatformat:0 }}
+            {% endif %}
+            {% if coupon.min_order %}
+            <span class="text-xs text-gray-400 block">min Rp{{ coupon.min_order|floatformat:0 }}</span>
+            {% endif %}
+          </td>
+          <td class="px-5 py-3 text-center text-gray-600">
+            {{ coupon.used_count }}{% if coupon.usage_limit %} / {{ coupon.usage_limit }}{% else %} / ∞{% endif %}
+          </td>
+          <td class="px-5 py-3 text-gray-500 text-xs">
+            {% if coupon.valid_until %}{{ coupon.valid_until|date:"d M Y" }}{% else %}—{% endif %}
+          </td>
+          <td class="px-5 py-3 text-center">
+            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
+              {% if coupon.is_active %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-500{% endif %}">
+              {% if coupon.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+          </td>
+          <td class="px-5 py-3 text-right">
+            <div class="flex items-center justify-end gap-2">
+              <a href="{% url 'seller:voucher_edit' coupon.pk %}" class="text-xs text-indigo-600 hover:underline">Edit</a>
+              <form method="post" action="{% url 'seller:voucher_toggle' coupon.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="text-xs {% if coupon.is_active %}text-red-400 hover:text-red-600{% else %}text-green-500 hover:text-green-700{% endif %} hover:underline">
+                  {% if coupon.is_active %}Deactivate{% else %}Activate{% endif %}
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border-2 border-dashed border-gray-200 p-16 text-center">
+  <div class="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+  </div>
+  <p class="text-gray-500 text-sm mb-1">No vouchers yet</p>
+  <p class="text-gray-400 text-xs mb-4">Create discount codes for your customers</p>
+  <a href="{% url 'seller:voucher_create' %}" class="btn-primary">Create Voucher</a>
+</div>
+{% endif %}
+{% endblock %}

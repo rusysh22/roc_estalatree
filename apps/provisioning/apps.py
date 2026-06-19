@@ -12,3 +12,5 @@ class ProvisioningConfig(AppConfig):
         registry.register("manual", provisioners.ManualProvisioner())
         registry.register("download", provisioners.DownloadProvisioner())
         registry.register("access_link", provisioners.AccessLinkProvisioner())
+        registry.register("credentials", provisioners.CredentialsProvisioner())
+        registry.register("api_key", provisioners.ApiKeyProvisioner())

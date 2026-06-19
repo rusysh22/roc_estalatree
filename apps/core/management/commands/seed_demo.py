@@ -30,6 +30,7 @@ class Command(BaseCommand):
         self._seed_superuser()
         self._seed_demo_customer()
         self._seed_store()
+        self._seed_seller_profile()
         self._seed_google_app()
         self.stdout.write(self.style.SUCCESS("Seed complete."))
 
@@ -120,6 +121,30 @@ class Command(BaseCommand):
                 product=product,
             )
             self.stdout.write("  Attached product block to StorePage")
+
+    # ── Seller Profile (linked to superuser) ─────────────────────────────────
+
+    def _seed_seller_profile(self):
+        from apps.accounts.models import SellerProfile
+
+        su = User.objects.filter(email="rusydani.sh@gmail.com", is_superuser=True).first()
+        if su is None:
+            return
+
+        profile, created = SellerProfile.objects.get_or_create(
+            slug="store",
+            defaults={
+                "user": su,
+                "name": "Estalatree Store",
+                "is_active": True,
+                "is_approved": True,
+            },
+        )
+        if not created and profile.user is None:
+            profile.user = su
+            profile.save(update_fields=["user", "updated_at"])
+        verb = "Created" if created else "OK"
+        self.stdout.write(f"  SellerProfile 'store' {verb}")
 
     # ── Google SocialApp ──────────────────────────────────────────────────────
 

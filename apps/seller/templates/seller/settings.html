@@ -1,0 +1,48 @@
+{% extends "seller/base.html" %}
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h2 class="font-semibold text-gray-800 mb-1">Seller Profile</h2>
+    <p class="text-xs text-gray-400 mb-5">This info appears on your public store page.</p>
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      {% for field in form %}
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">
+          {{ field.label }}{% if field.field.required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}
+        </label>
+        {{ field }}
+        {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+        {% if field.help_text %}<p class="text-xs text-gray-400 mt-0.5">{{ field.help_text }}</p>{% endif %}
+      </div>
+      {% endfor %}
+      <div class="pt-2">
+        <button type="submit" class="btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Store info -->
+  <div class="bg-white rounded-xl border border-gray-200 p-6 mt-5">
+    <h3 class="font-semibold text-gray-800 mb-3 text-sm">Store Info</h3>
+    <div class="space-y-2 text-sm text-gray-600">
+      <div class="flex justify-between">
+        <span class="text-gray-400">Store slug</span>
+        <code class="text-indigo-600">{{ seller.slug }}</code>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-gray-400">Public URL</span>
+        <a href="{{ seller.store_url }}" target="_blank" class="text-indigo-600 hover:underline">{{ seller.store_url }}</a>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-gray-400">Status</span>
+        <span class="{% if seller.is_active %}text-green-600{% else %}text-red-500{% endif %} font-medium">
+          {% if seller.is_active %}Active{% else %}Inactive{% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

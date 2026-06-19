@@ -1,0 +1,57 @@
+{% extends "seller/base.html" %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+  <a href="{% url 'seller:product_edit' product.pk %}" class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-5">
+    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    Back to {{ product.name }}
+  </a>
+
+  <form method="post" class="space-y-5">
+    {% csrf_token %}
+
+    <!-- Plan fields -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="font-semibold text-gray-800 mb-4">Plan Details</h2>
+      <div class="space-y-4">
+        {% for field in form %}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}{% if field.field.required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}</label>
+          {{ field }}
+          {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Deliverable fields -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="font-semibold text-gray-800 mb-1">Deliverable</h2>
+      <p class="text-xs text-gray-400 mb-4">What gets sent to the customer after purchase.</p>
+      <div class="space-y-4">
+        {% for field in deliverable_form %}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}{% if field.field.required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}</label>
+          {{ field }}
+          {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+          {% if field.help_text %}<p class="text-xs text-gray-400 mt-0.5">{{ field.help_text }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <div class="mt-3 p-3 bg-gray-50 rounded-lg text-xs text-gray-500 space-y-1">
+        <p class="font-medium text-gray-600">Config examples by type:</p>
+        <p><code class="bg-white px-1 rounded">license_key</code> → <code class="bg-white px-1 rounded">{"pool": ["KEY1", "KEY2"]}</code></p>
+        <p><code class="bg-white px-1 rounded">download</code> → <code class="bg-white px-1 rounded">{"download_url": "https://..."}</code></p>
+        <p><code class="bg-white px-1 rounded">credentials</code> → <code class="bg-white px-1 rounded">{"username": "...", "password": "..."}</code></p>
+        <p><code class="bg-white px-1 rounded">api_key</code> → <code class="bg-white px-1 rounded">{"api_key": "sk-..."}</code></p>
+      </div>
+    </div>
+
+    <div class="flex gap-3">
+      <button type="submit" class="btn-primary">{{ submit_label }}</button>
+      <a href="{% url 'seller:product_edit' product.pk %}" class="btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

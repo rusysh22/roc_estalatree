@@ -141,6 +141,7 @@ def checkout(
     plan: Plan,
     checkout_key: str,
     *,
+    coupon=None,
     duitku_client=None,
     callback_url: str,
     return_url: str,
@@ -207,18 +208,29 @@ def checkout(
 
         return order, grants, None
 
+    # ── Paid plan — apply coupon discount if provided ─────────────────────────
+    discount = 0
+    if coupon is not None:
+        valid, _ = coupon.is_valid_for(plan)
+        if valid:
+            discount = coupon.compute_discount(plan.price)
+
+    effective_price = max(0, plan.price - discount)
+
     # ── Paid plan — check balance ─────────────────────────────────────────────
     wallet = customer.wallet
     wallet.refresh_from_db()
 
-    if wallet.balance >= plan.price:
+    if wallet.balance >= effective_price:
         # Sufficient balance — debit and fulfill atomically (H1)
         with transaction.atomic():
             try:
                 order = Order.objects.create(
                     customer=customer,
                     plan=plan,
-                    amount=plan.price,
+                    amount=effective_price,
+                    discount=discount,
+                    coupon=coupon if discount > 0 else None,
                     status=Order.Status.PENDING,
                     idempotency_key=checkout_key,
                 )
@@ -227,14 +239,20 @@ def checkout(
                 grants = list(Grant.objects.filter(order=order).order_by("-created_at"))
                 return order, grants, None
 
-            entry = debit(
-                wallet=wallet,
-                amount=plan.price,
-                entry_type=LedgerEntry.Type.PURCHASE,
-                ref=f"order:{order.public_id}",
-                note=f"Purchase: {plan}",
-            )
-            order.ledger_entry = entry
+            if coupon is not None and discount > 0:
+                from apps.billing.models import Coupon as CouponModel
+                CouponModel.objects.filter(pk=coupon.pk).update(used_count=coupon.used_count + 1)
+
+            if effective_price > 0:
+                entry = debit(
+                    wallet=wallet,
+                    amount=effective_price,
+                    entry_type=LedgerEntry.Type.PURCHASE,
+                    ref=f"order:{order.public_id}",
+                    note=f"Purchase: {plan}",
+                )
+                order.ledger_entry = entry
+
             order.status = Order.Status.PAID
 
             # M3: link Order ↔ Subscription; H2: pass subscription to provisioner
@@ -254,14 +272,16 @@ def checkout(
 
     else:
         # Insufficient balance — initiate TopUp for the delta, link to pending Order
-        delta = plan.price - wallet.balance
+        delta = effective_price - wallet.balance
 
         with transaction.atomic():
             try:
                 order = Order.objects.create(
                     customer=customer,
                     plan=plan,
-                    amount=plan.price,
+                    amount=effective_price,
+                    discount=discount,
+                    coupon=coupon if discount > 0 else None,
                     status=Order.Status.PENDING,
                     idempotency_key=checkout_key,
                 )

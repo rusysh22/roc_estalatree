@@ -113,16 +113,32 @@ def checkout_plan(request, plan_pk):
 
     # POST — run checkout
     from apps.billing.checkout import checkout, CheckoutIdempotencyError
+    from apps.billing.models import Coupon
 
     checkout_token = request.POST.get("checkout_token") or request.session.get(_SESSION_KEY, uuid.uuid4().hex)
     checkout_key = f"ck:{request.user.pk}:{plan.pk}:{checkout_token}"
     return_url = request.build_absolute_uri("/orders/pending/")
+
+    # Resolve coupon code if provided
+    coupon = None
+    coupon_code = request.POST.get("coupon_code", "").strip().upper()
+    if coupon_code:
+        try:
+            coupon_obj = Coupon.objects.get(code=coupon_code)
+            valid, reason = coupon_obj.is_valid_for(plan)
+            if valid:
+                coupon = coupon_obj
+            else:
+                messages.warning(request, f"Coupon not applicable: {reason}")
+        except Coupon.DoesNotExist:
+            messages.warning(request, "Coupon code not found.")
 
     try:
         order, grants, payment_url = checkout(
             customer=customer,
             plan=plan,
             checkout_key=checkout_key,
+            coupon=coupon,
             callback_url=_callback_url(request),
             return_url=return_url,
         )
@@ -172,9 +188,12 @@ def topup(request):
             from apps.billing.services import initiate_topup
 
             try:
+                bonus_pct = int(Setting.get("TOPUP_BONUS_PERCENT", "0"))
+                bonus = amount * bonus_pct // 100
                 topup_obj, payment_url = initiate_topup(
                     customer=customer,
                     amount=amount,
+                    bonus=bonus,
                     callback_url=_callback_url(request),
                     return_url=request.build_absolute_uri("/dashboard/wallet/"),
                 )

@@ -1,0 +1,83 @@
+{% extends "seller/base.html" %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- KPI Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-gray-200 p-4">
+    <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Revenue</p>
+    <p class="text-2xl font-bold text-gray-900 mt-1">Rp{{ revenue|floatformat:0 }}</p>
+    <p class="text-xs text-green-600 mt-1">Paid orders</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-4">
+    <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Orders</p>
+    <p class="text-2xl font-bold text-gray-900 mt-1">{{ orders_count }}</p>
+    <p class="text-xs text-gray-500 mt-1">All time</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-4">
+    <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Active Subs</p>
+    <p class="text-2xl font-bold text-indigo-600 mt-1">{{ active_subs }}</p>
+    <p class="text-xs text-gray-500 mt-1">Currently active</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-4">
+    <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Pending Orders</p>
+    <p class="text-2xl font-bold {% if pending_orders > 0 %}text-amber-600{% else %}text-gray-900{% endif %} mt-1">{{ pending_orders }}</p>
+    <p class="text-xs text-gray-500 mt-1">Awaiting payment</p>
+  </div>
+</div>
+
+<!-- Store quick info -->
+<div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 flex items-center justify-between">
+  <div>
+    <p class="text-sm font-medium text-indigo-900">{{ seller.name }}'s Store</p>
+    <p class="text-xs text-indigo-600 mt-0.5">{{ products_count }} product(s) · <a href="{{ seller.store_url }}" target="_blank" class="underline">View public store →</a></p>
+  </div>
+  <a href="{% url 'seller:products' %}" class="bg-indigo-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors">
+    + Add Product
+  </a>
+</div>
+
+<!-- Recent Orders -->
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+    <h2 class="font-semibold text-gray-800 text-sm">Recent Orders</h2>
+    <a href="{% url 'seller:orders' %}" class="text-xs text-indigo-600 hover:underline">View all</a>
+  </div>
+  {% if recent_orders %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+        <tr>
+          <th class="px-5 py-3 text-left">Customer</th>
+          <th class="px-5 py-3 text-left">Plan</th>
+          <th class="px-5 py-3 text-right">Amount</th>
+          <th class="px-5 py-3 text-center">Status</th>
+          <th class="px-5 py-3 text-right">Date</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for order in recent_orders %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-5 py-3 text-gray-700">{{ order.customer.user.email|truncatechars:28 }}</td>
+          <td class="px-5 py-3 text-gray-600">{{ order.plan.name }} <span class="text-gray-400">·</span> {{ order.plan.product.name }}</td>
+          <td class="px-5 py-3 text-right font-medium text-gray-800">Rp{{ order.amount|floatformat:0 }}</td>
+          <td class="px-5 py-3 text-center">
+            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
+              {% if order.status == 'paid' %}bg-green-100 text-green-700
+              {% elif order.status == 'pending' %}bg-amber-100 text-amber-700
+              {% elif order.status == 'cancelled' %}bg-red-100 text-red-700
+              {% else %}bg-gray-100 text-gray-600{% endif %}">
+              {{ order.get_status_display }}
+            </span>
+          </td>
+          <td class="px-5 py-3 text-right text-gray-400 text-xs">{{ order.created_at|date:"d M Y" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="px-5 py-12 text-center text-gray-400 text-sm">No orders yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "seller/base.html" %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+  <!-- Back link -->
+  <a href="{% url 'seller:products' %}" class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-5">
+    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    Back to Products
+  </a>
+
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h2 class="font-semibold text-gray-800 mb-5">{{ title }}</h2>
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      {% for field in form %}
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}{% if field.field.required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}</label>
+        {{ field }}
+        {% if field.errors %}
+        <p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>
+        {% endif %}
+        {% if field.help_text %}
+        <p class="text-xs text-gray-400 mt-0.5">{{ field.help_text }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+      <div class="flex gap-3 pt-2">
+        <button type="submit" class="btn-primary">{{ submit_label }}</button>
+        <a href="{% url 'seller:products' %}" class="btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Plans panel (only when editing existing product) -->
+  {% if product %}
+  <div class="bg-white rounded-xl border border-gray-200 p-6 mt-5">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-gray-800">Plans</h3>
+      <a href="{% url 'seller:plan_create' product.pk %}" class="btn-primary text-xs px-3 py-1.5">+ New Plan</a>
+    </div>
+    {% if plans %}
+    <div class="space-y-2">
+      {% for plan in plans %}
+      <div class="flex items-center justify-between border border-gray-100 rounded-lg px-4 py-3">
+        <div>
+          <p class="text-sm font-medium text-gray-800">{{ plan.name }}</p>
+          <p class="text-xs text-gray-500">Rp{{ plan.price|floatformat:0 }} / {{ plan.get_interval_display }}
+            {% if plan.seat_limit %} · {{ plan.seat_limit }} seat(s){% endif %}
+            {% if not plan.is_active %}<span class="text-red-400 ml-1">Inactive</span>{% endif %}
+          </p>
+        </div>
+        <a href="{% url 'seller:plan_edit' product.pk plan.pk %}" class="text-xs text-indigo-600 hover:underline">Edit</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400">No plans yet. <a href="{% url 'seller:plan_create' product.pk %}" class="text-indigo-600 hover:underline">Add the first plan →</a></p>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
