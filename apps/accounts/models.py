@@ -65,17 +65,40 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class SellerProfile(TimestampedModel):
-    """Merchant / seller entity. Single row in single-merchant mode. See ADR-005."""
+    """Merchant / seller entity. Single row in single-merchant mode.
 
+    Multi-seller ready: user FK links the owner; is_approved gates marketplace access.
+    commission_rate is the platform's cut per sale (0 = no fee, single-merchant default).
+    See ADR-005.
+    """
+
+    user = models.OneToOneField(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="seller_profile",
+    )
     name = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
     is_active = models.BooleanField(default=True)
+    is_approved = models.BooleanField(default=True)
+    commission_rate = models.PositiveSmallIntegerField(
+        default=0, help_text="Platform commission percentage (0–100)"
+    )
+    bio = models.TextField(blank=True)
+    logo_url = models.URLField(blank=True)
+    wa_number = models.CharField(max_length=20, blank=True)
 
     class Meta:
         verbose_name = "Seller Profile"
 
     def __str__(self) -> str:
         return self.name
+
+    @property
+    def store_url(self) -> str:
+        return f"/{self.slug}/"
 
 
 class Customer(TimestampedModel):

@@ -97,6 +97,14 @@ class Order(TimestampedModel):
         related_name="orders",
         help_text="Subscription created by this Order (recurring plans only)",
     )
+    coupon = models.ForeignKey(
+        "billing.Coupon",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orders",
+    )
+    discount = models.PositiveBigIntegerField(default=0, help_text="Coupon discount applied (IDR)")
 
     class Meta:
         ordering = ["-created_at"]
@@ -151,3 +159,65 @@ class Subscription(TimestampedModel):
 
     def __str__(self) -> str:
         return f"Sub({self.customer} / {self.plan}) [{self.status}]"
+
+
+class Coupon(TimestampedModel):
+    """Checkout-time discount voucher. Supports percent and fixed-IDR discounts."""
+
+    class DiscountType(models.TextChoices):
+        PERCENT = "percent", "Percent (%)"
+        FIXED = "fixed", "Fixed (Rp)"
+
+    code = models.CharField(max_length=50, unique=True, db_index=True)
+    discount_type = models.CharField(
+        max_length=10, choices=DiscountType.choices, default=DiscountType.PERCENT
+    )
+    value = models.PositiveBigIntegerField(help_text="Percent 1–100 or fixed Rp amount")
+    min_order = models.PositiveBigIntegerField(default=0, help_text="Min order amount to apply (0 = no minimum)")
+    max_discount = models.PositiveBigIntegerField(default=0, help_text="Cap on discount IDR (0 = no cap, percent type)")
+    usage_limit = models.PositiveIntegerField(default=0, help_text="Max redemptions (0 = unlimited)")
+    used_count = models.PositiveIntegerField(default=0)
+    valid_from = models.DateTimeField(null=True, blank=True)
+    valid_until = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    seller = models.ForeignKey(
+        "accounts.SellerProfile",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="coupons",
+    )
+    plans = models.ManyToManyField("catalog.Plan", blank=True, help_text="Restrict to specific plans (empty = all)")
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        suffix = f"{self.value}%" if self.discount_type == self.DiscountType.PERCENT else f"Rp{self.value:,}"
+        return f"{self.code} ({suffix})"
+
+    def compute_discount(self, order_amount: int) -> int:
+        """Return discount IDR for the given order amount."""
+        if self.discount_type == self.DiscountType.PERCENT:
+            discount = order_amount * self.value // 100
+            if self.max_discount > 0:
+                discount = min(discount, self.max_discount)
+        else:
+            discount = self.value
+        return min(discount, order_amount)
+
+    def is_valid_for(self, plan=None) -> tuple[bool, str]:
+        """Returns (valid, error_message)."""
+        from django.utils import timezone
+        if not self.is_active:
+            return False, "Coupon is not active."
+        now = timezone.now()
+        if self.valid_from and now < self.valid_from:
+            return False, "Coupon is not yet valid."
+        if self.valid_until and now > self.valid_until:
+            return False, "Coupon has expired."
+        if self.usage_limit > 0 and self.used_count >= self.usage_limit:
+            return False, "Coupon usage limit reached."
+        if plan and self.plans.exists() and not self.plans.filter(pk=plan.pk).exists():
+            return False, "Coupon is not valid for this plan."
+        return True, ""
