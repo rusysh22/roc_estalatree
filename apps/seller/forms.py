@@ -23,12 +23,13 @@ class SellerProfileForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ["name", "type", "visibility", "description", "wa_number"]
+        fields = ["name", "type", "visibility", "description", "cover_image_url", "wa_number"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input-field"}),
             "type": forms.Select(attrs={"class": "input-field"}),
             "visibility": forms.Select(attrs={"class": "input-field"}),
             "description": forms.Textarea(attrs={"class": "input-field", "rows": 4}),
+            "cover_image_url": forms.URLInput(attrs={"class": "input-field", "placeholder": "https://..."}),
             "wa_number": forms.TextInput(attrs={"class": "input-field", "placeholder": "628123456789"}),
         }
 

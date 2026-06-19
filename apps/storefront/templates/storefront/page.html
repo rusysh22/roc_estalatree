@@ -56,6 +56,10 @@
       {% elif block.type == "product" and block.product %}
         {% with product=block.product %}
         <div class="bg-white rounded-xl border border-gray-200 overflow-hidden hover:border-indigo-200 hover:shadow-sm transition-all">
+          {% if product.cover_image_url %}
+          <img src="{{ product.cover_image_url }}" alt="{{ product.name }}"
+               class="w-full h-36 object-cover">
+          {% endif %}
           <!-- Product card header -->
           <div class="p-5">
             <div class="flex items-start justify-between mb-2">
