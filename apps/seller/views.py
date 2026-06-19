@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.db.models import Count, Sum, Q
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -20,6 +21,7 @@ from .forms import (
     BroadcastForm,
     CouponForm,
     DeliverableForm,
+    EntitlementForm,
     PlanForm,
     ProductForm,
     SellerProfileForm,
@@ -237,15 +239,55 @@ def plan_edit(request, product_pk, plan_pk):
     else:
         form = PlanForm(instance=plan)
         deliverable_form = DeliverableForm(instance=deliverable, prefix="dlv")
+    entitlements = plan.entitlements.all()
     return render(request, "seller/plan_form.html", {
         "seller": seller,
         "product": product,
         "plan": plan,
         "form": form,
         "deliverable_form": deliverable_form,
+        "entitlements": entitlements,
+        "entitlement_form": EntitlementForm(),
         "title": f"Edit Plan — {plan.name}",
         "submit_label": "Save Plan",
     })
+
+
+@seller_required
+@require_POST
+def entitlement_add(request, product_pk, plan_pk):
+    from apps.provisioning.models import Entitlement
+    seller = request.seller
+    product = get_object_or_404(_seller_products(seller), pk=product_pk)
+    plan = get_object_or_404(Plan, pk=plan_pk, product=product)
+    form = EntitlementForm(request.POST)
+    if form.is_valid():
+        key = form.cleaned_data["key"].upper().strip()
+        ent, _ = Entitlement.objects.get_or_create(
+            key=key,
+            defaults={
+                "name": form.cleaned_data["name"],
+                "value": form.cleaned_data["value"],
+            },
+        )
+        plan.entitlements.add(ent)
+        messages.success(request, f"Entitlement '{key}' added to plan.")
+    else:
+        messages.error(request, "Invalid entitlement — key is required.")
+    return redirect("seller:plan_edit", product_pk=product.pk, plan_pk=plan.pk)
+
+
+@seller_required
+@require_POST
+def entitlement_remove(request, product_pk, plan_pk, ent_pk):
+    from apps.provisioning.models import Entitlement
+    seller = request.seller
+    product = get_object_or_404(_seller_products(seller), pk=product_pk)
+    plan = get_object_or_404(Plan, pk=plan_pk, product=product)
+    ent = get_object_or_404(Entitlement, pk=ent_pk)
+    plan.entitlements.remove(ent)
+    messages.success(request, f"Entitlement '{ent.key}' removed.")
+    return redirect("seller:plan_edit", product_pk=product.pk, plan_pk=plan.pk)
 
 
 # ── Orders ────────────────────────────────────────────────────────────────────

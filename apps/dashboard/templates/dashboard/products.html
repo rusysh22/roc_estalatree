@@ -112,6 +112,13 @@
     <p class="text-xs text-gray-400 italic">{{ grant.get_type_display }} — contact support for access details.</p>
     {% endif %}
 
+    {% if grant.deliverable.instructions %}
+    <div class="mt-3 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+      <p class="text-xs font-medium text-blue-700 mb-0.5">Setup instructions</p>
+      <p class="text-xs text-blue-800 whitespace-pre-line">{{ grant.deliverable.instructions }}</p>
+    </div>
+    {% endif %}
+
     {% if grant.valid_until %}
     <p class="text-xs text-gray-400 mt-2">Valid until {{ grant.valid_until|date:"d M Y" }}</p>
     {% endif %}

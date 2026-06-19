@@ -53,5 +53,53 @@
       <a href="{% url 'seller:product_edit' product.pk %}" class="btn-secondary">Cancel</a>
     </div>
   </form>
+
+  <!-- Entitlements panel — only when editing an existing plan -->
+  {% if plan %}
+  <div class="bg-white rounded-xl border border-gray-200 p-6 mt-5">
+    <h2 class="font-semibold text-gray-800 mb-1">Feature Entitlements</h2>
+    <p class="text-xs text-gray-400 mb-4">
+      Entitlements declare what capabilities this plan includes (e.g. <code class="bg-gray-100 px-1 rounded">PRO_EXPORT</code>, <code class="bg-gray-100 px-1 rounded">MAX_PROJECTS=10</code>).
+      They are returned in the activation response and can be checked in your app with <code class="bg-gray-100 px-1 rounded">grant.has_entitlement("KEY")</code>.
+    </p>
+
+    {% if entitlements %}
+    <div class="space-y-2 mb-4">
+      {% for ent in entitlements %}
+      <div class="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg px-4 py-2.5">
+        <div>
+          <code class="text-sm font-mono font-semibold text-indigo-700">{{ ent.key }}{% if ent.value %}={{ ent.value }}{% endif %}</code>
+          {% if ent.name %}<span class="text-xs text-gray-500 ml-2">{{ ent.name }}</span>{% endif %}
+        </div>
+        <form method="post" action="{% url 'seller:entitlement_remove' product.pk plan.pk ent.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="text-xs text-red-500 hover:text-red-700 font-medium">Remove</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400 mb-4">No entitlements attached to this plan yet.</p>
+    {% endif %}
+
+    <!-- Add entitlement form -->
+    <form method="post" action="{% url 'seller:entitlement_add' product.pk plan.pk %}" class="border-t border-gray-100 pt-4">
+      {% csrf_token %}
+      <p class="text-xs font-medium text-gray-600 mb-2">Add entitlement</p>
+      <div class="grid grid-cols-3 gap-2 mb-2">
+        {% for field in entitlement_form %}
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<p class="text-xs text-red-500">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <button type="submit" class="text-xs bg-indigo-50 text-indigo-700 font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors">
+        + Add
+      </button>
+    </form>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

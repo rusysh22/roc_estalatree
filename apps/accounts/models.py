@@ -108,6 +108,8 @@ class Customer(TimestampedModel):
         "accounts.User", on_delete=models.CASCADE, related_name="customer"
     )
     wa_number = models.CharField(max_length=20, blank=True)
+    notif_wa = models.BooleanField(default=True, help_text="Receive notifications via WhatsApp")
+    notif_email = models.BooleanField(default=True, help_text="Receive notifications via email")
     notes = models.TextField(blank=True)
 
     class Meta:

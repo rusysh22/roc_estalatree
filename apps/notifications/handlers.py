@@ -28,6 +28,8 @@ def _customer(customer_id):
 
 
 def _wa(customer, message: str) -> None:
+    if not getattr(customer, "notif_wa", True):
+        return
     from apps.notifications.tasks import deliver_whatsapp
     from apps.notifications.whatsapp import normalize_number
     if customer.wa_number:
@@ -35,6 +37,8 @@ def _wa(customer, message: str) -> None:
 
 
 def _email(customer, subject: str, message: str) -> None:
+    if not getattr(customer, "notif_email", True):
+        return
     from apps.notifications.tasks import deliver_email
     deliver_email.delay(customer.user.email, subject, message)
 

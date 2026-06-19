@@ -4,7 +4,7 @@ from django import forms
 from apps.accounts.models import SellerProfile
 from apps.billing.models import Coupon
 from apps.catalog.models import Plan, Product
-from apps.provisioning.models import Deliverable
+from apps.provisioning.models import Deliverable, Entitlement
 from apps.storefront.models import Block, StorePage
 
 
@@ -49,11 +49,24 @@ class PlanForm(forms.ModelForm):
 class DeliverableForm(forms.ModelForm):
     class Meta:
         model = Deliverable
-        fields = ["type", "config"]
+        fields = ["type", "config", "instructions"]
         widgets = {
             "type": forms.Select(attrs={"class": "input-field"}),
             "config": forms.Textarea(attrs={"class": "input-field font-mono text-xs", "rows": 4,
                                             "placeholder": '{"download_url": "https://..."}'}),
+            "instructions": forms.Textarea(attrs={"class": "input-field", "rows": 3,
+                                                  "placeholder": "e.g. Extract with password: abc123. Then run setup.exe."}),
+        }
+
+
+class EntitlementForm(forms.ModelForm):
+    class Meta:
+        model = Entitlement
+        fields = ["key", "name", "value"]
+        widgets = {
+            "key": forms.TextInput(attrs={"class": "input-field", "placeholder": "PRO_EXPORT"}),
+            "name": forms.TextInput(attrs={"class": "input-field", "placeholder": "Export to Pro formats"}),
+            "value": forms.TextInput(attrs={"class": "input-field", "placeholder": "leave blank for flag-style"}),
         }
 
 

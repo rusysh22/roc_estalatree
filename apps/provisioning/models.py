@@ -27,6 +27,7 @@ class Deliverable(TimestampedModel):
     plan = models.ForeignKey("catalog.Plan", on_delete=models.PROTECT, related_name="deliverables")
     type = models.CharField(max_length=20, choices=Type.choices)
     config = models.JSONField(default=dict, blank=True, help_text="Provisioner-specific config")
+    instructions = models.TextField(blank=True, default="", help_text="Post-purchase instructions shown to the buyer (plain text or markdown)")
 
     def __str__(self) -> str:
         return f"{self.get_type_display()} for {self.plan}"

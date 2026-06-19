@@ -276,10 +276,24 @@ def profile(request):
     if request.method == "POST":
         wa = request.POST.get("wa_number", "").strip()
         customer.wa_number = wa
-        customer.save(update_fields=["wa_number", "updated_at"])
+        customer.notif_wa = bool(request.POST.get("notif_wa"))
+        customer.notif_email = bool(request.POST.get("notif_email"))
+        customer.save(update_fields=["wa_number", "notif_wa", "notif_email", "updated_at"])
         messages.success(request, "Profile updated.")
         return redirect("dashboard:profile")
-    return render(request, "dashboard/profile.html", {"customer": customer})
+
+    try:
+        from allauth.account.models import EmailAddress
+        email_verified = EmailAddress.objects.filter(
+            user=request.user, verified=True
+        ).exists()
+    except Exception:
+        email_verified = True
+
+    return render(request, "dashboard/profile.html", {
+        "customer": customer,
+        "email_verified": email_verified,
+    })
 
 
 @login_required
