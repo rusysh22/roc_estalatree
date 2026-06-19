@@ -1,4 +1,5 @@
-{% extends "dashboard/base.html" %}
+﻿{% extends "dashboard/base.html" %}
+{% load money %}
 {% block page_title %}Home{% endblock %}
 
 {% block content %}
@@ -9,8 +10,8 @@
 <div class="mb-6 bg-amber-50 border border-amber-300 rounded-lg px-5 py-4 flex items-center justify-between">
   <div>
     <p class="font-medium text-amber-900">
-      Renewal due in {{ hours_until|floatformat:0 }}h — balance short by
-      <strong>Rp{{ shortfall|floatformat:0 }}</strong>
+      Renewal due in {{ hours_until|rupiah }}h â€” balance short by
+      <strong>{{ shortfall|rupiah }}</strong>
     </p>
     <p class="text-sm text-amber-700 mt-0.5">{{ next_sub.plan.name }}</p>
   </div>
@@ -25,7 +26,7 @@
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
   <div class="bg-white rounded-lg border border-gray-200 p-5">
     <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Balance</p>
-    <p class="text-2xl font-bold text-indigo-600">Rp{{ wallet.balance|floatformat:0 }}</p>
+    <p class="text-2xl font-bold text-indigo-600">{{ wallet.balance|rupiah }}</p>
     <a href="{% url 'dashboard:wallet' %}" class="text-xs text-indigo-500 hover:underline mt-1 inline-block">View ledger</a>
   </div>
 
@@ -33,7 +34,7 @@
   <div class="bg-white rounded-lg border border-gray-200 p-5">
     <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Next Renewal</p>
     <p class="text-lg font-semibold">{{ next_sub.current_period_end|date:"d M Y" }}</p>
-    <p class="text-xs text-gray-500 mt-0.5">{{ next_sub.plan.name }} — Rp{{ next_sub.plan.price|floatformat:0 }}</p>
+    <p class="text-xs text-gray-500 mt-0.5">{{ next_sub.plan.name }} â€” {{ next_sub.plan.price|rupiah }}</p>
   </div>
   {% endif %}
 
@@ -85,3 +86,4 @@
 </section>
 {% endif %}
 {% endblock %}
+

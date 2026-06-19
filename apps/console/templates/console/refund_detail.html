@@ -1,4 +1,5 @@
-{% extends "console/base.html" %}
+﻿{% extends "console/base.html" %}
+{% load money %}
 {% block page_title %}Refund #{{ ref.pk }}{% endblock %}
 
 {% block content %}
@@ -19,11 +20,11 @@
       </div>
       <div class="flex justify-between">
         <dt class="text-gray-500">Order</dt>
-        <dd class="font-mono text-xs">{{ ref.order.public_id|default:"—" }}</dd>
+        <dd class="font-mono text-xs">{{ ref.order.public_id|default:"â€”" }}</dd>
       </div>
       <div class="flex justify-between">
         <dt class="text-gray-500">Order Amount</dt>
-        <dd class="font-semibold">{% if ref.order %}Rp{{ ref.order.amount|floatformat:0 }}{% else %}—{% endif %}</dd>
+        <dd class="font-semibold">{% if ref.order %}{{ ref.order.amount|rupiah }}{% else %}â€”{% endif %}</dd>
       </div>
       <div class="flex justify-between">
         <dt class="text-gray-500">Status</dt>
@@ -51,7 +52,7 @@
     <div class="bg-green-50 border border-green-200 rounded-lg p-5">
       <h3 class="font-semibold text-green-800 mb-3">Approve Refund</h3>
       <p class="text-sm text-green-700 mb-4">
-        This will credit <strong>Rp{{ ref.order.amount|floatformat:0 }}</strong> back to {{ ref.customer }}'s wallet.
+        This will credit <strong>{{ ref.order.amount|rupiah }}</strong> back to {{ ref.customer }}'s wallet.
       </p>
       <form method="post" action="{% url 'console:refund_approve' ref.pk %}">
         {% csrf_token %}
@@ -87,3 +88,4 @@
 
 </div>
 {% endblock %}
+

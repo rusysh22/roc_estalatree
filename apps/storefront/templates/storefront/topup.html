@@ -1,11 +1,12 @@
-{% extends "storefront/base.html" %}
+﻿{% extends "storefront/base.html" %}
+{% load money %}
 {% block page_title %}Top up{% endblock %}
 
 {% block content %}
 <div class="max-w-md mx-auto">
   <h1 class="text-2xl font-bold mb-2">Top up balance</h1>
   <p class="text-gray-500 text-sm mb-6">
-    Current balance: <strong class="text-gray-800">Rp{{ wallet.balance|floatformat:0 }}</strong>
+    Current balance: <strong class="text-gray-800">{{ wallet.balance|rupiah }}</strong>
   </p>
 
   <div class="bg-white rounded-xl border border-gray-200 p-6">
@@ -18,7 +19,7 @@
         <button type="button"
                 onclick="document.getElementById('amount-input').value='{{ amt.value }}'"
                 class="border border-gray-200 hover:border-indigo-400 rounded-lg py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 transition">
-          Rp{{ amt.label }}
+          {{ amt.label }}
         </button>
         {% endfor %}
       </div>
@@ -37,7 +38,7 @@
           placeholder="Enter amount"
           required
           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-        <p class="text-xs text-gray-400 mt-1">Min Rp{{ min_topup|floatformat:0 }} · Max Rp{{ max_topup|floatformat:0 }}</p>
+        <p class="text-xs text-gray-400 mt-1">Min {{ min_topup|rupiah }} &middot; Max {{ max_topup|rupiah }}</p>
       </div>
 
       <button type="submit"
@@ -52,3 +53,4 @@
   </p>
 </div>
 {% endblock %}
+

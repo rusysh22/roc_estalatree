@@ -1,4 +1,5 @@
-{% extends "storefront/base.html" %}
+﻿{% extends "storefront/base.html" %}
+{% load money %}
 {% block page_title %}Order Status{% endblock %}
 
 {% block content %}
@@ -7,7 +8,7 @@
   <div class="bg-green-50 border border-green-200 rounded-2xl p-8 mb-6">
     <div class="text-4xl mb-3">&#10003;</div>
     <h1 class="text-xl font-bold text-green-800 mb-1">Purchase complete!</h1>
-    <p class="text-green-700 text-sm">{{ order.plan }} — Rp{{ order.amount|floatformat:0 }}</p>
+    <p class="text-green-700 text-sm">{{ order.plan }} â€” {{ order.amount|rupiah }}</p>
   </div>
   <p class="text-gray-500 text-sm mb-6">
     Your license key and details have been sent to <strong>{{ customer.user.email }}</strong>.
@@ -43,3 +44,4 @@
   {% endif %}
 </div>
 {% endblock %}
+

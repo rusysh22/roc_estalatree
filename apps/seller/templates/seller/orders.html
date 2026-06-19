@@ -1,4 +1,5 @@
-{% extends "seller/base.html" %}
+﻿{% extends "seller/base.html" %}
+{% load money %}
 {% block topbar_title %}{% block page_title %}Orders{% endblock %}{% endblock %}
 
 {% block content %}
@@ -24,7 +25,7 @@
         <tr>
           <th class="px-5 py-3 text-left">Order ID</th>
           <th class="px-5 py-3 text-left">Customer</th>
-          <th class="px-5 py-3 text-left">Product · Plan</th>
+          <th class="px-5 py-3 text-left">Product &middot; Plan</th>
           <th class="px-5 py-3 text-right">Amount</th>
           <th class="px-5 py-3 text-center">Status</th>
           <th class="px-5 py-3 text-right">Date</th>
@@ -37,13 +38,13 @@
           <td class="px-5 py-3 text-gray-700">{{ order.customer.user.email|truncatechars:28 }}</td>
           <td class="px-5 py-3 text-gray-600">
             {{ order.plan.product.name }}
-            <span class="text-gray-400 mx-1">·</span>
+            <span class="text-gray-400 mx-1">&middot;</span>
             {{ order.plan.name }}
           </td>
           <td class="px-5 py-3 text-right font-medium text-gray-800">
-            Rp{{ order.amount|floatformat:0 }}
+            {{ order.amount|rupiah }}
             {% if order.discount %}
-            <span class="block text-xs text-green-600 font-normal">-Rp{{ order.discount|floatformat:0 }}</span>
+            <span class="block text-xs text-green-600 font-normal">-{{ order.discount|rupiah }}</span>
             {% endif %}
           </td>
           <td class="px-5 py-3 text-center">
@@ -68,3 +69,4 @@
   {% endif %}
 </div>
 {% endblock %}
+

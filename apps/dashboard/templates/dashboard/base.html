@@ -1,22 +1,33 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static money %}
 {% block title %}{% block page_title %}Dashboard{% endblock %} — Estalatree{% endblock %}
 {% block head_extra %}
-  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
 {% endblock %}
 {% block body_attrs %}hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'{% endblock %}
 
 {% block body %}
+{% wallet_balance as nav_balance %}
+{% user_surfaces as surfaces %}
 <nav class="bg-white border-b border-gray-200">
   <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
     <a href="{% url 'dashboard:home' %}" class="font-semibold text-indigo-600">Estalatree</a>
     <div class="flex items-center gap-4 text-sm">
-      <a href="{% url 'dashboard:wallet' %}" class="text-gray-600 hover:text-indigo-600">Wallet</a>
+      <a href="{% url 'dashboard:wallet' %}" class="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 font-medium px-3 py-1 rounded-full text-xs hover:bg-indigo-100 transition-colors" title="Wallet balance">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        {{ nav_balance|rupiah }}
+      </a>
       <a href="{% url 'dashboard:products' %}" class="text-gray-600 hover:text-indigo-600">Products</a>
       <a href="{% url 'dashboard:subscriptions' %}" class="text-gray-600 hover:text-indigo-600">Subscriptions</a>
+      <a href="{% url 'dashboard:devices' %}" class="text-gray-600 hover:text-indigo-600">Devices</a>
       <a href="{% url 'dashboard:invoices' %}" class="text-gray-600 hover:text-indigo-600">Invoices</a>
       <a href="{% url 'dashboard:profile' %}" class="text-gray-600 hover:text-indigo-600">Profile</a>
       <a href="{% url 'dashboard:support' %}" class="text-gray-600 hover:text-indigo-600">Support</a>
+      {% if surfaces.console or surfaces.seller %}
+      <span class="text-gray-300">|</span>
+      {% if surfaces.seller %}<a href="{% url 'seller:home' %}" class="text-xs text-indigo-500 hover:text-indigo-700 font-medium">Seller</a>{% endif %}
+      {% if surfaces.console %}<a href="{% url 'console:cockpit' %}" class="text-xs text-gray-500 hover:text-gray-800 font-medium">Console</a>{% endif %}
+      {% endif %}
       <a href="{% url 'account_logout' %}" class="text-gray-400 hover:text-red-500 ml-2">Sign out</a>
     </div>
   </div>

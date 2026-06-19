@@ -2,8 +2,8 @@
 
 > **Update this file whenever a task is completed.** It is the source of truth for cross-agent handoff. Format: check `[x]` + date + short note.
 
-**Active phase:** **Phase 10** — Superadmin & Admin Tooling — next.
-**Last updated:** 2026-06-18 — Phase 9 complete: public storefront (store page with blocks, product detail, checkout, top-up-and-buy, contact Lead flow, order status), 17 tests green (153 total).
+**Active phase:** **Pre-production hardening** — all build phases (0–11, incl. 9.5) implemented; remediation of review findings in progress.
+**Last updated:** 2026-06-19 — Phases 9.5 / 10 / 11 complete; full-cycle deep evaluation done. See [reviews/](reviews/) — esp. [final-review.md](reviews/final-review.md) and [deep-evaluation.md](reviews/deep-evaluation.md).
 
 ---
 
@@ -19,8 +19,9 @@
 - [x] **Phase 7** — Notifications *(2026-06-18)*
 - [x] **Phase 8** — Customer Dashboard (HTMX) *(2026-06-18)*
 - [x] **Phase 9** — Public Storefront *(2026-06-18)*
-- [ ] **Phase 10** — Superadmin & Admin Tooling
-- [ ] **Phase 11** — Polish & Multi-ready
+- [x] **Phase 9.5** — Unified UI shell + styled auth + `seed_demo` *(2026-06-19)*
+- [x] **Phase 10** — Operator Console (+ Phase 8/9/10 review fixes) *(2026-06-19)*
+- [x] **Phase 11** — Polish & Multi-ready: seller dashboard, coupons, top-up bonus, extra provisioners *(2026-06-19)*
 
 **Minimum MVP:** Phases 0–6.
 
@@ -29,6 +30,10 @@
 ---
 
 ## Work Log (per task)
+- 2026-06-19 — Full-cycle review: verified all per-phase HIGH fixes closed (checkout_token, Setting-key sync, refund lock+deterministic ref + superuser-only, export `type`, audit case). New findings logged in [reviews/final-review.md](reviews/final-review.md), [reviews/deep-evaluation.md](reviews/deep-evaluation.md), [reviews/ui-and-menu-enhancement-spec.md](reviews/ui-and-menu-enhancement-spec.md). Consolidated outstanding items above (P0/P1/P2).
+- 2026-06-19 — Phase 11: seller dashboard (Lynk.id-style, scoped), `Coupon` model + checkout discount wiring, top-up bonus, credentials/api_key/download/access_link/manual provisioners registered. (Open: secrets plaintext, coupon race, multi-seller isolation, broadcast sync.)
+- 2026-06-19 — Phase 10: Operator Console (cockpit + work queue, Customer 360, refund queue, manual credit, extend, CSV export, audit view, settings + panic) + Phase 8/9/10 review fixes applied.
+- 2026-06-19 — Phase 9.5: unified `templates/base.html` shell, styled auth, `seed_demo` command.
 - 2026-06-18 — Docs: ADR closed-loop locked (ADR-019 Python/Django pin, compliance quick-ref table). Build plan reconciled with journey requirements (top-up-and-buy Phase 4, inline SSO Phase 4, webhook safety net Phase 3, unified work queue Phase 10, Superadmin first-run Phase 10, self-serve device mgmt Phase 8, panic controls Phase 5b/10e, Customer 360 Phase 10c, provisioning layer explicit Phase 1/5).
 - 2026-06-18 — Phase 3: billing/duitku.py (DuitkuClient, InvoiceResult, TransactionStatus, signature verification); billing/services.py (initiate_topup, process_webhook_payload with savepoint idempotency, recheck_topup_status safety-net); billing/views.py (duitku_webhook, csrf_exempt, 200/400/500 responses); billing/tasks.py (poll_pending_topups Celery safety-net); tests/test_topup.py (13 tests: initiate, success, bonus, duplicate, invalid-sig, non-success, view HTTP, recheck). All 38 tests pass.
 - 2026-06-18 — Phase 2: wallet/services.py (credit + debit — atomic select_for_update, idempotent ref, InsufficientBalance guard); wallet/signals.py auto-creates Wallet on Customer.post_save (H3); tests/factories.py (User/Customer/Wallet); tests/test_wallet.py (21 tests: balance invariant, idempotency, overdraw, concurrency, immutability). docker-compose postgres remapped to port 5434 (5432 occupied by roc_support_desk).
@@ -56,6 +61,32 @@ See [DECISIONS.md](DECISIONS.md). Stack, balance model, Duitku-for-topup, online
 - ✅ Lynk.id PRO features = baseline/all-access for owner, no tiering — see [22-feature-catalog.md](22-feature-catalog.md).
 - ✅ Stability layer in Phase 0: uv lockfile, CI (GitHub Actions), secret scanning, factory_boy, Sentry/logging, golden-path smoke test.
 - ✅ UI icons: Heroicons SVG (inline/sprite), no emoji anywhere.
+
+## Outstanding (from full-cycle review — see [reviews/](reviews/))
+
+Per-phase HIGH findings are all verified **closed** (see review docs). Remaining, by severity:
+
+**P0 — before real customers**
+- [ ] **Close the books**: reconciliation (Duitku settlement ↔ ledger) + set `Order.REFUNDED` on refund + net refunds out of revenue KPI. ([deep-evaluation.md](reviews/deep-evaluation.md) B-1)
+- [ ] **Encrypt secrets**: move `credentials`/`api_key` into the `Secret` model (reveal-once); shared `get_secret()` helper. ([final-review.md](reviews/final-review.md) H1, deep-eval B-2)
+- [ ] **Closed-loop balance** documented in ToS + ADR (non-cash store credit). (deep-eval B-3)
+
+**P1 — completeness**
+- [ ] Rupiah filter system-wide + ledger TYPE-label bug (`get_type_display`). ([ui-and-menu-enhancement-spec.md](reviews/ui-and-menu-enhancement-spec.md) §0/§0b)
+- [ ] Coupon atomic redemption (`F()` + conditional) incl. top-up-and-buy path. (final-review M1)
+- [ ] Header: persistent balance + Top-up; Devices in nav; vendor HTMX; multi-role surface switcher. (deep-eval H-1/2/4/6)
+- [ ] Activation hand-off: copy-key + guide on Products; reveal-once for credential grants. (deep-eval B-5, ui-spec §2.2)
+- [ ] Invoices: PDF + invoice number + merchant identity + PPN decision. (deep-eval B-7)
+- [ ] Entitlement management UI + enforcement. (deep-eval B-6)
+- [ ] Email verification decision + gate; multi-seller finish-or-fence; broadcast async. (deep-eval B-9/B-10, final-review M3)
+- [ ] Ops: Redis rate-limit in prod; money tests on PostgreSQL; ledger backups. (deep-eval B-11)
+- [ ] Residual: console gated on `is_staff` → dedicated Group (ADR-017). (phase-10-review H2a)
+
+**P2 — polish/future**
+- [ ] Support tickets; notification preferences; in-app notification bell; footer/legal pages; Stage-2/3 (themes, custom domain, pixels, affiliate).
+
+**Pre-production proof**
+- [ ] Run the **live golden-path E2E** (Duitku sandbox) end-to-end and capture each step.
 
 ## Open Questions (need user decision before/at the related phase)
 - [ ] **WA gateway** — Fonnte / Wablas / official WhatsApp Business API? (Phase 7)

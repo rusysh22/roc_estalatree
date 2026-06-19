@@ -5,7 +5,8 @@
 <h1 class="text-2xl font-bold mb-6">My Products</h1>
 
 {% if licenses %}
-<div class="space-y-4">
+<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">License Keys</h2>
+<div class="space-y-4 mb-8">
   {% for license in licenses %}
   <div class="bg-white rounded-lg border border-gray-200 p-5">
     <div class="flex items-start justify-between mb-3">
@@ -39,7 +40,87 @@
   </div>
   {% endfor %}
 </div>
-{% else %}
+{% endif %}
+
+{% if other_grants %}
+<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Other Access</h2>
+<div class="space-y-4">
+  {% for grant in other_grants %}
+  <div class="bg-white rounded-lg border border-gray-200 p-5">
+    <div class="flex items-start justify-between mb-3">
+      <div>
+        <p class="font-semibold">{{ grant.deliverable.plan.product.name }}</p>
+        <p class="text-xs text-gray-500">{{ grant.deliverable.plan.name }} &middot; {{ grant.get_type_display }}</p>
+      </div>
+      <span class="text-xs px-2 py-0.5 rounded-full
+        {% if grant.status == 'active' %}bg-green-100 text-green-700
+        {% elif grant.status == 'suspended' %}bg-amber-100 text-amber-700
+        {% else %}bg-red-100 text-red-700{% endif %}">
+        {{ grant.get_status_display }}
+      </span>
+    </div>
+
+    <!-- Grant type-specific display -->
+    {% if grant.type == 'download' %}
+    {% if grant.payload.url %}
+    <a href="{{ grant.payload.url }}" target="_blank"
+      class="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      Download
+    </a>
+    {% else %}
+    <p class="text-xs text-gray-400">Download link not available yet.</p>
+    {% endif %}
+
+    {% elif grant.type == 'access_link' %}
+    {% if grant.payload.url %}
+    <a href="{{ grant.payload.url }}" target="_blank"
+      class="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+      Open Access
+    </a>
+    {% else %}
+    <p class="text-xs text-gray-400">Access link not available yet.</p>
+    {% endif %}
+
+    {% elif grant.type == 'credentials' or grant.type == 'api_key' %}
+    {% if grant.payload.username %}
+    <div class="bg-gray-50 rounded border border-gray-200 flex items-center gap-2 px-3 py-2 mb-2">
+      <span class="text-xs text-gray-500 shrink-0">Username</span>
+      <code class="flex-1 font-mono text-sm text-gray-800">{{ grant.payload.username }}</code>
+      <button
+        onclick="navigator.clipboard.writeText('{{ grant.payload.username }}').then(() => this.textContent='Copied!')"
+        class="text-xs text-indigo-600 hover:text-indigo-800 font-medium shrink-0">Copy</button>
+    </div>
+    {% endif %}
+
+    <div id="secret-container-{{ grant.pk }}">
+      {% if grant.status == 'active' %}
+      <button
+        hx-post="{% url 'dashboard:reveal_secret' grant.pk %}"
+        hx-target="#secret-container-{{ grant.pk }}"
+        hx-swap="outerHTML"
+        class="text-xs text-amber-700 hover:text-amber-900 font-medium border border-amber-300 bg-amber-50 px-3 py-1.5 rounded-lg transition-colors">
+        Reveal {{ grant.type|title }} Secret
+      </button>
+      {% else %}
+      <p class="text-xs text-gray-400">Grant is {{ grant.get_status_display|lower }} — secret not accessible.</p>
+      {% endif %}
+    </div>
+
+    {% else %}
+    <p class="text-xs text-gray-400 italic">{{ grant.get_type_display }} — contact support for access details.</p>
+    {% endif %}
+
+    {% if grant.valid_until %}
+    <p class="text-xs text-gray-400 mt-2">Valid until {{ grant.valid_until|date:"d M Y" }}</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not licenses and not other_grants %}
 <div class="bg-white rounded-lg border border-gray-200 px-5 py-12 text-center text-gray-400">
   <p class="text-sm">No products yet.</p>
   <a href="/" class="mt-2 inline-block text-sm text-indigo-500 hover:underline">Browse store</a>

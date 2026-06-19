@@ -1,13 +1,14 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static money %}
 {% block title %}{% block page_title %}Console{% endblock %} — Estalatree Admin{% endblock %}
 {% block body_class %}bg-gray-100 text-gray-900 min-h-screen{% endblock %}
 {% block head_extra %}
-  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
 {% endblock %}
 {% block body_attrs %}hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'{% endblock %}
 
 {% block body %}
+{% user_surfaces as surfaces %}
 <nav class="bg-gray-900 text-white">
   <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
     <div class="flex items-center gap-6">
@@ -21,7 +22,11 @@
       {% endif %}
       <a href="/admin/" class="text-gray-300 hover:text-white text-sm">Django Admin</a>
     </div>
-    <span class="text-gray-400 text-xs">{{ user.email }}</span>
+    <div class="flex items-center gap-4 text-xs">
+      {% if surfaces.dashboard %}<a href="{% url 'dashboard:home' %}" class="text-indigo-400 hover:text-indigo-300">Dashboard</a>{% endif %}
+      {% if surfaces.seller %}<a href="{% url 'seller:home' %}" class="text-indigo-400 hover:text-indigo-300">Seller</a>{% endif %}
+      <span class="text-gray-500">{{ user.email }}</span>
+    </div>
   </div>
 </nav>
 

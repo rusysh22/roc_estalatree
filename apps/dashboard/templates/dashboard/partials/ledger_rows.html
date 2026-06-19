@@ -1,3 +1,4 @@
+{% load money %}
 {% if page.object_list %}
 <table class="w-full text-sm">
   <thead>
@@ -16,15 +17,15 @@
       <td class="px-5 py-3">
         <span class="px-2 py-0.5 rounded text-xs
           {% if entry.amount > 0 %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
-          {{ entry.get_entry_type_display }}
+          {{ entry.get_type_display }}
         </span>
       </td>
       <td class="px-5 py-3 text-gray-600 max-w-xs truncate">{{ entry.note }}</td>
       <td class="px-5 py-3 text-right font-mono
         {% if entry.amount > 0 %}text-green-600{% else %}text-red-600{% endif %}">
-        {% if entry.amount > 0 %}+{% endif %}Rp{{ entry.amount|floatformat:0 }}
+        {{ entry.amount|rupiah_signed }}
       </td>
-      <td class="px-5 py-3 text-right font-mono text-gray-700">Rp{{ entry.balance_after|floatformat:0 }}</td>
+      <td class="px-5 py-3 text-right font-mono text-gray-700">{{ entry.balance_after|rupiah }}</td>
     </tr>
     {% endfor %}
   </tbody>

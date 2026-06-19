@@ -1,11 +1,12 @@
-{% extends "console/base.html" %}
+﻿{% extends "console/base.html" %}
+{% load money %}
 {% block page_title %}Customers{% endblock %}
 
 {% block content %}
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-2xl font-bold">Customers</h1>
   <form method="get" class="flex gap-2">
-    <input type="text" name="q" value="{{ q }}" placeholder="Search by email…"
+    <input type="text" name="q" value="{{ q }}" placeholder="Search by emailâ€¦"
            class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500">
     <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700">Search</button>
     {% if q %}<a href="{% url 'console:customer_list' %}" class="px-4 py-2 text-sm text-gray-600 hover:underline">Clear</a>{% endif %}
@@ -28,13 +29,13 @@
       {% for customer in customers %}
       <tr class="hover:bg-gray-50">
         <td class="px-4 py-3 font-medium">{{ customer.user.email }}</td>
-        <td class="px-4 py-3 text-gray-500">{{ customer.wa_number|default:"—" }}</td>
+        <td class="px-4 py-3 text-gray-500">{{ customer.wa_number|default:"â€”" }}</td>
         <td class="px-4 py-3 text-right font-mono">
-          {% if customer.wallet %}Rp{{ customer.wallet.balance|floatformat:0 }}{% else %}—{% endif %}
+          {% if customer.wallet %}{{ customer.wallet.balance|rupiah }}{% else %}â€”{% endif %}
         </td>
         <td class="px-4 py-3 text-gray-400">{{ customer.created_at|date:"d M Y" }}</td>
         <td class="px-4 py-3 text-right">
-          <a href="{% url 'console:customer_360' customer.pk %}" class="text-indigo-600 hover:underline text-xs">View 360°</a>
+          <a href="{% url 'console:customer_360' customer.pk %}" class="text-indigo-600 hover:underline text-xs">View 360&deg;</a>
         </td>
       </tr>
       {% endfor %}
@@ -47,3 +48,4 @@
 </div>
 {% endif %}
 {% endblock %}
+

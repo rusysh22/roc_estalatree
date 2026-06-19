@@ -1,4 +1,5 @@
-{% extends "console/base.html" %}
+﻿{% extends "console/base.html" %}
+{% load money %}
 {% block page_title %}Cockpit{% endblock %}
 
 {% block content %}
@@ -8,12 +9,12 @@
 <div class="grid grid-cols-4 gap-4 mb-8">
   <div class="bg-white rounded-lg border border-gray-200 p-5">
     <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Balance Liability</p>
-    <p class="text-2xl font-bold text-indigo-600">Rp{{ kpi.balance_liability|floatformat:0 }}</p>
+    <p class="text-2xl font-bold text-indigo-600">{{ kpi.balance_liability|rupiah }}</p>
     <p class="text-xs text-gray-400 mt-1">Total customer wallet balance</p>
   </div>
   <div class="bg-white rounded-lg border border-gray-200 p-5">
     <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Revenue (All Time)</p>
-    <p class="text-2xl font-bold text-green-600">Rp{{ kpi.revenue|floatformat:0 }}</p>
+    <p class="text-2xl font-bold text-green-600">{{ kpi.revenue|rupiah }}</p>
     <p class="text-xs text-gray-400 mt-1">Sum of paid orders</p>
   </div>
   <div class="bg-white rounded-lg border border-gray-200 p-5">
@@ -53,7 +54,7 @@
 
 {% if not queue %}
 <div class="bg-white rounded-lg border border-gray-200 px-5 py-8 text-center text-gray-400 text-sm">
-  Queue empty — nothing needs attention.
+  Queue empty â€” nothing needs attention.
 </div>
 {% else %}
 <div class="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
@@ -91,3 +92,4 @@
   </div>
 </div>
 {% endblock %}
+

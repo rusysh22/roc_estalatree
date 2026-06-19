@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static money %}
 {% block title %}{% block page_title %}Seller{% endblock %} — Estalatree{% endblock %}
 {% block head_extra %}
-  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+  <script src="{% static 'js/htmx.min.js' %}" defer></script>
 {% endblock %}
 {% block body_class %}bg-gray-50 text-gray-900 min-h-screen{% endblock %}
 {% block body_attrs %}hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'{% endblock %}
@@ -100,11 +100,11 @@
     <!-- Top bar -->
     <header class="bg-white border-b border-gray-200 px-6 h-14 flex items-center justify-between flex-shrink-0">
       <h1 class="font-semibold text-gray-800 text-sm">{% block topbar_title %}{% endblock %}</h1>
+{% user_surfaces as surfaces %}
       <div class="flex items-center gap-3 text-xs text-gray-500">
         <span>{{ request.user.email }}</span>
-        {% if request.user.is_superuser %}
-        <a href="{% url 'console:cockpit' %}" class="text-indigo-600 hover:underline">Console</a>
-        {% endif %}
+        {% if surfaces.dashboard %}<a href="{% url 'dashboard:home' %}" class="text-indigo-600 hover:underline">Dashboard</a>{% endif %}
+        {% if surfaces.console %}<a href="{% url 'console:cockpit' %}" class="text-indigo-600 hover:underline">Console</a>{% endif %}
       </div>
     </header>
 

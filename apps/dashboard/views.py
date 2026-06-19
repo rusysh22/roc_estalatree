@@ -110,10 +110,15 @@ def wallet(request):
     if request.headers.get("HX-Request"):
         return render(request, "dashboard/partials/ledger_rows.html", {"page": page})
 
+    pending_topups = TopUp.objects.filter(
+        customer=customer, status=TopUp.Status.PENDING
+    ).order_by("-created_at")
+
     return render(request, "dashboard/wallet.html", {
         "customer": customer,
         "wallet": customer.wallet,
         "page": page,
+        "pending_topups": pending_topups,
     })
 
 
@@ -135,9 +140,38 @@ def products(request):
         .prefetch_related("installations")
         .order_by("-created_at")
     )
+    other_grants = (
+        Grant.objects.filter(customer=customer)
+        .exclude(type="license_key")
+        .select_related("deliverable__plan__product")
+        .prefetch_related("secret")
+        .order_by("-created_at")
+    )
     return render(request, "dashboard/products.html", {
         "customer": customer,
         "licenses": licenses,
+        "other_grants": other_grants,
+    })
+
+
+@login_required
+@require_POST
+def reveal_secret(request, pk):
+    customer = _customer(request)
+    grant = get_object_or_404(Grant, pk=pk, customer=customer)
+    from apps.provisioning.models import Secret
+    try:
+        secret = grant.secret
+    except Secret.DoesNotExist:
+        return HttpResponse("<p class='text-red-500 text-xs'>No secret available.</p>")
+    from apps.provisioning.crypto import decrypt
+    plaintext = decrypt(secret.ciphertext)
+    if not secret.is_revealed:
+        secret.is_revealed = True
+        secret.save(update_fields=["is_revealed"])
+    return render(request, "dashboard/partials/secret_revealed.html", {
+        "grant": grant,
+        "plaintext": plaintext,
     })
 
 

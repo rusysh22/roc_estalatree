@@ -1,4 +1,5 @@
-{% extends "storefront/base.html" %}
+﻿{% extends "storefront/base.html" %}
+{% load money %}
 {% block page_title %}{% if store_page %}{{ store_page.title }}{% else %}Store{% endif %}{% endblock %}
 
 {% block content %}
@@ -67,7 +68,7 @@
               </div>
               <div class="flex items-center gap-3">
                 <span class="font-semibold text-gray-900">
-                  {% if plan.price == 0 %}Free{% else %}Rp{{ plan.price|floatformat:0 }}{% endif %}
+                  {% if plan.price == 0 %}Free{% else %}{{ plan.price|rupiah }}{% endif %}
                 </span>
                 <a href="{% url 'storefront:checkout' plan.pk %}"
                    class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-4 py-1.5 rounded-lg">
@@ -94,3 +95,4 @@
   </div>
 {% endif %}
 {% endblock %}
+

@@ -1,4 +1,5 @@
-{% extends "storefront/base.html" %}
+﻿{% extends "storefront/base.html" %}
+{% load money %}
 {% block page_title %}{{ product.name }}{% endblock %}
 
 {% block content %}
@@ -34,7 +35,7 @@
     <div class="bg-white rounded-xl border border-gray-200 p-5 flex flex-col">
       <p class="font-semibold text-gray-900 mb-1">{{ plan.name }}</p>
       <p class="text-2xl font-bold text-indigo-600 mb-1">
-        {% if plan.price == 0 %}Free{% else %}Rp{{ plan.price|floatformat:0 }}{% endif %}
+        {% if plan.price == 0 %}Free{% else %}{{ plan.price|rupiah }}{% endif %}
         {% if plan.interval != "none" %}
         <span class="text-sm font-normal text-gray-400">/ {{ plan.get_interval_display }}</span>
         {% endif %}
@@ -59,3 +60,4 @@
   </div>
 {% endif %}
 {% endblock %}
+

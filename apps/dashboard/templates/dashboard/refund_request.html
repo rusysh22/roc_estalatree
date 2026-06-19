@@ -1,4 +1,5 @@
-{% extends "dashboard/base.html" %}
+﻿{% extends "dashboard/base.html" %}
+{% load money %}
 {% block page_title %}Refund Request{% endblock %}
 
 {% block content %}
@@ -8,7 +9,7 @@
   <!-- Order summary -->
   <div class="mb-5 p-3 bg-gray-50 rounded border border-gray-200 text-sm">
     <p class="font-medium text-gray-800">{{ order.plan }}</p>
-    <p class="text-gray-500 text-xs mt-0.5">Rp{{ order.amount|floatformat:0 }} · {{ order.created_at|date:"d M Y" }}</p>
+    <p class="text-gray-500 text-xs mt-0.5">{{ order.amount|rupiah }} &middot; {{ order.created_at|date:"d M Y" }}</p>
   </div>
 
   {% if existing %}
@@ -38,3 +39,4 @@
   {% endif %}
 </div>
 {% endblock %}
+

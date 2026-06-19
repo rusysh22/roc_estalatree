@@ -1,4 +1,5 @@
-{% extends "seller/base.html" %}
+﻿{% extends "seller/base.html" %}
+{% load money %}
 {% block topbar_title %}{% block page_title %}Dashboard{% endblock %}{% endblock %}
 
 {% block content %}
@@ -6,7 +7,7 @@
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   <div class="bg-white rounded-xl border border-gray-200 p-4">
     <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Revenue</p>
-    <p class="text-2xl font-bold text-gray-900 mt-1">Rp{{ revenue|floatformat:0 }}</p>
+    <p class="text-2xl font-bold text-gray-900 mt-1">{{ revenue|rupiah }}</p>
     <p class="text-xs text-green-600 mt-1">Paid orders</p>
   </div>
   <div class="bg-white rounded-xl border border-gray-200 p-4">
@@ -30,7 +31,7 @@
 <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 flex items-center justify-between">
   <div>
     <p class="text-sm font-medium text-indigo-900">{{ seller.name }}'s Store</p>
-    <p class="text-xs text-indigo-600 mt-0.5">{{ products_count }} product(s) · <a href="{{ seller.store_url }}" target="_blank" class="underline">View public store →</a></p>
+    <p class="text-xs text-indigo-600 mt-0.5">{{ products_count }} product(s) &middot; <a href="{{ seller.store_url }}" target="_blank" class="underline">View public store &rarr;</a></p>
   </div>
   <a href="{% url 'seller:products' %}" class="bg-indigo-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors">
     + Add Product
@@ -59,8 +60,8 @@
         {% for order in recent_orders %}
         <tr class="hover:bg-gray-50 transition-colors">
           <td class="px-5 py-3 text-gray-700">{{ order.customer.user.email|truncatechars:28 }}</td>
-          <td class="px-5 py-3 text-gray-600">{{ order.plan.name }} <span class="text-gray-400">·</span> {{ order.plan.product.name }}</td>
-          <td class="px-5 py-3 text-right font-medium text-gray-800">Rp{{ order.amount|floatformat:0 }}</td>
+          <td class="px-5 py-3 text-gray-600">{{ order.plan.name }} <span class="text-gray-400">&middot;</span> {{ order.plan.product.name }}</td>
+          <td class="px-5 py-3 text-right font-medium text-gray-800">{{ order.amount|rupiah }}</td>
           <td class="px-5 py-3 text-center">
             <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium
               {% if order.status == 'paid' %}bg-green-100 text-green-700
@@ -81,3 +82,4 @@
   {% endif %}
 </div>
 {% endblock %}
+

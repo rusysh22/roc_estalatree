@@ -18,4 +18,5 @@ urlpatterns = [
     path("profile/", views.profile, name="profile"),
     path("support/", views.support, name="support"),
     path("orders/<pk>/refund/", views.refund_request, name="refund_request"),
+    path("grants/<int:pk>/reveal/", views.reveal_secret, name="reveal_secret"),
 ]

@@ -1,5 +1,6 @@
-{% extends "console/base.html" %}
-{% block page_title %}{{ customer }} — 360°{% endblock %}
+﻿{% extends "console/base.html" %}
+{% load money %}
+{% block page_title %}{{ customer }} &mdash; 360&deg;{% endblock %}
 
 {% block content %}
 <div class="mb-4">
@@ -10,14 +11,14 @@
   <div>
     <h1 class="text-2xl font-bold">{{ customer.user.email }}</h1>
     <p class="text-gray-500 text-sm mt-0.5">
-      WA: {{ customer.wa_number|default:"Not set" }} &nbsp;·&nbsp;
+      WA: {{ customer.wa_number|default:"Not set" }} &nbsp;&middot;&nbsp;
       Joined {{ customer.created_at|date:"d M Y" }}
     </p>
   </div>
   {% if customer.wallet %}
   <div class="text-right">
     <p class="text-xs text-gray-400 uppercase tracking-wide">Balance</p>
-    <p class="text-3xl font-bold text-indigo-600">Rp{{ customer.wallet.balance|floatformat:0 }}</p>
+    <p class="text-3xl font-bold text-indigo-600">{{ customer.wallet.balance|rupiah }}</p>
   </div>
   {% endif %}
 </div>
@@ -101,7 +102,7 @@
       <tr>
         <td class="px-4 py-2 font-mono text-xs text-gray-500">{{ order.public_id }}</td>
         <td class="px-4 py-2">{{ order.plan }}</td>
-        <td class="px-4 py-2 text-right font-mono">Rp{{ order.amount|floatformat:0 }}</td>
+        <td class="px-4 py-2 text-right font-mono">{{ order.amount|rupiah }}</td>
         <td class="px-4 py-2">
           <span class="text-xs px-1.5 py-0.5 rounded
             {% if order.status == 'paid' %}bg-green-100 text-green-700
@@ -147,7 +148,7 @@
             {{ grant.get_status_display }}
           </span>
         </td>
-        <td class="px-4 py-2 text-gray-400 text-xs">{{ grant.valid_until|date:"d M Y"|default:"—" }}</td>
+        <td class="px-4 py-2 text-gray-400 text-xs">{{ grant.valid_until|date:"d M Y"|default:"â€”" }}</td>
       </tr>
       {% empty %}
       <tr><td colspan="4" class="px-4 py-4 text-center text-gray-400 text-sm">No grants.</td></tr>
@@ -178,9 +179,9 @@
         <td class="px-4 py-2 text-xs">{{ entry.entry_type }}</td>
         <td class="px-4 py-2 text-right font-mono text-xs
           {% if entry.amount > 0 %}text-green-600{% else %}text-red-600{% endif %}">
-          {{ entry.amount|floatformat:0 }}
+          {{ entry.amount|rupiah }}
         </td>
-        <td class="px-4 py-2 text-right font-mono text-xs">{{ entry.balance_after|floatformat:0 }}</td>
+        <td class="px-4 py-2 text-right font-mono text-xs">{{ entry.balance_after|rupiah }}</td>
         <td class="px-4 py-2 text-gray-400 text-xs">{{ entry.created_at|date:"d M Y H:i" }}</td>
       </tr>
       {% empty %}
@@ -201,7 +202,7 @@
     <div class="px-5 py-3 flex justify-between items-center">
       <div>
         <p class="text-sm">{{ ref.reason|truncatechars:100 }}</p>
-        <p class="text-xs text-gray-400">{{ ref.created_at|date:"d M Y" }} · {{ ref.get_status_display }}</p>
+        <p class="text-xs text-gray-400">{{ ref.created_at|date:"d M Y" }} &middot; {{ ref.get_status_display }}</p>
       </div>
       {% if ref.status == 'pending' %}
       <a href="{% url 'console:refund_detail' ref.pk %}" class="text-xs text-indigo-600 hover:underline ml-4">Review</a>
@@ -231,3 +232,4 @@
 </div>
 
 {% endblock %}
+
