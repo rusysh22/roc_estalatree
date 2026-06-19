@@ -62,8 +62,8 @@
 
     <!-- Grant type-specific display -->
     {% if grant.type == 'download' %}
-    {% if grant.payload.url %}
-    <a href="{{ grant.payload.url }}" target="_blank"
+    {% if grant.payload.download_url %}
+    <a href="{{ grant.payload.download_url }}" target="_blank"
       class="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
       Download
@@ -73,8 +73,8 @@
     {% endif %}
 
     {% elif grant.type == 'access_link' %}
-    {% if grant.payload.url %}
-    <a href="{{ grant.payload.url }}" target="_blank"
+    {% if grant.payload.access_url %}
+    <a href="{{ grant.payload.access_url }}" target="_blank"
       class="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
       Open Access

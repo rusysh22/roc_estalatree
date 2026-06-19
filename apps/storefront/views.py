@@ -157,7 +157,7 @@ def checkout_plan(request, plan_pk):
         })
 
     # POST — run checkout
-    from apps.billing.checkout import checkout, CheckoutIdempotencyError
+    from apps.billing.checkout import checkout, CheckoutIdempotencyError, CouponLimitError
     from apps.billing.models import Coupon
 
     checkout_token = request.POST.get("checkout_token") or request.session.get(_SESSION_KEY, uuid.uuid4().hex)
@@ -190,6 +190,9 @@ def checkout_plan(request, plan_pk):
     except CheckoutIdempotencyError:
         messages.error(request, "Duplicate checkout — please try again.")
         return redirect("storefront:product", slug=product.slug)
+    except CouponLimitError:
+        messages.error(request, "Coupon is no longer available — usage limit reached.")
+        return redirect("storefront:checkout_plan", plan_pk=plan.pk)
 
     if payment_url:
         return redirect(payment_url)

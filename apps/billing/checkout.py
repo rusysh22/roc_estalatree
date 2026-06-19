@@ -42,6 +42,10 @@ class CheckoutIdempotencyError(Exception):
     """checkout_key was already used by a different customer/plan."""
 
 
+class CouponLimitError(Exception):
+    """Coupon usage_limit reached at the moment of atomic increment (concurrent checkout)."""
+
+
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
 def _create_subscription(customer, plan: Plan, order: Order) -> Subscription:
@@ -108,6 +112,14 @@ def complete_pending_order(order: Order) -> list[Grant]:
             )
             locked.ledger_entry = entry
             locked.status = Order.Status.PAID
+
+            if locked.coupon_id and locked.discount:
+                from django.db.models import F, Q
+                from apps.billing.models import Coupon as CouponModel
+                CouponModel.objects.filter(
+                    Q(usage_limit=0) | Q(used_count__lt=F("usage_limit")),
+                    pk=locked.coupon_id,
+                ).update(used_count=F("used_count") + 1)
 
             subscription = None
             if locked.plan.interval != Plan.Interval.NONE:
@@ -240,9 +252,14 @@ def checkout(
                 return order, grants, None
 
             if coupon is not None and discount > 0:
-                from django.db.models import F
+                from django.db.models import F, Q
                 from apps.billing.models import Coupon as CouponModel
-                CouponModel.objects.filter(pk=coupon.pk).update(used_count=F("used_count") + 1)
+                updated = CouponModel.objects.filter(
+                    Q(usage_limit=0) | Q(used_count__lt=F("usage_limit")),
+                    pk=coupon.pk,
+                ).update(used_count=F("used_count") + 1)
+                if not updated and coupon.usage_limit > 0:
+                    raise CouponLimitError("Coupon usage limit reached.")
 
             if effective_price > 0:
                 entry = debit(

@@ -67,18 +67,27 @@ def handle_order_paid(customer_id, order_id, plan_name="", **kwargs):
         order = Order.objects.get(pk=order_id)
         grants = list(Grant.objects.filter(order=order))
 
-        key_lines = [
-            f"\U0001f511 License Key: `{g.payload['license_key']}`"
-            for g in grants
-            if g.type == "license_key" and g.payload.get("license_key")
-        ]
-        keys_text = "\n".join(key_lines)
+        delivery_lines = []
+        for g in grants:
+            if g.type == "license_key" and g.payload.get("license_key"):
+                delivery_lines.append(f"License Key: `{g.payload['license_key']}`")
+            elif g.type == "download" and g.payload.get("download_url"):
+                delivery_lines.append(f"Download: {g.payload['download_url']}")
+            elif g.type == "access_link" and g.payload.get("access_url"):
+                delivery_lines.append(f"Akses: {g.payload['access_url']}")
+            elif g.type in ("credentials", "api_key"):
+                delivery_lines.append("Kredensial/API Key tersedia di dashboard produk Anda.")
+
+        if not delivery_lines:
+            delivery_lines.append("Produk Anda siap — cek dashboard untuk detail akses.")
+
+        delivery_text = "\n".join(delivery_lines)
 
         msg = (
             f"\U0001f389 *Pembelian Berhasil*\n\n"
-            f"Produk: *{plan_name or order.plan}*\n"
-            + (keys_text + "\n" if keys_text else "")
-            + "\nTerima kasih! Simpan kunci ini dengan aman."
+            f"Produk: *{plan_name or order.plan}*\n\n"
+            f"{delivery_text}\n\n"
+            "Terima kasih! Simpan informasi akses ini dengan aman."
         )
         _wa(c, msg)
         _email(c, f"Pembelian berhasil: {plan_name or order.plan}", msg)
