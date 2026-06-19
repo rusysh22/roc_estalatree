@@ -1,0 +1,233 @@
+{% extends "console/base.html" %}
+{% block title %}{{ customer }} — 360°{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'console:customer_list' %}" class="text-sm text-indigo-500 hover:underline">&larr; Customers</a>
+</div>
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold">{{ customer.user.email }}</h1>
+    <p class="text-gray-500 text-sm mt-0.5">
+      WA: {{ customer.wa_number|default:"Not set" }} &nbsp;·&nbsp;
+      Joined {{ customer.created_at|date:"d M Y" }}
+    </p>
+  </div>
+  {% if customer.wallet %}
+  <div class="text-right">
+    <p class="text-xs text-gray-400 uppercase tracking-wide">Balance</p>
+    <p class="text-3xl font-bold text-indigo-600">Rp{{ customer.wallet.balance|floatformat:0 }}</p>
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid grid-cols-2 gap-6">
+
+  <!-- Manual credit -->
+  <div class="bg-white rounded-lg border border-gray-200 p-5">
+    <h2 class="font-semibold mb-3">Manual Credit / Adjustment</h2>
+    <form method="post" action="{% url 'console:manual_credit' customer.pk %}">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Amount (Rp)</label>
+        <input type="number" name="amount" min="1" required
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+      <div class="mb-3">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Reason (required)</label>
+        <input type="text" name="reason" required
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+      </div>
+      <button type="submit" class="w-full bg-indigo-600 text-white text-sm py-2 rounded-lg hover:bg-indigo-700">
+        Apply Credit
+      </button>
+    </form>
+  </div>
+
+  <!-- Subscriptions + extend -->
+  <div class="bg-white rounded-lg border border-gray-200 p-5">
+    <h2 class="font-semibold mb-3">Subscriptions</h2>
+    {% if subs %}
+    <div class="space-y-3">
+      {% for sub in subs %}
+      <div class="border border-gray-100 rounded-lg p-3">
+        <div class="flex justify-between items-start mb-1">
+          <span class="text-sm font-medium">{{ sub.plan }}</span>
+          <span class="text-xs px-1.5 py-0.5 rounded font-medium
+            {% if sub.status == 'active' %}bg-green-100 text-green-700
+            {% elif sub.status == 'grace' %}bg-amber-100 text-amber-700
+            {% elif sub.status == 'suspended' %}bg-red-100 text-red-700
+            {% else %}bg-gray-100 text-gray-600{% endif %}">
+            {{ sub.get_status_display }}
+          </span>
+        </div>
+        <p class="text-xs text-gray-400 mb-2">Expires {{ sub.current_period_end|date:"d M Y H:i" }}</p>
+        <form method="post" action="{% url 'console:extend_subscription' sub.pk %}" class="flex gap-2">
+          {% csrf_token %}
+          <input type="number" name="days" min="1" max="365" value="7" placeholder="Days"
+                 class="border border-gray-300 rounded px-2 py-1 text-xs w-20">
+          <button type="submit" class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
+            Extend
+          </button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400">No subscriptions.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Orders -->
+<div class="mt-6 bg-white rounded-lg border border-gray-200 overflow-hidden">
+  <div class="px-5 py-3 border-b border-gray-100">
+    <h2 class="font-semibold">Orders</h2>
+  </div>
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="text-left px-4 py-2 text-xs text-gray-500">ID</th>
+        <th class="text-left px-4 py-2 text-xs text-gray-500">Plan</th>
+        <th class="text-right px-4 py-2 text-xs text-gray-500">Amount</th>
+        <th class="text-left px-4 py-2 text-xs text-gray-500">Status</th>
+        <th class="text-left px-4 py-2 text-xs text-gray-500">Date</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for order in orders %}
+      <tr>
+        <td class="px-4 py-2 font-mono text-xs text-gray-500">{{ order.public_id }}</td>
+        <td class="px-4 py-2">{{ order.plan }}</td>
+        <td class="px-4 py-2 text-right font-mono">Rp{{ order.amount|floatformat:0 }}</td>
+        <td class="px-4 py-2">
+          <span class="text-xs px-1.5 py-0.5 rounded
+            {% if order.status == 'paid' %}bg-green-100 text-green-700
+            {% elif order.status == 'refunded' %}bg-blue-100 text-blue-700
+            {% elif order.status == 'failed' %}bg-red-100 text-red-700
+            {% else %}bg-gray-100 text-gray-600{% endif %}">
+            {{ order.get_status_display }}
+          </span>
+        </td>
+        <td class="px-4 py-2 text-gray-400 text-xs">{{ order.created_at|date:"d M Y" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="px-4 py-4 text-center text-gray-400 text-sm">No orders.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Grants -->
+<div class="mt-6 bg-white rounded-lg border border-gray-200 overflow-hidden">
+  <div class="px-5 py-3 border-b border-gray-100">
+    <h2 class="font-semibold">Grants (Licenses)</h2>
+  </div>
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="text-left px-4 py-2 text-xs text-gray-500">Type</th>
+        <th class="text-left px-4 py-2 text-xs text-gray-500">Plan</th>
+        <th class="text-left px-4 py-2 text-xs text-gray-500">Status</th>
+        <th class="text-left px-4 py-2 text-xs text-gray-500">Valid Until</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for grant in grants %}
+      <tr>
+        <td class="px-4 py-2 text-xs font-mono">{{ grant.type }}</td>
+        <td class="px-4 py-2">{{ grant.deliverable.plan }}</td>
+        <td class="px-4 py-2">
+          <span class="text-xs px-1.5 py-0.5 rounded
+            {% if grant.status == 'active' %}bg-green-100 text-green-700
+            {% elif grant.status == 'suspended' %}bg-amber-100 text-amber-700
+            {% else %}bg-red-100 text-red-700{% endif %}">
+            {{ grant.get_status_display }}
+          </span>
+        </td>
+        <td class="px-4 py-2 text-gray-400 text-xs">{{ grant.valid_until|date:"d M Y"|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="px-4 py-4 text-center text-gray-400 text-sm">No grants.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Wallet ledger -->
+<div class="mt-6 bg-white rounded-lg border border-gray-200 overflow-hidden">
+  <div class="px-5 py-3 border-b border-gray-100">
+    <h2 class="font-semibold">Ledger (last 30)</h2>
+  </div>
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="text-left px-4 py-2 text-xs text-gray-500">Ref</th>
+        <th class="text-left px-4 py-2 text-xs text-gray-500">Type</th>
+        <th class="text-right px-4 py-2 text-xs text-gray-500">Amount</th>
+        <th class="text-right px-4 py-2 text-xs text-gray-500">Balance After</th>
+        <th class="text-left px-4 py-2 text-xs text-gray-500">Date</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for entry in ledger %}
+      <tr>
+        <td class="px-4 py-2 font-mono text-xs text-gray-500 truncate max-w-xs">{{ entry.ref }}</td>
+        <td class="px-4 py-2 text-xs">{{ entry.entry_type }}</td>
+        <td class="px-4 py-2 text-right font-mono text-xs
+          {% if entry.amount > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+          {{ entry.amount|floatformat:0 }}
+        </td>
+        <td class="px-4 py-2 text-right font-mono text-xs">{{ entry.balance_after|floatformat:0 }}</td>
+        <td class="px-4 py-2 text-gray-400 text-xs">{{ entry.created_at|date:"d M Y H:i" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="px-4 py-4 text-center text-gray-400 text-sm">No entries.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Refund requests -->
+{% if refunds %}
+<div class="mt-6 bg-white rounded-lg border border-gray-200 overflow-hidden">
+  <div class="px-5 py-3 border-b border-gray-100">
+    <h2 class="font-semibold">Refund Requests</h2>
+  </div>
+  <div class="divide-y divide-gray-100">
+    {% for ref in refunds %}
+    <div class="px-5 py-3 flex justify-between items-center">
+      <div>
+        <p class="text-sm">{{ ref.reason|truncatechars:100 }}</p>
+        <p class="text-xs text-gray-400">{{ ref.created_at|date:"d M Y" }} · {{ ref.get_status_display }}</p>
+      </div>
+      {% if ref.status == 'pending' %}
+      <a href="{% url 'console:refund_detail' ref.pk %}" class="text-xs text-indigo-600 hover:underline ml-4">Review</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Audit timeline -->
+<div class="mt-6 bg-white rounded-lg border border-gray-200 overflow-hidden">
+  <div class="px-5 py-3 border-b border-gray-100">
+    <h2 class="font-semibold">Audit Timeline</h2>
+  </div>
+  <div class="divide-y divide-gray-100">
+    {% for entry in audit %}
+    <div class="px-5 py-2 text-sm">
+      <span class="font-mono text-xs text-gray-500">{{ entry.action }}</span>
+      {% if entry.actor %}<span class="text-gray-400 text-xs ml-2">by {{ entry.actor.email }}</span>{% endif %}
+      <span class="text-gray-300 text-xs ml-2">{{ entry.created_at|date:"d M Y H:i" }}</span>
+    </div>
+    {% empty %}
+    <p class="px-5 py-4 text-sm text-gray-400">No audit entries.</p>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}

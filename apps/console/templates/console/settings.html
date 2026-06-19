@@ -1,0 +1,46 @@
+{% extends "console/base.html" %}
+{% load console_extras %}
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-2">Global Settings</h1>
+<p class="text-sm text-gray-500 mb-6">Superadmin only. Changes take effect immediately.</p>
+
+{% if maintenance_on %}
+<div class="bg-red-100 border border-red-300 rounded-lg px-5 py-3 mb-6 text-red-800 font-medium text-sm">
+  Maintenance mode is ON — activation validation failures are suppressed for all customers.
+</div>
+{% endif %}
+
+<form method="post" action="{% url 'console:settings' %}">
+  {% csrf_token %}
+  <div class="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+    {% for key, label in editable_keys %}
+    <div class="px-5 py-4 flex items-center justify-between gap-4">
+      <div class="flex-1">
+        <label for="field_{{ key }}" class="block text-sm font-medium text-gray-800">{{ label }}</label>
+        <p class="text-xs text-gray-400 font-mono mt-0.5">{{ key }}</p>
+      </div>
+      <input type="text" id="field_{{ key }}" name="{{ key }}" value="{{ current|get_item:key }}"
+             class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="mt-5 flex gap-3">
+    <button type="submit" class="bg-indigo-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700">
+      Save Settings
+    </button>
+    <a href="{% url 'console:cockpit' %}" class="px-5 py-2.5 text-sm text-gray-600 hover:underline">Cancel</a>
+  </div>
+</form>
+
+<div class="mt-8 bg-amber-50 border border-amber-200 rounded-lg p-5">
+  <h2 class="font-semibold text-amber-800 mb-2">Panic Controls</h2>
+  <p class="text-sm text-amber-700 mb-3">
+    Set <code class="font-mono text-xs bg-amber-100 px-1 rounded">MAINTENANCE_MODE</code> to <strong>1</strong> to suppress license validation failures during incidents.
+    Set <code class="font-mono text-xs bg-amber-100 px-1 rounded">GLOBAL_GRACE_EXTEND_HOURS</code> to give all customers extra grace hours.
+    Both take effect immediately.
+  </p>
+</div>
+{% endblock %}

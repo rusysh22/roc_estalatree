@@ -1,0 +1,89 @@
+{% extends "console/base.html" %}
+{% block title %}Refund #{{ ref.pk }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'console:cockpit' %}" class="text-sm text-indigo-500 hover:underline">&larr; Cockpit</a>
+</div>
+
+<h1 class="text-2xl font-bold mb-6">Refund #{{ ref.pk }}</h1>
+
+<div class="grid grid-cols-2 gap-6">
+
+  <div class="bg-white rounded-lg border border-gray-200 p-6">
+    <h2 class="font-semibold mb-4">Details</h2>
+    <dl class="space-y-2 text-sm">
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Customer</dt>
+        <dd><a href="{% url 'console:customer_360' ref.customer_id %}" class="text-indigo-600 hover:underline">{{ ref.customer }}</a></dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Order</dt>
+        <dd class="font-mono text-xs">{{ ref.order.public_id|default:"—" }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Order Amount</dt>
+        <dd class="font-semibold">{% if ref.order %}Rp{{ ref.order.amount|floatformat:0 }}{% else %}—{% endif %}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Status</dt>
+        <dd>{{ ref.get_status_display }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Submitted</dt>
+        <dd>{{ ref.created_at|date:"d M Y H:i" }}</dd>
+      </div>
+    </dl>
+    <div class="mt-4 pt-4 border-t border-gray-100">
+      <p class="text-xs text-gray-500 mb-1">Reason</p>
+      <p class="text-sm">{{ ref.reason }}</p>
+    </div>
+    {% if ref.admin_note %}
+    <div class="mt-3 pt-3 border-t border-gray-100">
+      <p class="text-xs text-gray-500 mb-1">Admin Note</p>
+      <p class="text-sm">{{ ref.admin_note }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if ref.status == 'pending' %}
+  <div class="space-y-4">
+    <div class="bg-green-50 border border-green-200 rounded-lg p-5">
+      <h3 class="font-semibold text-green-800 mb-3">Approve Refund</h3>
+      <p class="text-sm text-green-700 mb-4">
+        This will credit <strong>Rp{{ ref.order.amount|floatformat:0 }}</strong> back to {{ ref.customer }}'s wallet.
+      </p>
+      <form method="post" action="{% url 'console:refund_approve' ref.pk %}">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="block text-xs font-medium text-green-800 mb-1">Admin note (optional)</label>
+          <input type="text" name="admin_note" class="w-full border border-green-300 rounded px-3 py-2 text-sm bg-white">
+        </div>
+        <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700">
+          Approve &amp; Credit Wallet
+        </button>
+      </form>
+    </div>
+
+    <div class="bg-red-50 border border-red-200 rounded-lg p-5">
+      <h3 class="font-semibold text-red-800 mb-3">Reject Refund</h3>
+      <form method="post" action="{% url 'console:refund_reject' ref.pk %}">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="block text-xs font-medium text-red-800 mb-1">Reason for rejection (required)</label>
+          <input type="text" name="admin_note" required class="w-full border border-red-300 rounded px-3 py-2 text-sm bg-white">
+        </div>
+        <button type="submit" class="w-full bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700">
+          Reject
+        </button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 flex items-center justify-center text-gray-400 text-sm">
+    This refund has already been {{ ref.get_status_display|lower }}.
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

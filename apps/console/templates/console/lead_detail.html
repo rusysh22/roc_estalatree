@@ -1,0 +1,80 @@
+{% extends "console/base.html" %}
+{% block title %}Lead #{{ lead.pk }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'console:cockpit' %}" class="text-sm text-indigo-500 hover:underline">&larr; Cockpit</a>
+</div>
+
+<h1 class="text-2xl font-bold mb-6">Lead #{{ lead.pk }} — {{ lead.name }}</h1>
+
+<div class="grid grid-cols-2 gap-6">
+
+  <div class="bg-white rounded-lg border border-gray-200 p-6">
+    <h2 class="font-semibold mb-4">Details</h2>
+    <dl class="space-y-2 text-sm">
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Name</dt>
+        <dd class="font-medium">{{ lead.name }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Contact</dt>
+        <dd>{{ lead.contact }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Product</dt>
+        <dd>{{ lead.product|default:"—" }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Status</dt>
+        <dd>
+          <span class="text-xs px-1.5 py-0.5 rounded font-medium
+            {% if lead.status == 'new' %}bg-indigo-100 text-indigo-700
+            {% elif lead.status == 'won' %}bg-green-100 text-green-700
+            {% elif lead.status == 'lost' %}bg-gray-100 text-gray-500
+            {% else %}bg-amber-100 text-amber-700{% endif %}">
+            {{ lead.get_status_display }}
+          </span>
+        </dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Assigned to</dt>
+        <dd>{{ lead.assigned_to.email|default:"Unassigned" }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-500">Created</dt>
+        <dd class="text-gray-400">{{ lead.created_at|date:"d M Y H:i" }}</dd>
+      </div>
+    </dl>
+    {% if lead.notes %}
+    <div class="mt-4 pt-4 border-t border-gray-100">
+      <p class="text-xs text-gray-500 mb-1">Notes</p>
+      <p class="text-sm">{{ lead.notes }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="bg-white rounded-lg border border-gray-200 p-6">
+    <h2 class="font-semibold mb-4">Update Lead</h2>
+    <form method="post" action="{% url 'console:lead_detail' lead.pk %}">
+      {% csrf_token %}
+      <div class="mb-4">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Status</label>
+        <select name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+          {% for value, label in lead.Status.choices %}
+          <option value="{{ value }}" {% if value == lead.status %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-4">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+        <textarea name="notes" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">{{ lead.notes }}</textarea>
+      </div>
+      <button type="submit" class="w-full bg-indigo-600 text-white text-sm py-2 rounded-lg hover:bg-indigo-700">
+        Update Lead
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

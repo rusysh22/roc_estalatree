@@ -50,6 +50,7 @@
 
 <form method="post" action="{% url 'storefront:checkout' plan.pk %}">
   {% csrf_token %}
+  <input type="hidden" name="checkout_token" value="{{ checkout_token }}">
   <button type="submit"
           class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl text-base">
     {% if shortfall > 0 %}Pay Rp{{ shortfall|floatformat:0 }} &amp; complete purchase

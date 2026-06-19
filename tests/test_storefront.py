@@ -225,7 +225,7 @@ def test_topup_post_valid_amount_redirects_to_payment(authed_client, customer):
 def test_topup_post_invalid_amount_rerenders(authed_client):
     resp = authed_client.post(reverse("storefront:topup"), {"amount": "0"})
     assert resp.status_code == 200
-    assert b"valid" in resp.content.lower()
+    assert b"minimum" in resp.content.lower()
 
 
 # ── 10+11. Contact ────────────────────────────────────────────────────────────

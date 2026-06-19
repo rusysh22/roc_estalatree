@@ -30,8 +30,12 @@ LEDGER_PAGE_SIZE = 20
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _customer(request):
-    """Return the Customer for the logged-in user. Raises AttributeError if none."""
-    return request.user.customer
+    """Return the Customer for the logged-in user. Auto-creates if none exists."""
+    from apps.accounts.models import Customer
+    customer, created = Customer.objects.get_or_create(user=request.user)
+    if created:
+        customer.refresh_from_db()  # Ensures wallet is attached by signals
+    return customer
 
 
 def _renewal_forecast(customer):

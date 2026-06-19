@@ -1,0 +1,47 @@
+{% extends "console/base.html" %}
+{% block title %}Audit Log{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Audit Log</h1>
+
+<form method="get" class="flex gap-3 mb-6">
+  <input type="text" name="action" value="{{ action_filter }}" placeholder="Filter by action…"
+         class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+  <input type="text" name="actor" value="{{ actor_filter }}" placeholder="Filter by actor email…"
+         class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+  <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700">Filter</button>
+  {% if action_filter or actor_filter %}
+  <a href="{% url 'console:audit_log' %}" class="px-4 py-2 text-sm text-gray-600 hover:underline">Clear</a>
+  {% endif %}
+</form>
+
+<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Time</th>
+        <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Action</th>
+        <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Actor</th>
+        <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Target</th>
+        <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Meta</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for entry in entries %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-2 text-xs text-gray-400 whitespace-nowrap">{{ entry.created_at|date:"d M Y H:i:s" }}</td>
+        <td class="px-4 py-2 font-mono text-xs">{{ entry.action }}</td>
+        <td class="px-4 py-2 text-xs">{{ entry.actor.email|default:"—" }}</td>
+        <td class="px-4 py-2 text-xs text-gray-500">
+          {% if entry.target_type %}{{ entry.target_type }}:{{ entry.target_id }}{% else %}—{% endif %}
+        </td>
+        <td class="px-4 py-2 text-xs text-gray-400 font-mono">{{ entry.meta|truncatechars:80 }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No entries found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="text-xs text-gray-400 mt-2">Showing latest 200 entries.</p>
+{% endblock %}

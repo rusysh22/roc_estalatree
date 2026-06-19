@@ -49,8 +49,10 @@ db.sqlite3
 htmlcov/
 .tox/
 
+# Node
+node_modules/
+
 # uv
 # uv.lock is committed intentionally (lockfile)
 
-# Secret scanning baseline
-.secrets.baseline
+# .secrets.baseline IS committed (it's the approved-secrets inventory for detect-secrets)

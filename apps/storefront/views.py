@@ -67,7 +67,10 @@ def page(request, slug=None):
 # ── Product detail ────────────────────────────────────────────────────────────
 
 def product_detail(request, slug):
-    product = get_object_or_404(Product, slug=slug, visibility=Product.Visibility.PUBLIC)
+    product = get_object_or_404(
+        Product, slug=slug,
+        visibility__in=[Product.Visibility.PUBLIC, Product.Visibility.UNLISTED],
+    )
     plans = product.plans.filter(is_active=True).order_by("sort_order", "price")
     return render(request, "storefront/product.html", {
         "product": product,
@@ -82,13 +85,20 @@ def checkout_plan(request, plan_pk):
     plan = get_object_or_404(Plan, pk=plan_pk, is_active=True)
     product = plan.product
 
-    if product.visibility != Product.Visibility.PUBLIC:
+    if product.visibility == Product.Visibility.DRAFT:
         messages.error(request, "Product not available.")
         return redirect("storefront:page")
 
     customer, _ = _get_or_create_customer(request.user)
 
+    _SESSION_KEY = f"ck_token_{plan_pk}"
+
     if request.method == "GET":
+        # Generate a stable idempotency token for this checkout intent.
+        # Reusing the same token on POST prevents double-charge on double-click.
+        checkout_token = uuid.uuid4().hex
+        request.session[_SESSION_KEY] = checkout_token
+
         customer.wallet.refresh_from_db()
         shortfall = max(0, plan.price - customer.wallet.balance)
         balance_after = customer.wallet.balance - plan.price if shortfall == 0 else 0
@@ -98,13 +108,15 @@ def checkout_plan(request, plan_pk):
             "wallet": customer.wallet,
             "shortfall": shortfall,
             "balance_after": balance_after,
+            "checkout_token": checkout_token,
         })
 
     # POST — run checkout
     from apps.billing.checkout import checkout, CheckoutIdempotencyError
 
-    checkout_key = f"ck:{request.user.pk}:{plan.pk}:{uuid.uuid4().hex[:12]}"
-    return_url = request.build_absolute_uri(f"/orders/pending/")
+    checkout_token = request.POST.get("checkout_token") or request.session.get(_SESSION_KEY, uuid.uuid4().hex)
+    checkout_key = f"ck:{request.user.pk}:{plan.pk}:{checkout_token}"
+    return_url = request.build_absolute_uri("/orders/pending/")
 
     try:
         order, grants, payment_url = checkout(
@@ -143,32 +155,33 @@ def topup(request):
     customer, _ = _get_or_create_customer(request.user)
     customer.wallet.refresh_from_db()
 
+    MIN_TOPUP = int(Setting.get("MIN_TOPUP", "10000"))
+    MAX_TOPUP = int(Setting.get("MAX_TOPUP", "50000000"))
+
     if request.method == "POST":
         try:
             amount = int(request.POST.get("amount", 0))
         except (ValueError, TypeError):
             amount = 0
 
-        if amount <= 0:
-            messages.error(request, "Please enter a valid top-up amount.")
-            return render(request, "storefront/topup.html", {
-                "customer": customer,
-                "wallet": customer.wallet,
-            })
+        if amount < MIN_TOPUP:
+            messages.error(request, f"Minimum top-up is Rp{MIN_TOPUP:,}.")
+        elif amount > MAX_TOPUP:
+            messages.error(request, f"Maximum top-up is Rp{MAX_TOPUP:,}.")
+        else:
+            from apps.billing.services import initiate_topup
 
-        from apps.billing.services import initiate_topup
-
-        try:
-            topup_obj, payment_url = initiate_topup(
-                customer=customer,
-                amount=amount,
-                callback_url=_callback_url(request),
-                return_url=request.build_absolute_uri("/dashboard/wallet/"),
-            )
-            return redirect(payment_url)
-        except Exception as exc:
-            logger.error("topup initiation failed: %s", exc)
-            messages.error(request, "Top-up unavailable right now. Please try again.")
+            try:
+                topup_obj, payment_url = initiate_topup(
+                    customer=customer,
+                    amount=amount,
+                    callback_url=_callback_url(request),
+                    return_url=request.build_absolute_uri("/dashboard/wallet/"),
+                )
+                return redirect(payment_url)
+            except Exception as exc:
+                logger.error("topup initiation failed: %s", exc)
+                messages.error(request, "Top-up unavailable right now. Please try again.")
 
     quick_amounts = [
         {"value": v, "label": f"{v:,}"}
@@ -178,6 +191,8 @@ def topup(request):
         "customer": customer,
         "wallet": customer.wallet,
         "quick_amounts": quick_amounts,
+        "min_topup": MIN_TOPUP,
+        "max_topup": MAX_TOPUP,
     })
 
 

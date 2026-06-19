@@ -1,0 +1,23 @@
+{
+  "name": "roc_estalatree",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "css:watch": "tailwindcss -i static/css/input.css -o static/css/main.css --watch",
+    "css:build": "tailwindcss -i static/css/input.css -o static/css/main.css --minify"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.1",
+    "@tailwindcss/forms": "^0.5.11",
+    "tailwindcss": "^4.3.1"
+  }
+}
