@@ -216,7 +216,7 @@ def subscriptions(request):
     customer.wallet.refresh_from_db()
     subs = (
         Subscription.objects.filter(customer=customer)
-        .select_related("plan")
+        .select_related("plan__product")
         .order_by("-current_period_end")
     )
 
