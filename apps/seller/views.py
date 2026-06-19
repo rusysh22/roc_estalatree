@@ -1,7 +1,5 @@
 """Seller Dashboard views — Lynk.id-style creator interface at /seller/."""
 import json
-import logging
-
 from django.contrib import messages
 from django.db.models import Count, Sum
 from django.http import Http404, JsonResponse
@@ -12,7 +10,7 @@ from django.utils.text import slugify
 from apps.accounts.models import Customer, SellerProfile
 from apps.billing.models import Coupon, Order, Subscription
 from apps.catalog.models import Plan, Product
-from apps.notifications.whatsapp import send_whatsapp as send_wa
+from apps.notifications.tasks import deliver_whatsapp
 from apps.provisioning.models import Deliverable
 from apps.storefront.models import Block, StorePage
 
@@ -27,8 +25,6 @@ from .forms import (
     SellerProfileForm,
     StorePageForm,
 )
-
-logger = logging.getLogger(__name__)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -236,12 +232,26 @@ def orders(request):
 
 # ── Store (StorePage editor) ──────────────────────────────────────────────────
 
+def _get_or_create_store_page(seller):
+    """Return this seller's StorePage, creating it if it doesn't exist yet.
+
+    This prevents fallback to another seller's page (M2 isolation).
+    """
+    store_page, created = StorePage.objects.get_or_create(
+        slug=seller.slug,
+        defaults={
+            "title": seller.name,
+            "description": seller.bio or "",
+            "is_published": False,
+        },
+    )
+    return store_page
+
+
 @seller_required
 def store(request):
     seller = request.seller
-    store_page = StorePage.objects.filter(slug=seller.slug).first()
-    if store_page is None:
-        store_page = StorePage.objects.first()
+    store_page = _get_or_create_store_page(seller)
 
     if request.method == "POST":
         form = StorePageForm(request.POST, instance=store_page)
@@ -252,7 +262,7 @@ def store(request):
     else:
         form = StorePageForm(instance=store_page)
 
-    blocks = store_page.blocks.select_related("product").order_by("position") if store_page else []
+    blocks = store_page.blocks.select_related("product").order_by("position")
     seller_products = _seller_products(seller).filter(visibility=Product.Visibility.PUBLIC)
 
     return render(request, "seller/store.html", {
@@ -270,7 +280,7 @@ def block_add(request):
     seller = request.seller
     if request.method != "POST":
         raise Http404
-    store_page = StorePage.objects.filter(slug=seller.slug).first() or StorePage.objects.first()
+    store_page = _get_or_create_store_page(seller)
     product_pk = request.POST.get("product_pk")
     if product_pk:
         product = get_object_or_404(_seller_products(seller), pk=product_pk)
@@ -286,7 +296,7 @@ def block_add(request):
 def block_remove(request, block_pk):
     """Remove a block from the store page."""
     seller = request.seller
-    store_page = StorePage.objects.filter(slug=seller.slug).first() or StorePage.objects.first()
+    store_page = _get_or_create_store_page(seller)
     block = get_object_or_404(Block, pk=block_pk, store_page=store_page)
     if request.method == "POST":
         block.delete()
@@ -376,17 +386,14 @@ def broadcast(request):
             product = form.cleaned_data.get("product")
 
             customers = _get_segment_customers(seller, segment, product)
-            sent = 0
+            queued = 0
             for customer in customers:
                 wa = customer.wa_number or customer.user.email
                 msg = message_tpl.replace("{name}", customer.user.email.split("@")[0])
-                try:
-                    send_wa(wa, msg)
-                    sent += 1
-                except Exception:
-                    logger.warning("Broadcast WA failed for %s", customer.user.email)
+                deliver_whatsapp.delay(wa, msg)
+                queued += 1
 
-            messages.success(request, f"Broadcast sent to {sent} customer(s).")
+            messages.success(request, f"Broadcast queued for {queued} customer(s).")
             return redirect("seller:broadcast")
     else:
         form = BroadcastForm()

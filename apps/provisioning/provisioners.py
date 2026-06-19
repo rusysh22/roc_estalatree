@@ -100,23 +100,32 @@ class CredentialsProvisioner:
     """Provisioner for username/password credentials.
 
     Config: {"username": "...", "password": "..."}
-    Payload stores the config as-is so the customer dashboard can display it.
+    Sensitive values are encrypted via the Secret model; Grant.payload stores
+    only the reference {"secret_id": pk, "username": "..."} — no plaintext.
     """
 
     def provision(self, order, deliverable, *, subscription=None) -> Grant:
+        from apps.provisioning.crypto import encrypt
+        from apps.provisioning.models import Secret
+
         config = deliverable.config or {}
-        return Grant.objects.create(
+        username = config.get("username", "")
+        password = config.get("password", "")
+
+        grant = Grant.objects.create(
             customer=order.customer,
             order=order,
             subscription=subscription,
             deliverable=deliverable,
             type=Deliverable.Type.CREDENTIALS,
             status=Grant.Status.ACTIVE,
-            payload={
-                "username": config.get("username", ""),
-                "password": config.get("password", ""),
-            },
+            payload={"username": username},  # password is NOT stored here
         )
+        # Encrypt the full credential bundle and store via Secret
+        import json
+        plaintext = json.dumps({"username": username, "password": password})
+        Secret.objects.create(grant=grant, ciphertext=encrypt(plaintext))
+        return grant
 
     def renew(self, grant) -> None:
         pass
@@ -135,19 +144,27 @@ class ApiKeyProvisioner:
     """Provisioner for API key delivery.
 
     Config: {"api_key": "sk-..."}
+    The key is encrypted via the Secret model; Grant.payload is empty.
     """
 
     def provision(self, order, deliverable, *, subscription=None) -> Grant:
+        from apps.provisioning.crypto import encrypt
+        from apps.provisioning.models import Secret
+
         config = deliverable.config or {}
-        return Grant.objects.create(
+        api_key = config.get("api_key", "")
+
+        grant = Grant.objects.create(
             customer=order.customer,
             order=order,
             subscription=subscription,
             deliverable=deliverable,
             type=Deliverable.Type.API_KEY,
             status=Grant.Status.ACTIVE,
-            payload={"api_key": config.get("api_key", "")},
+            payload={},  # key is NOT stored here
         )
+        Secret.objects.create(grant=grant, ciphertext=encrypt(api_key))
+        return grant
 
     def renew(self, grant) -> None:
         pass
