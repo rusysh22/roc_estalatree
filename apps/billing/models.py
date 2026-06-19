@@ -105,6 +105,10 @@ class Order(TimestampedModel):
         related_name="orders",
     )
     discount = models.PositiveBigIntegerField(default=0, help_text="Coupon discount applied (IDR)")
+    invoice_number = models.PositiveIntegerField(
+        null=True, blank=True, unique=True,
+        help_text="Sequential invoice number, assigned when order is marked PAID",
+    )
 
     class Meta:
         ordering = ["-created_at"]

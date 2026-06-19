@@ -19,4 +19,6 @@ urlpatterns = [
     path("support/", views.support, name="support"),
     path("orders/<pk>/refund/", views.refund_request, name="refund_request"),
     path("grants/<int:pk>/reveal/", views.reveal_secret, name="reveal_secret"),
+    path("grants/<int:grant_pk>/download/", views.gated_download, name="gated_download"),
+    path("invoices/<pk>/", views.invoice_detail, name="invoice_detail"),
 ]

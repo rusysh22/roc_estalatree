@@ -23,6 +23,8 @@ from dateutil.relativedelta import relativedelta
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from django.db.models import Max
+
 from apps.billing.models import Order, Subscription
 from apps.catalog.models import Plan, Product
 from apps.core.events import emit
@@ -44,6 +46,16 @@ class CheckoutIdempotencyError(Exception):
 
 class CouponLimitError(Exception):
     """Coupon usage_limit reached at the moment of atomic increment (concurrent checkout)."""
+
+
+def _assign_invoice_number(order: Order) -> None:
+    """Assign the next sequential invoice number. Must be called inside transaction.atomic()."""
+    if order.invoice_number:
+        return
+    last = Order.objects.select_for_update().filter(
+        invoice_number__isnull=False
+    ).aggregate(Max("invoice_number"))["invoice_number__max"] or 0
+    order.invoice_number = last + 1
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
@@ -112,6 +124,7 @@ def complete_pending_order(order: Order) -> list[Grant]:
             )
             locked.ledger_entry = entry
             locked.status = Order.Status.PAID
+            _assign_invoice_number(locked)
 
             if locked.coupon_id and locked.discount:
                 from django.db.models import F, Q
@@ -126,7 +139,7 @@ def complete_pending_order(order: Order) -> list[Grant]:
                 subscription = _create_subscription(locked.customer, locked.plan, locked)
                 locked.subscription = subscription
 
-            locked.save(update_fields=["ledger_entry", "status", "subscription", "updated_at"])
+            locked.save(update_fields=["ledger_entry", "status", "subscription", "invoice_number", "updated_at"])
 
             # H1: provision inside atomic — failure rolls back debit + PAID
             grants = _provision_order(locked, subscription=subscription)
@@ -272,6 +285,7 @@ def checkout(
                 order.ledger_entry = entry
 
             order.status = Order.Status.PAID
+            _assign_invoice_number(order)
 
             # M3: link Order ↔ Subscription; H2: pass subscription to provisioner
             subscription = None
@@ -279,7 +293,7 @@ def checkout(
                 subscription = _create_subscription(customer, plan, order)
                 order.subscription = subscription
 
-            order.save(update_fields=["ledger_entry", "status", "subscription", "updated_at"])
+            order.save(update_fields=["ledger_entry", "status", "subscription", "invoice_number", "updated_at"])
 
             # H1: provision inside atomic — failure rolls back debit + PAID
             grants = _provision_order(order, subscription=subscription)

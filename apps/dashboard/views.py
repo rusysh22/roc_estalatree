@@ -297,6 +297,40 @@ def profile(request):
 
 
 @login_required
+def gated_download(request, grant_pk):
+    customer = _customer(request)
+    grant = get_object_or_404(Grant, pk=grant_pk, customer=customer, type="download")
+    if grant.status != Grant.Status.ACTIVE:
+        messages.error(request, "This download is no longer active.")
+        return redirect("dashboard:products")
+    download_url = grant.payload.get("download_url", "")
+    if not download_url:
+        messages.error(request, "Download link not available.")
+        return redirect("dashboard:products")
+    return redirect(download_url)
+
+
+@login_required
+def invoice_detail(request, public_id):
+    customer = _customer(request)
+    order = get_object_or_404(
+        Order.objects.select_related("plan__product", "coupon"),
+        public_id=public_id,
+        customer=customer,
+        status=Order.Status.PAID,
+    )
+    from apps.core.models import Setting
+    invoice_name = Setting.get("INVOICE_NAME", "")
+    tax_id = Setting.get("TAX_ID", "")
+    return render(request, "dashboard/invoice_detail.html", {
+        "order": order,
+        "customer": customer,
+        "invoice_name": invoice_name,
+        "tax_id": tax_id,
+    })
+
+
+@login_required
 def support(request):
     customer = _customer(request)
     from apps.core.models import Setting

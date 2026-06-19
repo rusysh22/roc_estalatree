@@ -120,6 +120,13 @@ def checkout_plan(request, plan_pk):
 
         customer.wallet.refresh_from_db()
 
+        try:
+            from allauth.account.models import EmailAddress
+            if not EmailAddress.objects.filter(user=request.user, verified=True).exists():
+                messages.warning(request, "Your email is not verified. Please verify it to ensure order notifications reach you.")
+        except Exception:
+            pass
+
         # Coupon preview (GET ?coupon_code=XXX)
         from apps.billing.models import Coupon
         discount = 0
@@ -253,6 +260,13 @@ def topup(request):
             except Exception as exc:
                 logger.error("topup initiation failed: %s", exc)
                 messages.error(request, "Top-up unavailable right now. Please try again.")
+
+    try:
+        from allauth.account.models import EmailAddress
+        if not EmailAddress.objects.filter(user=request.user, verified=True).exists():
+            messages.warning(request, "Your email is not verified. Verify it to receive top-up receipts.")
+    except Exception:
+        pass
 
     try:
         prefill_amount = int(request.GET.get("amount", 0))

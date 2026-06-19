@@ -49,4 +49,13 @@
 
   {% block content %}{% endblock %}
 </main>
+
+<footer class="border-t border-gray-100 mt-12 py-6 text-center text-xs text-gray-400">
+  <div class="max-w-5xl mx-auto px-4 flex flex-wrap justify-center gap-4">
+    <a href="/terms/" class="hover:text-gray-600">Terms</a>
+    <a href="/privacy/" class="hover:text-gray-600">Privacy</a>
+    <a href="{% url 'dashboard:support' %}" class="hover:text-gray-600">Support</a>
+  </div>
+  <p class="mt-2">&copy; {% now "Y" %} Estalatree.</p>
+</footer>
 {% endblock %}

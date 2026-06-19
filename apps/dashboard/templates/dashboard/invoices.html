@@ -14,10 +14,15 @@
     <div class="flex items-center justify-between px-5 py-3">
       <div>
         <p class="font-medium text-sm">{{ order.plan }}</p>
-        <p class="text-xs text-gray-400">{{ order.created_at|date:"d M Y" }} &middot; #{{ order.public_id }}</p>
+        <p class="text-xs text-gray-400">
+          {{ order.created_at|date:"d M Y" }}
+          {% if order.invoice_number %}&middot; INV-{{ order.invoice_number|stringformat:"05d" }}{% endif %}
+        </p>
       </div>
       <div class="flex items-center gap-3">
         <span class="text-sm font-mono text-gray-700">{{ order.amount|rupiah }}</span>
+        <a href="{% url 'dashboard:invoice_detail' order.public_id %}"
+           class="text-xs text-indigo-500 hover:text-indigo-700">View</a>
         <a href="{% url 'dashboard:refund_request' order.public_id %}"
            class="text-xs text-gray-400 hover:text-red-500">Refund</a>
       </div>
