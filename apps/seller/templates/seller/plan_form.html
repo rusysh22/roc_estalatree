@@ -1,5 +1,5 @@
 {% extends "seller/base.html" %}
-{% block page_title %}{{ title }}{% endblock %}
+{% block topbar_title %}{% block page_title %}{{ title }}{% endblock %}{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl">
