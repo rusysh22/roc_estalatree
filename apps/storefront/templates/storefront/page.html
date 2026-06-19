@@ -1,5 +1,5 @@
 {% extends "storefront/base.html" %}
-{% block title %}{% if store_page %}{{ store_page.title }}{% else %}Store{% endif %}{% endblock %}
+{% block page_title %}{% if store_page %}{{ store_page.title }}{% else %}Store{% endif %}{% endblock %}
 
 {% block content %}
 {% if store_page %}

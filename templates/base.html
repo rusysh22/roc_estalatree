@@ -1,0 +1,15 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{% block page_title %}Estalatree{% endblock %}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="{% block body_class %}bg-gray-50 text-gray-900 min-h-screen{% endblock %}" {% block body_attrs %}{% endblock %}>
+  {% block body %}{% endblock %}
+  {% block scripts %}{% endblock %}
+</body>
+</html>

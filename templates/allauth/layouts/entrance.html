@@ -1,0 +1,31 @@
+{% extends "allauth/layouts/base.html" %}
+{% load i18n %}
+{% block body %}
+<nav class="bg-white border-b border-gray-100">
+  <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+    <a href="/" class="font-semibold text-indigo-600">Estalatree</a>
+    <a href="/" class="text-sm text-gray-500 hover:text-indigo-600">← Back to store</a>
+  </div>
+</nav>
+
+{% if messages %}
+<div class="max-w-md mx-auto px-4 pt-4 space-y-2">
+  {% for msg in messages %}
+  <div class="px-4 py-3 rounded-lg text-sm border
+    {% if msg.tags == 'error' %}bg-red-50 text-red-800 border-red-200
+    {% elif msg.tags == 'success' %}bg-green-50 text-green-800 border-green-200
+    {% else %}bg-blue-50 text-blue-800 border-blue-200{% endif %}">
+    {{ msg }}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="flex items-center justify-center min-h-[calc(100vh-56px)] py-10 px-4">
+  <div class="max-w-md w-full">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}
