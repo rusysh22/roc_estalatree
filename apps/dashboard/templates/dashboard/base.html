@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static money %}
-{% block title %}{% block page_title %}Dashboard{% endblock %} — Estalatree{% endblock %}
+{% block title %}{% block page_title %}Dashboard{% endblock %} &mdash; Estalatree{% endblock %}
 {% block head_extra %}
   <script src="{% static 'js/htmx.min.js' %}" defer></script>
 {% endblock %}
@@ -9,14 +9,36 @@
 {% block body %}
 {% wallet_balance as nav_balance %}
 {% user_surfaces as surfaces %}
-<nav class="bg-white border-b border-gray-200">
-  <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-    <a href="{% url 'dashboard:home' %}" class="font-semibold text-indigo-600">Estalatree</a>
-    <div class="flex items-center gap-4 text-sm">
-      <a href="{% url 'dashboard:wallet' %}" class="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 font-medium px-3 py-1 rounded-full text-xs hover:bg-indigo-100 transition-colors" title="Wallet balance">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-        {{ nav_balance|rupiah }}
-      </a>
+
+<!-- Mobile drawer toggle -->
+<input type="checkbox" id="dash-nav-toggle" class="hidden peer/dashnav">
+
+<!-- Desktop + Mobile top nav -->
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-10">
+  <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+
+    <!-- Left: logo + hamburger (mobile) -->
+    <div class="flex items-center gap-3">
+      <!-- Hamburger (mobile only) -->
+      <label for="dash-nav-toggle" class="md:hidden cursor-pointer p-1.5 rounded-lg text-gray-500 hover:bg-gray-100">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </label>
+      <a href="{% url 'dashboard:home' %}" class="font-semibold text-indigo-600 text-sm">Estalatree</a>
+    </div>
+
+    <!-- Center: wallet balance chip (always visible) -->
+    <a href="{% url 'dashboard:wallet' %}"
+       class="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 font-semibold px-3 py-1.5 rounded-full text-xs hover:bg-indigo-100 transition-colors min-w-0">
+      <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+      </svg>
+      <span>{{ nav_balance|rupiah }}</span>
+    </a>
+
+    <!-- Right: desktop nav links (hidden on mobile) -->
+    <div class="hidden md:flex items-center gap-4 text-sm">
       <a href="{% url 'dashboard:products' %}" class="text-gray-600 hover:text-indigo-600">Products</a>
       <a href="{% url 'dashboard:subscriptions' %}" class="text-gray-600 hover:text-indigo-600">Subscriptions</a>
       <a href="{% url 'dashboard:devices' %}" class="text-gray-600 hover:text-indigo-600">Devices</a>
@@ -28,12 +50,83 @@
       {% if surfaces.seller %}<a href="{% url 'seller:home' %}" class="text-xs text-indigo-500 hover:text-indigo-700 font-medium">Seller</a>{% endif %}
       {% if surfaces.console %}<a href="{% url 'console:cockpit' %}" class="text-xs text-gray-500 hover:text-gray-800 font-medium">Console</a>{% endif %}
       {% endif %}
-      <a href="{% url 'account_logout' %}" class="text-gray-400 hover:text-red-500 ml-2">Sign out</a>
+      <a href="{% url 'account_logout' %}" class="text-gray-400 hover:text-red-500">Sign out</a>
     </div>
+
+    <!-- Mobile: Top-up shortcut -->
+    <a href="{% url 'storefront:topup' %}"
+       class="md:hidden inline-flex items-center gap-1 bg-indigo-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors">
+      + Top Up
+    </a>
   </div>
 </nav>
 
-<main class="max-w-5xl mx-auto px-4 py-8">
+<!-- Mobile drawer (slide-down) -->
+<div class="md:hidden fixed inset-0 z-40 pointer-events-none peer-checked/dashnav:pointer-events-auto">
+  <!-- Backdrop -->
+  <label for="dash-nav-toggle"
+    class="absolute inset-0 bg-black/40 opacity-0 peer-checked/dashnav:opacity-100 transition-opacity duration-200 cursor-pointer"></label>
+  <!-- Drawer panel -->
+  <div class="absolute top-0 left-0 right-0 bg-white shadow-xl -translate-y-full peer-checked/dashnav:translate-y-0 transition-transform duration-200 z-50">
+    <div class="flex items-center justify-between px-4 h-14 border-b border-gray-100">
+      <span class="font-semibold text-indigo-600">Menu</span>
+      <label for="dash-nav-toggle" class="cursor-pointer p-1.5 rounded-lg text-gray-400 hover:bg-gray-100">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </label>
+    </div>
+    <div class="px-4 py-3 space-y-1">
+      <label for="dash-nav-toggle" class="block">
+        <a href="{% url 'dashboard:home' %}" class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          Home
+        </a>
+      </label>
+      <label for="dash-nav-toggle" class="block">
+        <a href="{% url 'dashboard:wallet' %}" class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+          Wallet &amp; Transactions
+        </a>
+      </label>
+      <label for="dash-nav-toggle" class="block">
+        <a href="{% url 'dashboard:products' %}" class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          My Products
+        </a>
+      </label>
+      <label for="dash-nav-toggle" class="block">
+        <a href="{% url 'dashboard:subscriptions' %}" class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Subscriptions
+        </a>
+      </label>
+      <label for="dash-nav-toggle" class="block">
+        <a href="{% url 'dashboard:invoices' %}" class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          Invoices
+        </a>
+      </label>
+      <label for="dash-nav-toggle" class="block">
+        <a href="{% url 'dashboard:profile' %}" class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          Profile
+        </a>
+      </label>
+      {% if surfaces.seller or surfaces.console %}
+      <div class="border-t border-gray-100 pt-2 mt-1">
+        {% if surfaces.seller %}<a href="{% url 'seller:home' %}" class="flex items-center gap-3 px-3 py-3 rounded-lg text-indigo-600 hover:bg-indigo-50">Seller Dashboard</a>{% endif %}
+        {% if surfaces.console %}<a href="{% url 'console:cockpit' %}" class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-600 hover:bg-gray-50">Operator Console</a>{% endif %}
+      </div>
+      {% endif %}
+      <div class="border-t border-gray-100 pt-2 mt-1">
+        <a href="{% url 'account_logout' %}" class="flex items-center gap-3 px-3 py-3 rounded-lg text-red-500 hover:bg-red-50">Sign Out</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main class="max-w-5xl mx-auto px-4 py-6 pb-24 md:pb-8">
   {% if messages %}
     <div class="mb-4 space-y-2">
       {% for msg in messages %}
@@ -50,7 +143,7 @@
   {% block content %}{% endblock %}
 </main>
 
-<footer class="border-t border-gray-100 mt-12 py-6 text-center text-xs text-gray-400">
+<footer class="hidden md:block border-t border-gray-100 mt-4 py-6 text-center text-xs text-gray-400">
   <div class="max-w-5xl mx-auto px-4 flex flex-wrap justify-center gap-4">
     <a href="/terms/" class="hover:text-gray-600">Terms</a>
     <a href="/privacy/" class="hover:text-gray-600">Privacy</a>
@@ -58,4 +151,29 @@
   </div>
   <p class="mt-2">&copy; {% now "Y" %} Estalatree.</p>
 </footer>
+
+<!-- Mobile bottom tab bar -->
+<nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200 flex">
+  <a href="{% url 'dashboard:home' %}" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-gray-500 hover:text-indigo-600 transition-colors min-h-[56px]">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    <span class="text-xs font-medium">Home</span>
+  </a>
+  <a href="{% url 'dashboard:products' %}" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-gray-500 hover:text-indigo-600 transition-colors min-h-[56px]">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+    <span class="text-xs font-medium">Products</span>
+  </a>
+  <a href="{% url 'dashboard:subscriptions' %}" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-gray-500 hover:text-indigo-600 transition-colors min-h-[56px]">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+    <span class="text-xs font-medium">Subs</span>
+  </a>
+  <a href="{% url 'dashboard:wallet' %}" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-indigo-600 hover:text-indigo-700 transition-colors min-h-[56px]">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+    <span class="text-xs font-medium">Wallet</span>
+  </a>
+  <a href="{% url 'dashboard:profile' %}" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-gray-500 hover:text-indigo-600 transition-colors min-h-[56px]">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+    <span class="text-xs font-medium">Profile</span>
+  </a>
+</nav>
+
 {% endblock %}

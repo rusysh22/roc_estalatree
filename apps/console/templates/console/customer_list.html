@@ -15,7 +15,8 @@
 
 {% if customers %}
 <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-  <table class="w-full text-sm">
+  <div class="overflow-x-auto">
+  <table class="w-full min-w-[600px] text-sm">
     <thead class="bg-gray-50 border-b border-gray-200">
       <tr>
         <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Email</th>
@@ -41,6 +42,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
 </div>
 {% else %}
 <div class="bg-white rounded-lg border border-gray-200 px-5 py-8 text-center text-gray-400 text-sm">

@@ -1,6 +1,33 @@
 {% load money %}
 {% if page.object_list %}
-<table class="w-full text-sm">
+
+<!-- Mobile card list (hidden on sm+) -->
+<div class="sm:hidden divide-y divide-gray-100">
+  {% for entry in page.object_list %}
+  <div class="px-4 py-3">
+    <div class="flex items-start justify-between mb-1">
+      <span class="text-xs text-gray-500">{{ entry.created_at|date:"d M Y H:i" }}</span>
+      <span class="font-mono text-sm font-semibold
+        {% if entry.amount > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+        {{ entry.amount|rupiah_signed }}
+      </span>
+    </div>
+    <div class="flex items-center justify-between">
+      <span class="px-2 py-0.5 rounded text-xs
+        {% if entry.amount > 0 %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+        {{ entry.get_type_display }}
+      </span>
+      <span class="text-xs text-gray-400 font-mono">Saldo: {{ entry.balance_after|rupiah }}</span>
+    </div>
+    {% if entry.note %}
+    <p class="text-xs text-gray-500 mt-1 truncate">{{ entry.note }}</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Desktop table (hidden below sm) -->
+<table class="hidden sm:table w-full text-sm">
   <thead>
     <tr class="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
       <th class="text-left px-5 py-3">Date</th>
