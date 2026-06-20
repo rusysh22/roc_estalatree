@@ -109,6 +109,10 @@ class Order(TimestampedModel):
         null=True, blank=True, unique=True,
         help_text="Sequential invoice number, assigned when order is marked PAID",
     )
+    custom_fields = models.JSONField(
+        default=dict, blank=True,
+        help_text="Buyer answers to ProductQuestion intake fields",
+    )
 
     class Meta:
         ordering = ["-created_at"]

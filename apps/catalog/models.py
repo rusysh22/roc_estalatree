@@ -1,8 +1,8 @@
-"""Catalog models: Product and Plan."""
+"""Catalog models: Product, Plan, ProductQuestion, ProductReview."""
 from django.db import models
 from django.utils.text import slugify
 
-from apps.core.models import SellerScopedModel
+from apps.core.models import SellerScopedModel, TimestampedModel
 
 
 class Product(SellerScopedModel):
@@ -28,6 +28,10 @@ class Product(SellerScopedModel):
     description = models.TextField(blank=True)
     cover_image_url = models.URLField(blank=True, default="", help_text="Cover image URL shown on the storefront (optional)")
     wa_number = models.CharField(max_length=20, blank=True, help_text="WhatsApp for contact-type products")
+    purchase_button_label = models.CharField(
+        max_length=60, blank=True, default="",
+        help_text="Override Buy button text (default: 'Buy Now')",
+    )
 
     class Meta:
         ordering = ["name"]
@@ -59,9 +63,55 @@ class Plan(SellerScopedModel):
     features = models.JSONField(default=dict, blank=True)
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveSmallIntegerField(default=0)
+    sale_price = models.PositiveBigIntegerField(
+        null=True, blank=True, help_text="Strike-through original price shown on storefront"
+    )
+    pwyw = models.BooleanField(default=False, help_text="Pay-what-you-want: buyer sets the price")
+    min_price = models.PositiveBigIntegerField(default=0, help_text="Minimum price for PWYW (0 = no minimum)")
+    stock_quantity = models.PositiveIntegerField(null=True, blank=True, help_text="Stock limit (null = unlimited)")
 
     class Meta:
         ordering = ["product", "sort_order", "price"]
 
     def __str__(self) -> str:
         return f"{self.product.name} / {self.name}"
+
+
+class ProductQuestion(TimestampedModel):
+    """A custom intake question shown on the checkout page."""
+
+    class FieldType(models.TextChoices):
+        TEXT = "text", "Short text"
+        EMAIL = "email", "Email"
+        PHONE = "phone", "Phone number"
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="questions")
+    label = models.CharField(max_length=200)
+    field_type = models.CharField(max_length=20, choices=FieldType.choices, default=FieldType.TEXT)
+    required = models.BooleanField(default=False)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["product", "sort_order"]
+
+    def __str__(self) -> str:
+        return f"{self.product.name} / Q: {self.label}"
+
+
+class ProductReview(TimestampedModel):
+    """A buyer review left after a successful purchase."""
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
+    order = models.OneToOneField("billing.Order", on_delete=models.CASCADE, related_name="review")
+    rating = models.PositiveSmallIntegerField(
+        help_text="1–5 stars",
+        choices=[(i, str(i)) for i in range(1, 6)],
+    )
+    text = models.TextField(blank=True)
+    is_published = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.product.name} / {self.rating}★ by {self.order.customer}"

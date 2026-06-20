@@ -70,11 +70,17 @@
           {% endif %}
           <p class="font-semibold text-gray-900 mb-1">{{ plan.name }}</p>
           <div class="mb-3">
-            <span class="text-2xl font-bold text-indigo-600">
-              {% if plan.price == 0 %}Free{% else %}{{ plan.price|rupiah }}{% endif %}
+            {% if plan.sale_price %}
+            <span class="text-sm text-gray-400 line-through mr-1">{{ plan.sale_price|rupiah }}</span>
+            {% endif %}
+            <span class="text-2xl font-bold {% if plan.pwyw %}text-amber-600{% else %}text-indigo-600{% endif %}">
+              {% if plan.pwyw %}Name your price{% elif plan.price == 0 %}Free{% else %}{{ plan.price|rupiah }}{% endif %}
             </span>
             {% if plan.interval != "none" %}
             <span class="text-sm text-gray-400"> / {{ plan.get_interval_display }}</span>
+            {% endif %}
+            {% if plan.min_price > 0 and plan.pwyw %}
+            <p class="text-xs text-gray-400 mt-0.5">Minimum: {{ plan.min_price|rupiah }}</p>
             {% endif %}
           </div>
           {% if plan.seat_limit > 1 %}
@@ -94,11 +100,36 @@
              class="mt-auto block text-center font-semibold py-2.5 rounded-lg text-sm transition-colors
                {% if forloop.first and plans|length > 1 %}bg-indigo-600 hover:bg-indigo-700 text-white
                {% else %}bg-gray-100 hover:bg-indigo-600 hover:text-white text-gray-800{% endif %}">
-            {% if plan.price == 0 %}Get free{% else %}Buy now{% endif %}
+            {% if product.purchase_button_label %}{{ product.purchase_button_label }}
+            {% elif plan.pwyw %}Name your price
+            {% elif plan.price == 0 %}Get free
+            {% else %}Buy now{% endif %}
           </a>
         </div>
         {% empty %}
         <p class="text-gray-400 text-sm py-8 text-center">No plans available.</p>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Reviews -->
+    {% if reviews %}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="font-semibold text-gray-800 mb-4">Customer Reviews</h2>
+      <div class="space-y-4">
+        {% for review in reviews %}
+        <div class="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+          <div class="flex items-center gap-2 mb-1">
+            <div class="flex text-amber-400 text-sm">
+              {% for i in "12345" %}{% if forloop.counter <= review.rating %}&#9733;{% else %}&#9734;{% endif %}{% endfor %}
+            </div>
+            <span class="text-xs text-gray-400">{{ review.order.customer.user.email|truncatechars:24 }}</span>
+          </div>
+          {% if review.text %}
+          <p class="text-sm text-gray-600">{{ review.text }}</p>
+          {% endif %}
+        </div>
         {% endfor %}
       </div>
     </div>

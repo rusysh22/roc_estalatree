@@ -167,6 +167,8 @@ def checkout(
     checkout_key: str,
     *,
     coupon=None,
+    price_override: int | None = None,
+    custom_fields: dict | None = None,
     duitku_client=None,
     callback_url: str,
     return_url: str,
@@ -233,14 +235,20 @@ def checkout(
 
         return order, grants, None
 
-    # ── Paid plan — apply coupon discount if provided ─────────────────────────
+    # ── Paid plan — determine base price (PWYW or fixed) ─────────────────────
+    if price_override is not None and plan.pwyw:
+        base_price = max(int(price_override), plan.min_price or 0)
+    else:
+        base_price = plan.price
+
+    # ── Apply coupon discount ─────────────────────────────────────────────────
     discount = 0
     if coupon is not None:
         valid, _ = coupon.is_valid_for(plan)
         if valid:
-            discount = coupon.compute_discount(plan.price)
+            discount = coupon.compute_discount(base_price)
 
-    effective_price = max(0, plan.price - discount)
+    effective_price = max(0, base_price - discount)
 
     # ── Paid plan — check balance ─────────────────────────────────────────────
     wallet = customer.wallet
@@ -258,6 +266,7 @@ def checkout(
                     coupon=coupon if discount > 0 else None,
                     status=Order.Status.PENDING,
                     idempotency_key=checkout_key,
+                    custom_fields=custom_fields or {},
                 )
             except IntegrityError:
                 order = Order.objects.get(idempotency_key=checkout_key)
@@ -316,6 +325,7 @@ def checkout(
                     coupon=coupon if discount > 0 else None,
                     status=Order.Status.PENDING,
                     idempotency_key=checkout_key,
+                    custom_fields=custom_fields or {},
                 )
             except IntegrityError:
                 order = Order.objects.get(idempotency_key=checkout_key)

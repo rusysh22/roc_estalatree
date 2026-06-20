@@ -369,3 +369,35 @@ def refund_request(request, pk):
         "order": order,
         "existing": existing,
     })
+
+
+@login_required
+@require_POST
+def review_submit(request, pk):
+    from apps.catalog.models import ProductReview
+    customer = _customer(request)
+    order = get_object_or_404(Order, public_id=pk, customer=customer, status=Order.Status.PAID)
+
+    if hasattr(order, "review"):
+        messages.info(request, "You already reviewed this product.")
+        return redirect("storefront:order_status", public_id=order.public_id)
+
+    try:
+        rating = int(request.POST.get("rating", 0))
+    except (ValueError, TypeError):
+        rating = 0
+
+    if rating < 1 or rating > 5:
+        messages.error(request, "Please select a rating between 1 and 5.")
+        return redirect("storefront:order_status", public_id=order.public_id)
+
+    text = request.POST.get("text", "").strip()
+    ProductReview.objects.create(
+        product=order.plan.product,
+        order=order,
+        rating=rating,
+        text=text,
+        is_published=False,
+    )
+    messages.success(request, "Thank you for your review! It will appear after approval.")
+    return redirect("storefront:order_status", public_id=order.public_id)

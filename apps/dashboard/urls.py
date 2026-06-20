@@ -21,4 +21,5 @@ urlpatterns = [
     path("grants/<int:pk>/reveal/", views.reveal_secret, name="reveal_secret"),
     path("grants/<int:grant_pk>/download/", views.gated_download, name="gated_download"),
     path("invoices/<pk>/", views.invoice_detail, name="invoice_detail"),
+    path("orders/<pk>/review/", views.review_submit, name="review_submit"),
 ]

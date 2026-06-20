@@ -75,6 +75,38 @@
     </a>
   </div>
 
+  <!-- Review form — only if no review yet -->
+  {% if not order.review %}
+  <div class="bg-white rounded-xl border border-gray-200 p-5 mt-5">
+    <h2 class="font-semibold text-gray-800 mb-1">Leave a review</h2>
+    <p class="text-xs text-gray-400 mb-4">Help others discover this product.</p>
+    <form method="post" action="{% url 'dashboard:review_submit' order.public_id %}">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Rating</label>
+        <div class="flex gap-2">
+          {% for i in "12345" %}
+          <label class="cursor-pointer">
+            <input type="radio" name="rating" value="{{ forloop.counter }}" class="sr-only" required>
+            <span class="text-2xl text-gray-300 hover:text-amber-400 peer-checked:text-amber-400 select-none">&#9733;</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Comment (optional)</label>
+        <textarea name="text" rows="3" placeholder="Tell others what you think..."
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
+      </div>
+      <button type="submit" class="btn-primary text-sm">Submit review</button>
+    </form>
+  </div>
+  {% else %}
+  <div class="bg-gray-50 rounded-xl border border-gray-100 p-4 mt-5 text-center">
+    <p class="text-xs text-gray-400">You reviewed this product — thank you!</p>
+  </div>
+  {% endif %}
+
   {% elif order.status == "refunded" %}
   <!-- Refunded state -->
   <div class="text-center mb-6">

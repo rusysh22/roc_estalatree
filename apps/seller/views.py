@@ -10,7 +10,7 @@ from django.utils.text import slugify
 
 from apps.accounts.models import Customer, SellerProfile
 from apps.billing.models import Coupon, Order, Subscription
-from apps.catalog.models import Plan, Product
+from apps.catalog.models import Plan, Product, ProductQuestion
 from apps.notifications.tasks import deliver_whatsapp
 from apps.provisioning.models import Deliverable
 from apps.storefront.models import Block, StorePage
@@ -24,6 +24,7 @@ from .forms import (
     EntitlementForm,
     PlanForm,
     ProductForm,
+    ProductQuestionForm,
     SellerProfileForm,
     StorePageForm,
 )
@@ -164,12 +165,15 @@ def product_edit(request, pk):
 
     plans = product.plans.all()
     deliverables = Deliverable.objects.filter(plan__product=product).select_related("plan")
+    questions = product.questions.all()
     return render(request, "seller/product_form.html", {
         "seller": seller,
         "form": form,
         "product": product,
         "plans": plans,
         "deliverables": deliverables,
+        "questions": questions,
+        "question_form": ProductQuestionForm(),
         "title": f"Edit — {product.name}",
         "submit_label": "Save Changes",
     })
@@ -290,6 +294,35 @@ def entitlement_remove(request, product_pk, plan_pk, ent_pk):
     plan.entitlements.remove(ent)
     messages.success(request, f"Entitlement '{ent.key}' removed.")
     return redirect("seller:plan_edit", product_pk=product.pk, plan_pk=plan.pk)
+
+
+# ── Product Questions ─────────────────────────────────────────────────────────
+
+@seller_required
+@require_POST
+def question_add(request, product_pk):
+    seller = request.seller
+    product = get_object_or_404(_seller_products(seller), pk=product_pk)
+    form = ProductQuestionForm(request.POST)
+    if form.is_valid():
+        q = form.save(commit=False)
+        q.product = product
+        q.save()
+        messages.success(request, "Question added.")
+    else:
+        messages.error(request, "Invalid question — label is required.")
+    return redirect("seller:product_edit", pk=product.pk)
+
+
+@seller_required
+@require_POST
+def question_remove(request, product_pk, question_pk):
+    seller = request.seller
+    product = get_object_or_404(_seller_products(seller), pk=product_pk)
+    q = get_object_or_404(ProductQuestion, pk=question_pk, product=product)
+    q.delete()
+    messages.success(request, "Question removed.")
+    return redirect("seller:product_edit", pk=product.pk)
 
 
 # ── Orders ────────────────────────────────────────────────────────────────────

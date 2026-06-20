@@ -3,7 +3,7 @@ from django import forms
 
 from apps.accounts.models import SellerProfile
 from apps.billing.models import Coupon
-from apps.catalog.models import Plan, Product
+from apps.catalog.models import Plan, Product, ProductQuestion
 from apps.provisioning.models import Deliverable, Entitlement
 from apps.storefront.models import Block, StorePage
 
@@ -23,7 +23,7 @@ class SellerProfileForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ["name", "type", "visibility", "description", "cover_image_url", "wa_number"]
+        fields = ["name", "type", "visibility", "description", "cover_image_url", "wa_number", "purchase_button_label"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input-field"}),
             "type": forms.Select(attrs={"class": "input-field"}),
@@ -31,18 +31,34 @@ class ProductForm(forms.ModelForm):
             "description": forms.Textarea(attrs={"class": "input-field", "rows": 4}),
             "cover_image_url": forms.URLInput(attrs={"class": "input-field", "placeholder": "https://..."}),
             "wa_number": forms.TextInput(attrs={"class": "input-field", "placeholder": "628123456789"}),
+            "purchase_button_label": forms.TextInput(attrs={"class": "input-field", "placeholder": "Buy Now"}),
         }
 
 
 class PlanForm(forms.ModelForm):
     class Meta:
         model = Plan
-        fields = ["name", "price", "interval", "seat_limit", "is_active"]
+        fields = ["name", "price", "interval", "seat_limit", "is_active",
+                  "sale_price", "pwyw", "min_price", "stock_quantity"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input-field"}),
             "price": forms.NumberInput(attrs={"class": "input-field"}),
             "interval": forms.Select(attrs={"class": "input-field"}),
             "seat_limit": forms.NumberInput(attrs={"class": "input-field"}),
+            "sale_price": forms.NumberInput(attrs={"class": "input-field"}),
+            "min_price": forms.NumberInput(attrs={"class": "input-field"}),
+            "stock_quantity": forms.NumberInput(attrs={"class": "input-field"}),
+        }
+
+
+class ProductQuestionForm(forms.ModelForm):
+    class Meta:
+        model = ProductQuestion
+        fields = ["label", "field_type", "required", "sort_order"]
+        widgets = {
+            "label": forms.TextInput(attrs={"class": "input-field", "placeholder": "e.g. Discord username"}),
+            "field_type": forms.Select(attrs={"class": "input-field"}),
+            "sort_order": forms.NumberInput(attrs={"class": "input-field"}),
         }
 
 

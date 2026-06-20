@@ -38,7 +38,7 @@
   <div class="bg-white rounded-xl border border-gray-200 p-6 mt-5">
     <div class="flex items-center justify-between mb-4">
       <h3 class="font-semibold text-gray-800">Plans</h3>
-      <a href="{% url 'seller:plan_create' product.pk %}" class="btn-primary text-xs px-3 py-1.5">+ New Plan</a>
+      <a href="{% url ‘seller:plan_create’ product.pk %}" class="btn-primary text-xs px-3 py-1.5">+ New Plan</a>
     </div>
     {% if plans %}
     <div class="space-y-2">
@@ -48,16 +48,60 @@
           <p class="text-sm font-medium text-gray-800">{{ plan.name }}</p>
           <p class="text-xs text-gray-500">{{ plan.price|rupiah }} / {{ plan.get_interval_display }}
             {% if plan.seat_limit %} &middot; {{ plan.seat_limit }} seat(s){% endif %}
+            {% if plan.pwyw %}<span class="text-amber-600 ml-1">PWYW</span>{% endif %}
+            {% if plan.stock_quantity is not None %}<span class="text-blue-600 ml-1">Stock: {{ plan.stock_quantity }}</span>{% endif %}
             {% if not plan.is_active %}<span class="text-red-400 ml-1">Inactive</span>{% endif %}
           </p>
         </div>
-        <a href="{% url 'seller:plan_edit' product.pk plan.pk %}" class="text-xs text-indigo-600 hover:underline">Edit</a>
+        <a href="{% url ‘seller:plan_edit’ product.pk plan.pk %}" class="text-xs text-indigo-600 hover:underline">Edit</a>
       </div>
       {% endfor %}
     </div>
     {% else %}
     <p class="text-sm text-gray-400">No plans yet. <a href="{% url ‘seller:plan_create’ product.pk %}" class="text-indigo-600 hover:underline">Add the first plan &rarr;</a></p>
     {% endif %}
+  </div>
+
+  <!-- Checkout Questions panel -->
+  <div class="bg-white rounded-xl border border-gray-200 p-6 mt-5">
+    <h3 class="font-semibold text-gray-800 mb-1">Checkout Questions</h3>
+    <p class="text-xs text-gray-400 mb-4">Collect info from buyers before they complete their purchase (e.g. Discord username, license email).</p>
+
+    {% if questions %}
+    <div class="space-y-2 mb-4">
+      {% for q in questions %}
+      <div class="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg px-4 py-2.5">
+        <div>
+          <p class="text-sm font-medium text-gray-800">{{ q.label }}</p>
+          <p class="text-xs text-gray-400">{{ q.get_field_type_display }}{% if q.required %} &middot; required{% endif %}</p>
+        </div>
+        <form method="post" action="{% url ‘seller:question_remove’ product.pk q.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="text-xs text-red-500 hover:text-red-700 font-medium">Remove</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400 mb-4">No questions yet.</p>
+    {% endif %}
+
+    <form method="post" action="{% url ‘seller:question_add’ product.pk %}" class="border-t border-gray-100 pt-4">
+      {% csrf_token %}
+      <p class="text-xs font-medium text-gray-600 mb-2">Add question</p>
+      <div class="grid grid-cols-3 gap-2 mb-2">
+        {% for field in question_form %}
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<p class="text-xs text-red-500">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <button type="submit" class="text-xs bg-indigo-50 text-indigo-700 font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors">
+        + Add Question
+      </button>
+    </form>
   </div>
   {% endif %}
 </div>

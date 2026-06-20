@@ -112,6 +112,41 @@
     {% endif %}
   </div>
 
+  <!-- PWYW price input -->
+  {% if plan.pwyw %}
+  <div class="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+    <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Set Your Price</p>
+    <div class="flex items-center gap-2">
+      <span class="text-sm font-medium text-gray-600">Rp</span>
+      <input type="number" name="pwyw_price" id="pwyw_price" form="checkout-form"
+        min="{{ plan.min_price }}" value="{{ plan.price }}"
+        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
+    </div>
+    {% if plan.min_price > 0 %}
+    <p class="text-xs text-gray-400 mt-1">Minimum: {{ plan.min_price|rupiah }}</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Custom intake questions -->
+  {% if questions %}
+  <div class="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+    <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Additional Information</p>
+    <div class="space-y-3" id="checkout-questions">
+      {% for q in questions %}
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">
+          {{ q.label }}{% if q.required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}
+        </label>
+        <input type="{{ q.field_type }}" name="q_{{ q.pk }}" form="checkout-form"
+          {% if q.required %}required{% endif %}
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Main checkout form -->
   <form method="post" id="checkout-form">
     {% csrf_token %}

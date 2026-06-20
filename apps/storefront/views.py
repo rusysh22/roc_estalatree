@@ -90,10 +90,12 @@ def product_detail(request, slug):
     sold_count = Order.objects.filter(
         plan__product=product, status=Order.Status.PAID
     ).count()
+    reviews = product.reviews.filter(is_published=True).select_related("order__customer__user").order_by("-created_at")[:10]
     return render(request, "storefront/product.html", {
         "product": product,
         "plans": plans,
         "sold_count": sold_count,
+        "reviews": reviews,
     })
 
 
@@ -111,6 +113,8 @@ def checkout_plan(request, plan_pk):
     customer, _ = _get_or_create_customer(request.user)
 
     _SESSION_KEY = f"ck_token_{plan_pk}"
+
+    questions = list(product.questions.all().order_by("sort_order"))
 
     if request.method == "GET":
         # Generate a stable idempotency token for this checkout intent.
@@ -145,7 +149,8 @@ def checkout_plan(request, plan_pk):
             except Coupon.DoesNotExist:
                 coupon_error = "Coupon code not found."
 
-        effective_price = max(0, plan.price - discount)
+        base_price = plan.price
+        effective_price = max(0, base_price - discount)
         shortfall = max(0, effective_price - customer.wallet.balance)
         balance_after = customer.wallet.balance - effective_price if shortfall == 0 else 0
 
@@ -161,6 +166,7 @@ def checkout_plan(request, plan_pk):
             "coupon_error": coupon_error,
             "discount": discount,
             "effective_price": effective_price,
+            "questions": questions,
         })
 
     # POST — run checkout
@@ -170,6 +176,34 @@ def checkout_plan(request, plan_pk):
     checkout_token = request.POST.get("checkout_token") or request.session.get(_SESSION_KEY, uuid.uuid4().hex)
     checkout_key = f"ck:{request.user.pk}:{plan.pk}:{checkout_token}"
     return_url = request.build_absolute_uri("/orders/pending/")
+
+    # PWYW price override
+    price_override = None
+    if plan.pwyw:
+        raw = request.POST.get("pwyw_price", "").strip()
+        if raw:
+            try:
+                price_override = max(int(raw), plan.min_price or 0)
+            except (ValueError, TypeError):
+                price_override = plan.min_price or plan.price
+
+    # Collect custom question answers
+    custom_fields = {}
+    for q in questions:
+        key = f"q_{q.pk}"
+        val = request.POST.get(key, "").strip()
+        if q.required and not val:
+            messages.error(request, f"Please answer: {q.label}")
+            return redirect(request.path)
+        custom_fields[str(q.pk)] = {"label": q.label, "value": val}
+
+    # Stock check
+    if plan.stock_quantity is not None:
+        from apps.billing.models import Order as OrderModel
+        sold = OrderModel.objects.filter(plan=plan, status=OrderModel.Status.PAID).count()
+        if sold >= plan.stock_quantity:
+            messages.error(request, "This item is out of stock.")
+            return redirect("storefront:product", slug=product.slug)
 
     # Resolve coupon code if provided
     coupon = None
@@ -191,6 +225,8 @@ def checkout_plan(request, plan_pk):
             plan=plan,
             checkout_key=checkout_key,
             coupon=coupon,
+            price_override=price_override,
+            custom_fields=custom_fields,
             callback_url=_callback_url(request),
             return_url=return_url,
         )
