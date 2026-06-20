@@ -27,6 +27,46 @@ class StorePage(TimestampedModel):
         return f"{self.title} (/{self.slug}/)"
 
 
+class PageEvent(models.Model):
+    """Lightweight analytics event. Each row = one page view or click.
+
+    Kept intentionally simple — no PII beyond session key.
+    Aggregated in seller analytics views.
+    """
+
+    class EventType(models.TextChoices):
+        PAGE_VIEW = "page_view", "Page view"
+        PRODUCT_VIEW = "product_view", "Product view"
+        CHECKOUT_START = "checkout_start", "Checkout start"
+        ORDER_PAID = "order_paid", "Order paid"
+
+    event = models.CharField(max_length=30, choices=EventType.choices)
+    product = models.ForeignKey(
+        "catalog.Product",
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="page_events",
+    )
+    plan = models.ForeignKey(
+        "catalog.Plan",
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="page_events",
+    )
+    session_key = models.CharField(max_length=64, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["event", "created_at"]),
+            models.Index(fields=["product", "event"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.event} @ {self.created_at:%Y-%m-%d}"
+
+
 class Block(TimestampedModel):
     """An ordered content unit on a StorePage."""
 

@@ -40,6 +40,22 @@ def _callback_url(request):
     return request.build_absolute_uri("/billing/webhook/duitku/")
 
 
+# ── Analytics helpers ─────────────────────────────────────────────────────────
+
+def _emit_event(request, event_type, *, product=None, plan=None):
+    """Fire a PageEvent row. Never raises — analytics must not break the user flow."""
+    try:
+        from apps.storefront.models import PageEvent
+        PageEvent.objects.create(
+            event=event_type,
+            product=product,
+            plan=plan,
+            session_key=request.session.session_key or "",
+        )
+    except Exception:
+        pass
+
+
 # ── Store page ────────────────────────────────────────────────────────────────
 
 def page(request, slug=None):
@@ -72,6 +88,7 @@ def page(request, slug=None):
             )
             sold_counts = {row["plan__product_id"]: row["cnt"] for row in sold_qs}
 
+    _emit_event(request, "page_view")
     theme = store_page.theme if store_page else {}
     return render(request, "storefront/page.html", {
         "store_page": store_page,
@@ -93,6 +110,7 @@ def product_detail(request, slug):
         plan__product=product, status=Order.Status.PAID
     ).count()
     reviews = product.reviews.filter(is_published=True).select_related("order__customer__user").order_by("-created_at")[:10]
+    _emit_event(request, "product_view", product=product)
     return render(request, "storefront/product.html", {
         "product": product,
         "plans": plans,
@@ -156,6 +174,7 @@ def checkout_plan(request, plan_pk):
         shortfall = max(0, effective_price - customer.wallet.balance)
         balance_after = customer.wallet.balance - effective_price if shortfall == 0 else 0
 
+        _emit_event(request, "checkout_start", product=product, plan=plan)
         return render(request, "storefront/checkout.html", {
             "plan": plan,
             "product": product,
@@ -242,6 +261,7 @@ def checkout_plan(request, plan_pk):
     if payment_url:
         return redirect(payment_url)
 
+    _emit_event(request, "order_paid", product=product, plan=plan)
     return redirect("storefront:order_status", public_id=order.public_id)
 
 

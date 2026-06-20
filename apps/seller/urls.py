@@ -32,4 +32,5 @@ urlpatterns = [
     path("broadcast/", views.broadcast, name="broadcast"),
     path("settings/", views.settings, name="settings"),
     path("apply/", views.apply, name="apply"),
+    path("analytics/", views.analytics, name="analytics"),
 ]

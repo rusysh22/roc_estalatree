@@ -1,7 +1,7 @@
 """Seller Dashboard views — Lynk.id-style creator interface at /seller/."""
 import json
 from django.contrib import messages
-from django.db.models import Count, Sum, Q
+from django.db.models import Count, F, Sum, Q
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -622,6 +622,62 @@ def _get_segment_customers(seller, segment, product=None):
     if product:
         qs = qs.filter(orders__plan__product=product, orders__status=Order.Status.PAID).distinct()
     return qs
+
+
+# ── Analytics ────────────────────────────────────────────────────────────────
+
+@seller_required
+def analytics(request):
+    from apps.storefront.models import PageEvent
+    seller = request.seller
+    products = _seller_products(seller)
+
+    days = int(request.GET.get("days", 30))
+    days = max(7, min(days, 90))
+    since = timezone.now() - timezone.timedelta(days=days)
+
+    funnel_qs = PageEvent.objects.filter(created_at__gte=since)
+    product_pks = list(products.values_list("pk", flat=True))
+
+    page_views = funnel_qs.filter(event="page_view").count()
+    product_views = funnel_qs.filter(event="product_view", product_id__in=product_pks).count()
+    checkout_starts = funnel_qs.filter(event="checkout_start", product_id__in=product_pks).count()
+    orders_paid = funnel_qs.filter(event="order_paid", product_id__in=product_pks).count()
+
+    from django.db.models.functions import TruncDate
+    daily_paid = (
+        funnel_qs.filter(event="order_paid", product_id__in=product_pks)
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(cnt=Count("pk"))
+        .order_by("day")
+    )
+    daily_map = {row["day"]: row["cnt"] for row in daily_paid}
+    chart_days = []
+    today = timezone.now().date()
+    for i in range(min(days, 30) - 1, -1, -1):
+        d = today - timezone.timedelta(days=i)
+        chart_days.append({"date": d, "label": d.strftime("%d/%m"), "cnt": daily_map.get(d, 0)})
+    chart_max = max((d["cnt"] for d in chart_days), default=1) or 1
+
+    top_products = (
+        funnel_qs.filter(event="order_paid", product_id__in=product_pks)
+        .values("product__name")
+        .annotate(cnt=Count("pk"))
+        .order_by("-cnt")[:10]
+    )
+
+    return render(request, "seller/analytics.html", {
+        "seller": seller,
+        "days": days,
+        "page_views": page_views,
+        "product_views": product_views,
+        "checkout_starts": checkout_starts,
+        "orders_paid": orders_paid,
+        "chart_days": chart_days,
+        "chart_max": chart_max,
+        "top_products": top_products,
+    })
 
 
 # ── Settings ──────────────────────────────────────────────────────────────────

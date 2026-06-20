@@ -1,0 +1,133 @@
+{% extends "seller/base.html" %}
+{% block topbar_title %}{% block page_title %}Analytics{% endblock %}{% endblock %}
+
+{% block content %}
+
+<!-- Date range selector -->
+<div class="flex items-center justify-between mb-5">
+  <h1 class="text-xl font-bold text-gray-900">Analytics</h1>
+  <div class="flex gap-2">
+    <a href="?days=7" class="text-xs px-3 py-1.5 rounded-lg border {% if days == 7 %}bg-indigo-600 text-white border-indigo-600{% else %}border-gray-300 text-gray-600 hover:bg-gray-50{% endif %}">7d</a>
+    <a href="?days=14" class="text-xs px-3 py-1.5 rounded-lg border {% if days == 14 %}bg-indigo-600 text-white border-indigo-600{% else %}border-gray-300 text-gray-600 hover:bg-gray-50{% endif %}">14d</a>
+    <a href="?days=30" class="text-xs px-3 py-1.5 rounded-lg border {% if days == 30 %}bg-indigo-600 text-white border-indigo-600{% else %}border-gray-300 text-gray-600 hover:bg-gray-50{% endif %}">30d</a>
+    <a href="?days=90" class="text-xs px-3 py-1.5 rounded-lg border {% if days == 90 %}bg-indigo-600 text-white border-indigo-600{% else %}border-gray-300 text-gray-600 hover:bg-gray-50{% endif %}">90d</a>
+  </div>
+</div>
+
+<!-- Funnel KPIs -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Page Views</p>
+    <p class="text-3xl font-bold text-gray-900 mt-1">{{ page_views }}</p>
+    <p class="text-xs text-gray-400 mt-1">Store page visits</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Product Views</p>
+    <p class="text-3xl font-bold text-blue-600 mt-1">{{ product_views }}</p>
+    <p class="text-xs text-gray-400 mt-1">
+      {% if page_views > 0 %}{% widthratio product_views page_views 100 %}% of page views{% else %}—{% endif %}
+    </p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Checkout Started</p>
+    <p class="text-3xl font-bold text-amber-600 mt-1">{{ checkout_starts }}</p>
+    <p class="text-xs text-gray-400 mt-1">
+      {% if product_views > 0 %}{% widthratio checkout_starts product_views 100 %}% of product views{% else %}—{% endif %}
+    </p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Orders Paid</p>
+    <p class="text-3xl font-bold text-green-600 mt-1">{{ orders_paid }}</p>
+    <p class="text-xs text-gray-400 mt-1">
+      {% if checkout_starts > 0 %}{% widthratio orders_paid checkout_starts 100 %}% checkout conversion{% else %}—{% endif %}
+    </p>
+  </div>
+</div>
+
+<!-- Funnel visualizer -->
+<div class="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+  <h2 class="font-semibold text-gray-800 text-sm mb-4">Conversion Funnel — Last {{ days }} Days</h2>
+  <div class="space-y-3">
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-gray-600">Page Views</span>
+        <span class="text-xs font-semibold text-gray-800">{{ page_views }}</span>
+      </div>
+      <div class="w-full bg-gray-100 rounded-full h-3">
+        <div class="bg-gray-400 h-3 rounded-full" style="width: 100%"></div>
+      </div>
+    </div>
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-gray-600">Product Views</span>
+        <span class="text-xs font-semibold text-blue-600">{{ product_views }}</span>
+      </div>
+      <div class="w-full bg-gray-100 rounded-full h-3">
+        {% if page_views > 0 %}
+        <div class="bg-blue-400 h-3 rounded-full" style="width: {% widthratio product_views page_views 100 %}%"></div>
+        {% endif %}
+      </div>
+    </div>
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-gray-600">Checkout Started</span>
+        <span class="text-xs font-semibold text-amber-600">{{ checkout_starts }}</span>
+      </div>
+      <div class="w-full bg-gray-100 rounded-full h-3">
+        {% if page_views > 0 %}
+        <div class="bg-amber-400 h-3 rounded-full" style="width: {% widthratio checkout_starts page_views 100 %}%"></div>
+        {% endif %}
+      </div>
+    </div>
+    <div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-gray-600">Orders Paid</span>
+        <span class="text-xs font-semibold text-green-600">{{ orders_paid }}</span>
+      </div>
+      <div class="w-full bg-gray-100 rounded-full h-3">
+        {% if page_views > 0 %}
+        <div class="bg-green-500 h-3 rounded-full" style="width: {% widthratio orders_paid page_views 100 %}%"></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Order trend chart -->
+<div class="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+  <h2 class="font-semibold text-gray-800 text-sm mb-4">Daily Orders — Last {{ chart_days|length }} Days</h2>
+  <div class="flex items-end gap-1 h-24">
+    {% for day in chart_days %}
+    <div class="flex-1 flex flex-col items-center gap-1 group" title="{{ day.date }}: {{ day.cnt }} orders">
+      {% if day.cnt > 0 %}
+      <div class="w-full bg-indigo-500 rounded-t transition-colors hover:bg-indigo-600"
+           style="height: {% widthratio day.cnt chart_max 92 %}px; min-height: 3px;"></div>
+      {% else %}
+      <div class="w-full bg-gray-100 rounded-t" style="height: 3px;"></div>
+      {% endif %}
+      {% if chart_days|length <= 14 %}
+      <p class="text-xs text-gray-300" style="font-size: 9px;">{{ day.label }}</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Top products -->
+{% if top_products %}
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <div class="px-5 py-4 border-b border-gray-100">
+    <h2 class="font-semibold text-gray-800 text-sm">Top Products by Orders</h2>
+  </div>
+  <div class="divide-y divide-gray-100">
+    {% for row in top_products %}
+    <div class="flex items-center justify-between px-5 py-3">
+      <p class="text-sm text-gray-800">{{ row.product__name }}</p>
+      <span class="text-sm font-semibold text-indigo-600">{{ row.cnt }} order{{ row.cnt|pluralize }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
