@@ -30,7 +30,7 @@ def user_surfaces(context):
         surfaces["dashboard"] = True
     except Exception:
         surfaces["dashboard"] = False
-    surfaces["console"] = user.is_staff or user.is_superuser
+    surfaces["console"] = user.is_superuser or user.groups.filter(name="Operator").exists()
     try:
         from apps.accounts.models import SellerProfile
         surfaces["seller"] = SellerProfile.objects.filter(user=user, is_approved=True).exists()

@@ -2,8 +2,8 @@
 
 > **Update this file whenever a task is completed.** It is the source of truth for cross-agent handoff. Format: check `[x]` + date + short note.
 
-**Active phase:** **Pre-production hardening** — all build phases (0–11, incl. 9.5) implemented; remediation of review findings in progress.
-**Last updated:** 2026-06-19 — Phases 9.5 / 10 / 11 complete; full-cycle deep evaluation done. See [reviews/](reviews/) — esp. [final-review.md](reviews/final-review.md) and [deep-evaluation.md](reviews/deep-evaluation.md).
+**Active phase:** **Pre-production hardening** — all build phases (0–11, incl. 9.5) implemented; all P0/P1 review findings closed except B-3 (ToS doc) and B-11 (ops).
+**Last updated:** 2026-06-20 — P0/P1 remediation complete. See [reviews/](reviews/).
 
 ---
 
@@ -67,23 +67,32 @@ See [DECISIONS.md](DECISIONS.md). Stack, balance model, Duitku-for-topup, online
 Per-phase HIGH findings are all verified **closed** (see review docs). Remaining, by severity:
 
 **P0 — before real customers**
-- [ ] **Close the books**: reconciliation (Duitku settlement ↔ ledger) + set `Order.REFUNDED` on refund + net refunds out of revenue KPI. ([deep-evaluation.md](reviews/deep-evaluation.md) B-1)
-- [ ] **Encrypt secrets**: move `credentials`/`api_key` into the `Secret` model (reveal-once); shared `get_secret()` helper. ([final-review.md](reviews/final-review.md) H1, deep-eval B-2)
-- [ ] **Closed-loop balance** documented in ToS + ADR (non-cash store credit). (deep-eval B-3)
+- [x] **Encrypt secrets** — credentials/api_key Fernet-encrypted via `provisioning/crypto.py` + `Secret`; reveal-once (B-5). *(2026-06-20)*
+- [~] **Close the books** — DONE: refund sets `Order.REFUNDED` + revenue KPI excludes refunds. PENDING: external reconciliation (Duitku settlement ↔ ledger) report. (deep-eval B-1)
+- [ ] **Closed-loop balance** documented in ToS (non-cash store credit, no withdrawal). (deep-eval B-3) — **policy/legal doc, not code**
 
 **P1 — completeness**
-- [ ] Rupiah filter system-wide + ledger TYPE-label bug (`get_type_display`). ([ui-and-menu-enhancement-spec.md](reviews/ui-and-menu-enhancement-spec.md) §0/§0b)
-- [ ] Coupon atomic redemption (`F()` + conditional) incl. top-up-and-buy path. (final-review M1)
-- [ ] Header: persistent balance + Top-up; Devices in nav; vendor HTMX; multi-role surface switcher. (deep-eval H-1/2/4/6)
-- [ ] Activation hand-off: copy-key + guide on Products; reveal-once for credential grants. (deep-eval B-5, ui-spec §2.2)
-- [ ] Invoices: PDF + invoice number + merchant identity + PPN decision. (deep-eval B-7)
-- [ ] Entitlement management UI + enforcement. (deep-eval B-6)
-- [ ] Email verification decision + gate; multi-seller finish-or-fence; broadcast async. (deep-eval B-9/B-10, final-review M3)
-- [ ] Ops: Redis rate-limit in prod; money tests on PostgreSQL; ledger backups. (deep-eval B-11)
-- [ ] Residual: console gated on `is_staff` → dedicated Group (ADR-017). (phase-10-review H2a)
+- [x] Rupiah filter system-wide + TYPE-label bug. *(2026-06-20)*
+- [x] Coupon atomic redemption with strict `used_count__lt` conditional. *(2026-06-20)*
+- [x] Header: balance chip + Top-up; Devices in nav; HTMX off unpkg. *(2026-06-20)*
+- [x] Broadcast async (`deliver_whatsapp.delay`). · [x] Store isolation. *(2026-06-20)*
+- [x] Activation hand-off: setup instructions panel on Products page. *(2026-06-20)*
+- [x] Invoices: sequential invoice number + printable HTML invoice detail page. (B-7) *(2026-06-20)*
+- [x] Entitlement management UI (seller plan_edit) + Grant.has_entitlement check. (B-6) *(2026-06-20)*
+- [x] Email verification gate — warning at checkout + topup. (B-9) *(2026-06-20)*
+- [x] Console gated on `Operator` group OR superuser (ADR-017). *(2026-06-20)*
+- [x] **Crypto key**: `PROVISIONING_SECRET_KEY` env var (separate from `SECRET_KEY`); documented in `.env.example`. *(2026-06-20)*
+- [x] Notification preferences (WA/email toggle on profile page). *(2026-06-20)*
+- [x] Footer: Terms/Privacy/Contact on storefront + dashboard. *(2026-06-20)*
+- [x] Gated download: `/dashboard/grants/<pk>/download/` validates ownership before redirect. *(2026-06-20)*
+- [x] Seller analytics: 7-day revenue chart + per-product stats on home + products pages. *(2026-06-20)*
+- [ ] Ops: Redis rate-limit in prod; money tests on PostgreSQL; ledger backups. (B-11) — **infra/ops, not app code**
 
 **P2 — polish/future**
-- [ ] Support tickets; notification preferences; in-app notification bell; footer/legal pages; Stage-2/3 (themes, custom domain, pixels, affiliate).
+- [ ] Support tickets system.
+- [ ] In-app notification bell (requires Notification model + HTMX polling).
+- [ ] Multi-role surface switcher UI improvement (H-6).
+- [ ] Stage-2/3: themes, custom domain, pixel tracking, affiliate.
 
 **Pre-production proof**
 - [ ] Run the **live golden-path E2E** (Duitku sandbox) end-to-end and capture each step.
