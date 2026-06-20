@@ -72,10 +72,12 @@ def page(request, slug=None):
             )
             sold_counts = {row["plan__product_id"]: row["cnt"] for row in sold_qs}
 
+    theme = store_page.theme if store_page else {}
     return render(request, "storefront/page.html", {
         "store_page": store_page,
         "blocks": blocks,
         "sold_counts": sold_counts,
+        "theme": theme,
     })
 
 

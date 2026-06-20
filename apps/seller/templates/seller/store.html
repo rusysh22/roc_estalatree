@@ -4,12 +4,15 @@
 {% block content %}
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
-  <!-- Store page settings -->
+  <!-- Left: settings panels -->
   <div class="lg:col-span-2 space-y-5">
+
+    <!-- Store page settings -->
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <h2 class="font-semibold text-gray-800 mb-4">Store Settings</h2>
       <form method="post" class="space-y-4">
         {% csrf_token %}
+        <input type="hidden" name="action" value="page">
         {% for field in form %}
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
@@ -17,7 +20,30 @@
           {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
         </div>
         {% endfor %}
-        <button type="submit" class="btn-primary w-full">Save Changes</button>
+        <button type="submit" class="btn-primary w-full">Save Settings</button>
+      </form>
+    </div>
+
+    <!-- Theme editor -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="font-semibold text-gray-800 mb-1">Theme</h2>
+      <p class="text-xs text-gray-400 mb-4">Customize colors, layout, and banner.</p>
+      <form method="post" class="space-y-4" id="theme-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="theme">
+        {% for field in theme_form %}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
+          <div class="flex items-center gap-2">
+            {{ field }}
+            {% if field.field.widget.attrs.type == "color" %}
+            <span class="text-xs text-gray-400 font-mono theme-color-label" data-field="{{ field.html_name }}">{{ field.value }}</span>
+            {% endif %}
+          </div>
+          {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn-primary w-full">Save Theme</button>
       </form>
     </div>
 
@@ -50,8 +76,10 @@
     {% endif %}
   </div>
 
-  <!-- Blocks list -->
-  <div class="lg:col-span-3">
+  <!-- Right: blocks list + live preview -->
+  <div class="lg:col-span-3 space-y-5">
+
+    <!-- Blocks list -->
     <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div class="px-5 py-4 border-b border-gray-100">
         <h2 class="font-semibold text-gray-800 text-sm">Store Blocks</h2>
@@ -68,7 +96,7 @@
             </div>
             <div>
               <p class="text-sm font-medium text-gray-800">{{ block.product.name }}</p>
-              <p class="text-xs text-gray-400">Position {{ block.position }} · {{ block.get_type_display }}</p>
+              <p class="text-xs text-gray-400">Position {{ block.position }} &middot; {{ block.get_type_display }}</p>
             </div>
           </div>
           <form method="post" action="{% url 'seller:block_remove' block.pk %}">
@@ -85,7 +113,43 @@
       </div>
       {% endif %}
     </div>
-  </div>
 
+    <!-- Live preview -->
+    {% if store_page.is_published %}
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <h2 class="font-semibold text-gray-800 text-sm">Live Preview</h2>
+          <p class="text-xs text-gray-400 mt-0.5">Mobile view of your public store</p>
+        </div>
+        <a href="{{ seller.store_url }}" target="_blank"
+           class="text-xs text-indigo-600 hover:underline">Open &rarr;</a>
+      </div>
+      <div class="p-4 flex justify-center">
+        <div class="w-64 border-4 border-gray-800 rounded-2xl overflow-hidden shadow-lg" style="height: 480px;">
+          <iframe src="{{ seller.store_url }}"
+                  class="w-full h-full"
+                  style="transform-origin: top left; transform: scale(0.85); width: 117%; height: 117%;"
+                  title="Store preview"></iframe>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="bg-gray-50 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-400">
+      <p class="text-sm">Publish your store to see the live preview.</p>
+      <p class="text-xs mt-1">Set "Is published" to enabled in Store Settings above.</p>
+    </div>
+    {% endif %}
+
+  </div>
 </div>
+
+<script>
+document.querySelectorAll('input[type="color"]').forEach(function(input) {
+  input.addEventListener('input', function() {
+    var label = document.querySelector('[data-field="' + input.name + '"]');
+    if (label) label.textContent = input.value;
+  });
+});
+</script>
 {% endblock %}

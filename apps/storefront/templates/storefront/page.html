@@ -5,6 +5,26 @@
 {% block content %}
 {% if store_page %}
 
+{% if theme.primary_color or theme.background_color %}
+<style>
+  :root {
+    --color-primary: {{ theme.primary_color|default:"#4f46e5" }};
+    --color-bg: {{ theme.background_color|default:"#f9fafb" }};
+  }
+  body { background-color: var(--color-bg); }
+  .theme-primary-bg { background-color: var(--color-primary); }
+  .theme-primary-text { color: var(--color-primary); }
+  .theme-primary-border { border-color: var(--color-primary); }
+</style>
+{% endif %}
+
+  <!-- Banner -->
+  {% if theme.banner_url %}
+  <div class="w-full h-36 rounded-xl overflow-hidden mb-6">
+    <img src="{{ theme.banner_url }}" alt="" class="w-full h-full object-cover">
+  </div>
+  {% endif %}
+
   <!-- Store header -->
   <div class="text-center mb-10">
     {% if store_page.avatar_url %}
@@ -37,7 +57,7 @@
   </div>
 
   <!-- Blocks -->
-  <div class="space-y-4">
+  <div class="{% if theme.layout == 'grid' %}grid grid-cols-2 gap-4{% elif theme.layout == 'compact' %}space-y-2{% else %}space-y-4{% endif %}">
     {% for block in blocks %}
 
       {% if block.type == "heading" %}
@@ -112,7 +132,8 @@
                       {% if plan.price == 0 %}Free{% else %}{{ plan.price|rupiah }}{% endif %}
                     </span>
                     <a href="{% url 'storefront:checkout' plan.pk %}"
-                       class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition-colors">
+                       class="theme-primary-bg text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition-colors hover:opacity-90"
+                       style="background-color: {{ theme.primary_color|default:'#4f46e5' }}">
                       {% if plan.price == 0 %}Get free{% else %}Buy{% endif %}
                     </a>
                   </div>

@@ -27,6 +27,7 @@ from .forms import (
     ProductQuestionForm,
     SellerProfileForm,
     StorePageForm,
+    ThemeForm,
 )
 
 
@@ -366,13 +367,30 @@ def store(request):
     store_page = _get_or_create_store_page(seller)
 
     if request.method == "POST":
-        form = StorePageForm(request.POST, instance=store_page)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Store page updated.")
-            return redirect("seller:store")
+        action = request.POST.get("action", "page")
+        if action == "theme":
+            theme_form = ThemeForm(request.POST)
+            form = StorePageForm(instance=store_page)
+            if theme_form.is_valid():
+                store_page.theme = {
+                    "primary_color": theme_form.cleaned_data.get("primary_color") or "#4f46e5",
+                    "background_color": theme_form.cleaned_data.get("background_color") or "#f9fafb",
+                    "banner_url": theme_form.cleaned_data.get("banner_url") or "",
+                    "layout": theme_form.cleaned_data.get("layout") or "default",
+                }
+                store_page.save(update_fields=["theme", "updated_at"])
+                messages.success(request, "Theme saved.")
+                return redirect("seller:store")
+        else:
+            form = StorePageForm(request.POST, instance=store_page)
+            theme_form = ThemeForm(initial=store_page.theme)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Store page updated.")
+                return redirect("seller:store")
     else:
         form = StorePageForm(instance=store_page)
+        theme_form = ThemeForm(initial=store_page.theme)
 
     blocks = store_page.blocks.select_related("product").order_by("position")
     seller_products = _seller_products(seller).filter(visibility=Product.Visibility.PUBLIC)
@@ -381,6 +399,7 @@ def store(request):
         "seller": seller,
         "store_page": store_page,
         "form": form,
+        "theme_form": theme_form,
         "blocks": blocks,
         "available_products": seller_products,
     })

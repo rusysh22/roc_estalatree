@@ -97,6 +97,34 @@ class StorePageForm(forms.ModelForm):
         }
 
 
+class ThemeForm(forms.Form):
+    LAYOUT_CHOICES = [
+        ("default", "Default (list)"),
+        ("grid", "Grid (2 columns)"),
+        ("compact", "Compact"),
+    ]
+    primary_color = forms.CharField(
+        max_length=7, initial="#4f46e5", required=False,
+        widget=forms.TextInput(attrs={"type": "color", "class": "h-10 w-16 rounded border border-gray-300 cursor-pointer p-0.5"}),
+        label="Primary color",
+    )
+    background_color = forms.CharField(
+        max_length=7, initial="#f9fafb", required=False,
+        widget=forms.TextInput(attrs={"type": "color", "class": "h-10 w-16 rounded border border-gray-300 cursor-pointer p-0.5"}),
+        label="Background color",
+    )
+    banner_url = forms.URLField(
+        required=False,
+        widget=forms.URLInput(attrs={"class": "input-field", "placeholder": "https://..."}),
+        label="Banner image URL",
+    )
+    layout = forms.ChoiceField(
+        choices=LAYOUT_CHOICES,
+        widget=forms.Select(attrs={"class": "input-field"}),
+        initial="default",
+    )
+
+
 class BlockOrderForm(forms.Form):
     """Reorder blocks via drag-and-drop (HTMX post with positions)."""
     order = forms.CharField(widget=forms.HiddenInput())
