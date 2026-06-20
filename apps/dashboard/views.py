@@ -372,6 +372,51 @@ def refund_request(request, pk):
 
 
 @login_required
+def course_player(request, product_pk):
+    from apps.catalog.models import CourseProgress, Product
+    customer = _customer(request)
+
+    product = get_object_or_404(Product, pk=product_pk)
+
+    has_access = (
+        customer.grants.filter(
+            type="course",
+            status="active",
+            payload__product_id=product_pk,
+        ).exists()
+    )
+    if not has_access:
+        messages.error(request, "You do not have access to this course.")
+        return redirect("dashboard:products")
+
+    modules = product.modules.prefetch_related("lessons").order_by("sort_order")
+    completed_ids = set(
+        CourseProgress.objects.filter(
+            customer=customer,
+            lesson__module__product=product,
+        ).values_list("lesson_id", flat=True)
+    )
+    total_lessons = sum(m.lessons.count() for m in modules)
+    return render(request, "dashboard/course_player.html", {
+        "product": product,
+        "modules": modules,
+        "completed_ids": completed_ids,
+        "total_lessons": total_lessons,
+        "completed_count": len(completed_ids),
+    })
+
+
+@login_required
+@require_POST
+def lesson_complete(request, product_pk, lesson_pk):
+    from apps.catalog.models import CourseLesson, CourseProgress
+    customer = _customer(request)
+    lesson = get_object_or_404(CourseLesson, pk=lesson_pk, module__product_id=product_pk)
+    CourseProgress.objects.get_or_create(customer=customer, lesson=lesson)
+    return redirect("dashboard:course_player", product_pk=product_pk)
+
+
+@login_required
 @require_POST
 def review_submit(request, pk):
     from apps.catalog.models import ProductReview

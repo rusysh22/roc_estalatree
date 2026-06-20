@@ -1,0 +1,115 @@
+{% extends "seller/base.html" %}
+{% block topbar_title %}{% block page_title %}Course: {{ product.name }}{% endblock %}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl">
+  <a href="{% url 'seller:product_edit' product.pk %}" class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-5">
+    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    Back to {{ product.name }}
+  </a>
+
+  <div class="flex items-center justify-between mb-5">
+    <h1 class="text-xl font-bold text-gray-900">Course Content</h1>
+  </div>
+
+  <!-- Add module form -->
+  <div class="bg-white rounded-xl border border-gray-200 p-5 mb-5">
+    <h2 class="font-semibold text-gray-800 mb-3 text-sm">Add Module</h2>
+    <form method="post" class="flex gap-2">
+      {% csrf_token %}
+      <div class="flex-1">
+        {{ module_form.title }}
+        {% if module_form.title.errors %}<p class="text-xs text-red-500 mt-1">{{ module_form.title.errors.0 }}</p>{% endif %}
+      </div>
+      <input type="hidden" name="sort_order" value="{{ modules|length }}">
+      <button type="submit" class="btn-primary whitespace-nowrap">+ Add Module</button>
+    </form>
+  </div>
+
+  <!-- Modules list -->
+  <div class="space-y-4">
+    {% for module in modules %}
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+
+      <!-- Module header -->
+      <div class="px-5 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <p class="font-semibold text-gray-800">{{ forloop.counter }}. {{ module.title }}</p>
+          <p class="text-xs text-gray-400">{{ module.lessons.count }} lesson{{ module.lessons.count|pluralize }}</p>
+        </div>
+        <form method="post" action="{% url 'seller:module_delete' product.pk module.pk %}"
+              onsubmit="return confirm('Delete module and all its lessons?')">
+          {% csrf_token %}
+          <button type="submit" class="text-xs text-red-500 hover:text-red-700 font-medium">Delete</button>
+        </form>
+      </div>
+
+      <!-- Lessons list -->
+      {% if module.lessons.all %}
+      <div class="divide-y divide-gray-100">
+        {% for lesson in module.lessons.all %}
+        <div class="flex items-center justify-between px-5 py-3">
+          <div class="flex items-center gap-3">
+            {% if lesson.lesson_type == "video" %}
+            <svg class="w-4 h-4 text-indigo-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
+            {% elif lesson.lesson_type == "file" %}
+            <svg class="w-4 h-4 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            {% else %}
+            <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            {% endif %}
+            <div>
+              <p class="text-sm font-medium text-gray-800">{{ lesson.title }}</p>
+              <p class="text-xs text-gray-400">{{ lesson.get_lesson_type_display }}{% if lesson.is_preview %} &middot; Preview{% endif %}</p>
+            </div>
+          </div>
+          <form method="post" action="{% url 'seller:lesson_delete' product.pk module.pk lesson.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-red-400 hover:text-red-600 font-medium">Remove</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="px-5 py-4 text-sm text-gray-400">No lessons yet.</p>
+      {% endif %}
+
+      <!-- Add lesson form -->
+      <div class="px-5 py-4 border-t border-gray-100 bg-gray-50">
+        <p class="text-xs font-medium text-gray-600 mb-2">Add lesson</p>
+        <form method="post" action="{% url 'seller:lesson_add' product.pk module.pk %}" class="space-y-2">
+          {% csrf_token %}
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              {{ lesson_form.title }}
+              {% if lesson_form.title.errors %}<p class="text-xs text-red-500">{{ lesson_form.title.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+              {{ lesson_form.lesson_type }}
+            </div>
+          </div>
+          <div>
+            {{ lesson_form.content }}
+          </div>
+          <div>
+            {{ lesson_form.file_url }}
+          </div>
+          <div class="flex items-center gap-3">
+            <label class="flex items-center gap-1.5 text-xs text-gray-600">
+              {{ lesson_form.is_preview }} Free preview
+            </label>
+            <button type="submit" class="text-xs bg-indigo-50 text-indigo-700 font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors">
+              + Add Lesson
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+    {% empty %}
+    <div class="bg-gray-50 rounded-xl border border-dashed border-gray-300 p-10 text-center text-gray-400 text-sm">
+      No modules yet. Add the first module above.
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

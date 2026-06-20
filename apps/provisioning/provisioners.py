@@ -177,3 +177,31 @@ class ApiKeyProvisioner:
 
     def revoke(self, grant) -> None:
         Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.REVOKED)
+
+
+class CourseProvisioner:
+    """Grants access to all lessons in the course product. Config: not required."""
+
+    def provision(self, order, deliverable, *, subscription=None) -> Grant:
+        product = deliverable.plan.product
+        return Grant.objects.create(
+            customer=order.customer,
+            order=order,
+            subscription=subscription,
+            deliverable=deliverable,
+            type=Deliverable.Type.COURSE,
+            status=Grant.Status.ACTIVE,
+            payload={"product_id": product.pk, "product_name": product.name},
+        )
+
+    def renew(self, grant) -> None:
+        pass
+
+    def suspend(self, grant) -> None:
+        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.SUSPENDED)
+
+    def resume(self, grant) -> None:
+        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.ACTIVE)
+
+    def revoke(self, grant) -> None:
+        Grant.objects.filter(pk=grant.pk).update(status=Grant.Status.REVOKED)

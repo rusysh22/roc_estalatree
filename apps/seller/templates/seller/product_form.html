@@ -35,6 +35,18 @@
 
   <!-- Plans panel (only when editing existing product) -->
   {% if product %}
+
+  <!-- Course content shortcut -->
+  <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mt-5 flex items-center justify-between">
+    <div>
+      <p class="text-sm font-medium text-indigo-900">Course Content</p>
+      <p class="text-xs text-indigo-600 mt-0.5">Add modules and lessons for course-type plans</p>
+    </div>
+    <a href="{% url ‘seller:course_modules’ product.pk %}" class="text-xs bg-indigo-600 text-white font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors">
+      Manage
+    </a>
+  </div>
+
   <div class="bg-white rounded-xl border border-gray-200 p-6 mt-5">
     <div class="flex items-center justify-between mb-4">
       <h3 class="font-semibold text-gray-800">Plans</h3>

@@ -115,3 +115,55 @@ class ProductReview(TimestampedModel):
 
     def __str__(self) -> str:
         return f"{self.product.name} / {self.rating}★ by {self.order.customer}"
+
+
+class CourseModule(TimestampedModel):
+    """An ordered section/chapter within a course product."""
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="modules")
+    title = models.CharField(max_length=200)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["product", "sort_order"]
+
+    def __str__(self) -> str:
+        return f"{self.product.name} / Module: {self.title}"
+
+
+class CourseLesson(TimestampedModel):
+    """A single lesson (video, text, or file) within a CourseModule."""
+
+    class LessonType(models.TextChoices):
+        VIDEO = "video", "Video"
+        TEXT = "text", "Text"
+        FILE = "file", "File download"
+
+    module = models.ForeignKey(CourseModule, on_delete=models.CASCADE, related_name="lessons")
+    title = models.CharField(max_length=200)
+    lesson_type = models.CharField(max_length=20, choices=LessonType.choices, default=LessonType.TEXT)
+    content = models.TextField(blank=True, help_text="Text content or video embed URL")
+    file_url = models.URLField(blank=True, help_text="Direct file URL (for file lessons)")
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    is_preview = models.BooleanField(default=False, help_text="Accessible without purchase (free preview)")
+
+    class Meta:
+        ordering = ["module", "sort_order"]
+
+    def __str__(self) -> str:
+        return f"{self.module.product.name} / {self.module.title} / {self.title}"
+
+
+class CourseProgress(TimestampedModel):
+    """Tracks which lessons a customer has completed."""
+
+    customer = models.ForeignKey("accounts.Customer", on_delete=models.CASCADE, related_name="course_progress")
+    lesson = models.ForeignKey(CourseLesson, on_delete=models.CASCADE, related_name="progress")
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("customer", "lesson")]
+        ordering = ["-completed_at"]
+
+    def __str__(self) -> str:
+        return f"{self.customer} completed {self.lesson.title}"

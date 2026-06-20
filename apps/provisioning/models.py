@@ -23,6 +23,7 @@ class Deliverable(TimestampedModel):
         ACCESS_LINK = "access_link", "Access Link"
         API_KEY = "api_key", "API Key"
         MANUAL = "manual", "Manual"
+        COURSE = "course", "Course Access"
 
     plan = models.ForeignKey("catalog.Plan", on_delete=models.PROTECT, related_name="deliverables")
     type = models.CharField(max_length=20, choices=Type.choices)

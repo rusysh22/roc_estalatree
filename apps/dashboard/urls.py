@@ -22,4 +22,6 @@ urlpatterns = [
     path("grants/<int:grant_pk>/download/", views.gated_download, name="gated_download"),
     path("invoices/<pk>/", views.invoice_detail, name="invoice_detail"),
     path("orders/<pk>/review/", views.review_submit, name="review_submit"),
+    path("courses/<int:product_pk>/", views.course_player, name="course_player"),
+    path("courses/<int:product_pk>/lessons/<int:lesson_pk>/complete/", views.lesson_complete, name="lesson_complete"),
 ]

@@ -10,7 +10,7 @@ from django.utils.text import slugify
 
 from apps.accounts.models import Customer, SellerProfile
 from apps.billing.models import Coupon, Order, Subscription
-from apps.catalog.models import Plan, Product, ProductQuestion
+from apps.catalog.models import CourseLesson, CourseModule, Plan, Product, ProductQuestion
 from apps.notifications.tasks import deliver_whatsapp
 from apps.provisioning.models import Deliverable
 from apps.storefront.models import Block, StorePage
@@ -20,6 +20,8 @@ from .forms import (
     BlockOrderForm,
     BroadcastForm,
     CouponForm,
+    CourseLessonForm,
+    CourseModuleForm,
     DeliverableForm,
     EntitlementForm,
     PlanForm,
@@ -324,6 +326,74 @@ def question_remove(request, product_pk, question_pk):
     q.delete()
     messages.success(request, "Question removed.")
     return redirect("seller:product_edit", pk=product.pk)
+
+
+# ── Course Content Management ─────────────────────────────────────────────────
+
+@seller_required
+def course_modules(request, product_pk):
+    seller = request.seller
+    product = get_object_or_404(_seller_products(seller), pk=product_pk)
+    modules = product.modules.prefetch_related("lessons").order_by("sort_order")
+
+    if request.method == "POST":
+        form = CourseModuleForm(request.POST)
+        if form.is_valid():
+            m = form.save(commit=False)
+            m.product = product
+            m.save()
+            messages.success(request, "Module added.")
+            return redirect("seller:course_modules", product_pk=product.pk)
+    else:
+        form = CourseModuleForm()
+
+    return render(request, "seller/course_modules.html", {
+        "seller": seller,
+        "product": product,
+        "modules": modules,
+        "module_form": form,
+        "lesson_form": CourseLessonForm(),
+    })
+
+
+@seller_required
+@require_POST
+def lesson_add(request, product_pk, module_pk):
+    seller = request.seller
+    product = get_object_or_404(_seller_products(seller), pk=product_pk)
+    module = get_object_or_404(CourseModule, pk=module_pk, product=product)
+    form = CourseLessonForm(request.POST)
+    if form.is_valid():
+        lesson = form.save(commit=False)
+        lesson.module = module
+        lesson.save()
+        messages.success(request, "Lesson added.")
+    else:
+        messages.error(request, "Invalid lesson — title is required.")
+    return redirect("seller:course_modules", product_pk=product.pk)
+
+
+@seller_required
+@require_POST
+def module_delete(request, product_pk, module_pk):
+    seller = request.seller
+    product = get_object_or_404(_seller_products(seller), pk=product_pk)
+    module = get_object_or_404(CourseModule, pk=module_pk, product=product)
+    module.delete()
+    messages.success(request, "Module deleted.")
+    return redirect("seller:course_modules", product_pk=product.pk)
+
+
+@seller_required
+@require_POST
+def lesson_delete(request, product_pk, module_pk, lesson_pk):
+    seller = request.seller
+    product = get_object_or_404(_seller_products(seller), pk=product_pk)
+    module = get_object_or_404(CourseModule, pk=module_pk, product=product)
+    lesson = get_object_or_404(CourseLesson, pk=lesson_pk, module=module)
+    lesson.delete()
+    messages.success(request, "Lesson deleted.")
+    return redirect("seller:course_modules", product_pk=product.pk)
 
 
 # ── Orders ────────────────────────────────────────────────────────────────────

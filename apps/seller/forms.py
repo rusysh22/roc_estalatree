@@ -3,7 +3,7 @@ from django import forms
 
 from apps.accounts.models import SellerProfile
 from apps.billing.models import Coupon
-from apps.catalog.models import Plan, Product, ProductQuestion
+from apps.catalog.models import CourseLesson, CourseModule, Plan, Product, ProductQuestion
 from apps.provisioning.models import Deliverable, Entitlement
 from apps.storefront.models import Block, StorePage
 
@@ -147,6 +147,30 @@ class CouponForm(forms.ModelForm):
             "valid_from": forms.DateTimeInput(attrs={"class": "input-field", "type": "datetime-local"}),
             "valid_until": forms.DateTimeInput(attrs={"class": "input-field", "type": "datetime-local"}),
             "plans": forms.CheckboxSelectMultiple(),
+        }
+
+
+class CourseModuleForm(forms.ModelForm):
+    class Meta:
+        model = CourseModule
+        fields = ["title", "sort_order"]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "input-field", "placeholder": "Module title"}),
+            "sort_order": forms.NumberInput(attrs={"class": "input-field"}),
+        }
+
+
+class CourseLessonForm(forms.ModelForm):
+    class Meta:
+        model = CourseLesson
+        fields = ["title", "lesson_type", "content", "file_url", "sort_order", "is_preview"]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "input-field", "placeholder": "Lesson title"}),
+            "lesson_type": forms.Select(attrs={"class": "input-field"}),
+            "content": forms.Textarea(attrs={"class": "input-field font-mono text-xs", "rows": 3,
+                                             "placeholder": "Text content or YouTube embed URL"}),
+            "file_url": forms.URLInput(attrs={"class": "input-field", "placeholder": "https://..."}),
+            "sort_order": forms.NumberInput(attrs={"class": "input-field"}),
         }
 
 
