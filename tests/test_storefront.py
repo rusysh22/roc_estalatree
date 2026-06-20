@@ -149,7 +149,7 @@ def test_checkout_get_200_when_logged_in(authed_client, public_product):
     plan = public_product.plans.first()
     resp = authed_client.get(reverse("storefront:checkout", args=[plan.pk]))
     assert resp.status_code == 200
-    assert b"Confirm purchase" in resp.content
+    assert b"Order Summary" in resp.content
 
 
 # ── 5. Checkout POST: balance sufficient → PAID ───────────────────────────────

@@ -28,6 +28,9 @@ def regular_user(db):
 
 @pytest.fixture
 def staff_client(client, staff_user):
+    from django.contrib.auth.models import Group
+    op_group, _ = Group.objects.get_or_create(name="Operator")
+    staff_user.groups.add(op_group)
     client.force_login(staff_user)
     return client
 

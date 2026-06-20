@@ -22,6 +22,14 @@
 - [x] **Phase 9.5** — Unified UI shell + styled auth + `seed_demo` *(2026-06-19)*
 - [x] **Phase 10** — Operator Console (+ Phase 8/9/10 review fixes) *(2026-06-19)*
 - [x] **Phase 11** — Polish & Multi-ready: seller dashboard, coupons, top-up bonus, extra provisioners *(2026-06-19)*
+- [ ] **Phase 11.5** — Cleanup & Pre-production hardening (green CI, B-1/B-3, live E2E)
+- [ ] **Phase 12** — Rich Digital Products & Checkout depth (PWYW, stock, custom questions, add-ons, reviews)
+- [ ] **Phase 13** — Appearance/Theme editor + Live preview + File hosting & delivery
+- [ ] **Phase 14** — Course/E-course + new product types (via provisioning)
+- [ ] **Phase 15** — Analytics (funnel) + Growth tools (email/automation/WA)
+- [ ] **Phase 16** — Multi-seller activation (payout, affiliate, seller plans, custom domain)
+
+> Phases 11.5–16 derived from [reviews/lynk-spec-adaptation.md](reviews/lynk-spec-adaptation.md). Single-merchant reconciliation: no seller payout / no owner tiering until Phase 16; physical products skipped.
 
 **Minimum MVP:** Phases 0–6.
 

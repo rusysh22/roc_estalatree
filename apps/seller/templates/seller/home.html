@@ -66,7 +66,7 @@
     {% endfor %}
   </div>
   <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-    <span>This week: <strong class="text-gray-800">{% with week_total=chart_days|length %}{% for d in chart_days %}{% if d.total %}{{ d.total }}{% endif %}{% endfor %}{% endwith %}</strong></span>
+    <span>This week: <strong class="text-gray-800">{{ week_total|rupiah }}</strong></span>
     <a href="{% url 'seller:orders' %}" class="text-indigo-600 hover:underline">All orders &rarr;</a>
   </div>
 </div>

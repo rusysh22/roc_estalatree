@@ -84,6 +84,7 @@ def home(request):
         d = week_ago + timezone.timedelta(days=i)
         chart_days.append({"date": d, "label": d.strftime("%d/%m"), "total": daily_map.get(d, 0)})
     chart_max = max((d["total"] for d in chart_days), default=1) or 1
+    week_total = sum(d["total"] for d in chart_days)
 
     return render(request, "seller/home.html", {
         "seller": seller,
@@ -95,6 +96,7 @@ def home(request):
         "products_count": products_count,
         "chart_days": chart_days,
         "chart_max": chart_max,
+        "week_total": week_total,
     })
 
 
