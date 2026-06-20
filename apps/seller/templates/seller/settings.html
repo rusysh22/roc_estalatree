@@ -2,30 +2,76 @@
 {% block topbar_title %}{% block page_title %}Settings{% endblock %}{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl">
+<div class="max-w-2xl space-y-5">
+
+  <!-- Profile -->
   <div class="bg-white rounded-xl border border-gray-200 p-6">
     <h2 class="font-semibold text-gray-800 mb-1">Seller Profile</h2>
     <p class="text-xs text-gray-400 mb-5">This info appears on your public store page.</p>
     <form method="post" class="space-y-4">
       {% csrf_token %}
       {% for field in form %}
+      {% if field.name == "name" or field.name == "bio" or field.name == "logo_url" or field.name == "wa_number" %}
       <div>
         <label class="block text-xs font-medium text-gray-600 mb-1">
           {{ field.label }}{% if field.field.required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}
         </label>
         {{ field }}
         {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
-        {% if field.help_text %}<p class="text-xs text-gray-400 mt-0.5">{{ field.help_text }}</p>{% endif %}
       </div>
+      {% endif %}
       {% endfor %}
       <div class="pt-2">
-        <button type="submit" class="btn-primary">Save Changes</button>
+        <button type="submit" class="btn-primary">Save Profile</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Payout bank details -->
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h2 class="font-semibold text-gray-800 mb-1">Payout Bank Account</h2>
+    <p class="text-xs text-gray-400 mb-5">Required to request earnings withdrawals.</p>
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      {% for field in form %}
+      {% if field.name == "payout_bank_name" or field.name == "payout_account_number" or field.name == "payout_account_name" %}
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+      </div>
+      {% endif %}
+      {% endfor %}
+      <div class="pt-2">
+        <button type="submit" class="btn-primary">Save Bank Details</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tracking & pixels -->
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h2 class="font-semibold text-gray-800 mb-1">Tracking & Analytics</h2>
+    <p class="text-xs text-gray-400 mb-5">Injected into your public store page head.</p>
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      {% for field in form %}
+      {% if field.name == "custom_domain" or field.name == "ga_tracking_id" or field.name == "fb_pixel_id" %}
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="text-xs text-gray-400 mt-0.5">{{ field.help_text }}</p>{% endif %}
+        {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+      </div>
+      {% endif %}
+      {% endfor %}
+      <div class="pt-2">
+        <button type="submit" class="btn-primary">Save Tracking</button>
       </div>
     </form>
   </div>
 
   <!-- Store info -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6 mt-5">
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
     <h3 class="font-semibold text-gray-800 mb-3 text-sm">Store Info</h3>
     <div class="space-y-2 text-sm text-gray-600">
       <div class="flex justify-between">
@@ -35,6 +81,16 @@
       <div class="flex justify-between">
         <span class="text-gray-400">Public URL</span>
         <a href="{{ seller.store_url }}" target="_blank" class="text-indigo-600 hover:underline">{{ seller.store_url }}</a>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-gray-400">Seller Plan</span>
+        <span class="font-medium {% if seller.plan == 'pro' %}text-indigo-600{% else %}text-gray-600{% endif %}">
+          {{ seller.get_plan_display }}
+        </span>
+      </div>
+      <div class="flex justify-between">
+        <span class="text-gray-400">Commission Rate</span>
+        <span class="font-medium text-gray-800">{{ seller.commission_rate }}%</span>
       </div>
       <div class="flex justify-between">
         <span class="text-gray-400">Status</span>

@@ -1,0 +1,109 @@
+{% extends "seller/base.html" %}
+{% load money %}
+{% block topbar_title %}{% block page_title %}Affiliates{% endblock %}{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-5">
+  <h1 class="text-xl font-bold text-gray-900">Affiliate Links</h1>
+</div>
+
+<!-- Create new link -->
+<div class="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+  <h2 class="font-semibold text-gray-800 text-sm mb-4">Create Affiliate Link</h2>
+  <form method="post">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Referral Code <span class="text-red-500">*</span></label>
+        {{ form.code }}
+        {% if form.code.errors %}<p class="mt-1 text-xs text-red-500">{{ form.code.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Commission % <span class="text-red-500">*</span></label>
+        {{ form.commission_rate }}
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Restrict to Product</label>
+        {{ form.product }}
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Internal Label</label>
+        {{ form.label }}
+      </div>
+    </div>
+    <div class="mt-4">
+      <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors">
+        Create Link
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- How it works -->
+<div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+  <p class="text-xs text-blue-700">
+    <strong>How it works:</strong> Share your product URL with <code class="bg-blue-100 px-1 rounded">?ref=CODE</code> — e.g.
+    <code class="bg-blue-100 px-1 rounded">{{ request.build_absolute_uri '/p/product-slug/' }}?ref=YOURCODE</code>.
+    When a visitor buys, a commission is recorded automatically.
+  </p>
+</div>
+
+<!-- Existing links -->
+{% if links %}
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <div class="px-5 py-4 border-b border-gray-100">
+    <h2 class="font-semibold text-gray-800 text-sm">Your Links</h2>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+        <tr>
+          <th class="px-5 py-3 text-left">Code</th>
+          <th class="px-5 py-3 text-left">Product</th>
+          <th class="px-5 py-3 text-right">Rate</th>
+          <th class="px-5 py-3 text-right">Clicks</th>
+          <th class="px-5 py-3 text-right">Commissions</th>
+          <th class="px-5 py-3 text-right">Total Earned</th>
+          <th class="px-5 py-3 text-left">Status</th>
+          <th class="px-5 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for link in links %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-5 py-3">
+            <span class="font-mono font-semibold text-indigo-600">{{ link.code }}</span>
+            {% if link.label %}<br><span class="text-xs text-gray-400">{{ link.label }}</span>{% endif %}
+          </td>
+          <td class="px-5 py-3 text-gray-600">{{ link.product.name|default:"All products" }}</td>
+          <td class="px-5 py-3 text-right font-medium text-gray-800">{{ link.commission_rate }}%</td>
+          <td class="px-5 py-3 text-right text-gray-600">{{ link.clicks }}</td>
+          <td class="px-5 py-3 text-right text-gray-600">{{ link.commission_count|default:0 }}</td>
+          <td class="px-5 py-3 text-right font-semibold text-green-600">{{ link.commission_total|default:0|rupiah }}</td>
+          <td class="px-5 py-3">
+            <span class="text-xs px-2 py-0.5 rounded-full {% if link.is_active %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-500{% endif %}">
+              {% if link.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+          </td>
+          <td class="px-5 py-3 text-right">
+            <form method="post" action="{% url 'seller:affiliate_toggle' link.pk %}" class="inline">
+              {% csrf_token %}
+              <button type="submit" class="text-xs text-gray-400 hover:text-indigo-600">
+                {% if link.is_active %}Deactivate{% else %}Activate{% endif %}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-gray-200 py-12 text-center">
+  <p class="text-gray-400 text-sm">No affiliate links yet. Create one above to start tracking referrals.</p>
+</div>
+{% endif %}
+
+{% endblock %}

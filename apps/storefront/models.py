@@ -19,6 +19,12 @@ class StorePage(TimestampedModel):
     avatar_url = models.URLField(blank=True)
     is_published = models.BooleanField(default=False)
     theme = models.JSONField(default=dict, blank=True)
+    seller = models.OneToOneField(
+        "accounts.SellerProfile",
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="store_page",
+    )
 
     class Meta:
         ordering = ["slug"]

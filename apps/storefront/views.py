@@ -56,14 +56,39 @@ def _emit_event(request, event_type, *, product=None, plan=None):
         pass
 
 
+def _record_affiliate_commission(request, order) -> None:
+    """Create AffiliateCommission for a paid order if a ref code is in session. Never raises."""
+    try:
+        ref_code = request.session.pop("affiliate_ref", None)
+        if not ref_code:
+            return
+        from apps.billing.models import AffiliateLink, AffiliateCommission
+        link = AffiliateLink.objects.filter(code=ref_code, is_active=True).first()
+        if not link:
+            return
+        # Only apply if the link is for this seller/product or unrestricted
+        product = order.plan.product
+        if link.product_id and link.product_id != product.pk:
+            return
+        if link.seller_id and product.seller_id and link.seller_id != product.seller_id:
+            return
+        amount = order.amount * link.commission_rate // 100
+        AffiliateCommission.objects.get_or_create(
+            order=order,
+            defaults={"link": link, "amount": amount},
+        )
+    except Exception:
+        logger.exception("Failed to record affiliate commission for order %s", order.pk)
+
+
 # ── Store page ────────────────────────────────────────────────────────────────
 
 def page(request, slug=None):
     """Public store page — the link-in-bio home."""
     if slug:
-        store_page = get_object_or_404(StorePage, slug=slug, is_published=True)
+        store_page = get_object_or_404(StorePage.objects.select_related("seller"), slug=slug, is_published=True)
     else:
-        store_page = StorePage.objects.filter(is_published=True).first()
+        store_page = StorePage.objects.select_related("seller").filter(is_published=True).first()
 
     blocks = []
     sold_counts = {}
@@ -111,6 +136,12 @@ def product_detail(request, slug):
     ).count()
     reviews = product.reviews.filter(is_published=True).select_related("order__customer__user").order_by("-created_at")[:10]
     _emit_event(request, "product_view", product=product)
+
+    # Capture affiliate ref code into session
+    ref_code = request.GET.get("ref", "").strip()
+    if ref_code:
+        request.session["affiliate_ref"] = ref_code
+
     return render(request, "storefront/product.html", {
         "product": product,
         "plans": plans,
@@ -262,6 +293,7 @@ def checkout_plan(request, plan_pk):
         return redirect(payment_url)
 
     _emit_event(request, "order_paid", product=product, plan=plan)
+    _record_affiliate_commission(request, order)
     return redirect("storefront:order_status", public_id=order.public_id)
 
 

@@ -72,6 +72,10 @@ class SellerProfile(TimestampedModel):
     See ADR-005.
     """
 
+    class Plan(models.TextChoices):
+        FREE = "free", "Free"
+        PRO = "pro", "PRO"
+
     user = models.OneToOneField(
         "accounts.User",
         null=True,
@@ -89,6 +93,20 @@ class SellerProfile(TimestampedModel):
     bio = models.TextField(blank=True)
     logo_url = models.URLField(blank=True)
     wa_number = models.CharField(max_length=20, blank=True)
+
+    # Seller plan & KYC
+    plan = models.CharField(max_length=10, choices=Plan.choices, default=Plan.FREE)
+    kyc_verified = models.BooleanField(default=False)
+
+    # Payout bank details (required before withdrawal can be approved)
+    payout_bank_name = models.CharField(max_length=100, blank=True)
+    payout_account_number = models.CharField(max_length=50, blank=True)
+    payout_account_name = models.CharField(max_length=200, blank=True)
+
+    # Custom domain + tracking pixels
+    custom_domain = models.CharField(max_length=253, blank=True, help_text="e.g. shop.example.com")
+    ga_tracking_id = models.CharField(max_length=30, blank=True, help_text="e.g. G-XXXXXXXXXX")
+    fb_pixel_id = models.CharField(max_length=20, blank=True)
 
     class Meta:
         verbose_name = "Seller Profile"

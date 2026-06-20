@@ -1,0 +1,123 @@
+{% extends "seller/base.html" %}
+{% load money %}
+{% block topbar_title %}{% block page_title %}Earnings{% endblock %}{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-5">
+  <h1 class="text-xl font-bold text-gray-900">Earnings</h1>
+  {% if total_net > 0 and seller.payout_bank_name %}
+  <form method="post" action="{% url 'seller:payout_request' %}">
+    {% csrf_token %}
+    <input type="hidden" name="amount" value="{{ total_net }}">
+    <button type="submit" class="text-sm px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            onclick="return confirm('Request withdrawal of Rp{{ total_net|floatformat:0 }}?')">
+      Request Payout ({{ total_net|rupiah }})
+    </button>
+  </form>
+  {% elif not seller.payout_bank_name %}
+  <a href="{% url 'seller:settings' %}" class="text-sm px-4 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50">
+    Add bank account to withdraw
+  </a>
+  {% endif %}
+</div>
+
+<!-- KPI cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Available</p>
+    <p class="text-2xl font-bold text-green-600 mt-1">{{ total_net|rupiah }}</p>
+    <p class="text-xs text-gray-400 mt-1">Pending payout</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Gross Sales</p>
+    <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_gross|rupiah }}</p>
+    <p class="text-xs text-gray-400 mt-1">Before platform fee</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Platform Fee</p>
+    <p class="text-2xl font-bold text-red-500 mt-1">{{ total_commission|rupiah }}</p>
+    <p class="text-xs text-gray-400 mt-1">{{ seller.commission_rate }}% commission</p>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <p class="text-xs text-gray-500 font-medium uppercase tracking-wide">Paid Out</p>
+    <p class="text-2xl font-bold text-gray-500 mt-1">{{ paid_out|rupiah }}</p>
+    <p class="text-xs text-gray-400 mt-1">All time</p>
+  </div>
+</div>
+
+<!-- Payout history -->
+{% if recent_payouts %}
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
+  <div class="px-5 py-4 border-b border-gray-100">
+    <h2 class="font-semibold text-gray-800 text-sm">Payout Requests</h2>
+  </div>
+  <div class="divide-y divide-gray-100">
+    {% for p in recent_payouts %}
+    <div class="flex items-center justify-between px-5 py-3">
+      <div>
+        <p class="text-sm font-medium text-gray-800">{{ p.amount|rupiah }}</p>
+        <p class="text-xs text-gray-400">{{ p.bank_name }} · {{ p.account_number }} · {{ p.created_at|date:"d M Y" }}</p>
+      </div>
+      <span class="text-xs px-2 py-1 rounded-full font-medium
+        {% if p.status == 'completed' %}bg-green-100 text-green-700
+        {% elif p.status == 'approved' %}bg-blue-100 text-blue-700
+        {% elif p.status == 'rejected' %}bg-red-100 text-red-700
+        {% else %}bg-amber-100 text-amber-700{% endif %}">
+        {{ p.get_status_display }}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Earnings table -->
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <div class="px-5 py-4 border-b border-gray-100">
+    <h2 class="font-semibold text-gray-800 text-sm">Order Earnings</h2>
+  </div>
+  {% if earnings %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+        <tr>
+          <th class="px-5 py-3 text-left">Order</th>
+          <th class="px-5 py-3 text-left">Product</th>
+          <th class="px-5 py-3 text-right">Gross</th>
+          <th class="px-5 py-3 text-right">Fee</th>
+          <th class="px-5 py-3 text-right">Net</th>
+          <th class="px-5 py-3 text-left">Status</th>
+          <th class="px-5 py-3 text-left">Date</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for e in earnings %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-5 py-3 font-mono text-xs text-gray-500">{{ e.order.public_id|slice:":12" }}</td>
+          <td class="px-5 py-3 text-gray-800">{{ e.order.plan.product.name|truncatechars:30 }}</td>
+          <td class="px-5 py-3 text-right text-gray-800">{{ e.gross|rupiah }}</td>
+          <td class="px-5 py-3 text-right text-red-500">-{{ e.commission|rupiah }}</td>
+          <td class="px-5 py-3 text-right font-semibold text-green-600">{{ e.net|rupiah }}</td>
+          <td class="px-5 py-3">
+            <span class="text-xs px-2 py-0.5 rounded-full
+              {% if e.status == 'paid_out' %}bg-green-100 text-green-700
+              {% elif e.status == 'voided' %}bg-red-100 text-red-700
+              {% else %}bg-amber-100 text-amber-700{% endif %}">
+              {{ e.get_status_display }}
+            </span>
+          </td>
+          <td class="px-5 py-3 text-xs text-gray-400">{{ e.created_at|date:"d M Y" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="py-12 text-center">
+    <p class="text-gray-400 text-sm">No earnings yet. Sales will appear here once orders are paid.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

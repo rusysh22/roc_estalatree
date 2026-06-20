@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.accounts.models import Customer, SellerProfile
-from apps.billing.models import Coupon, Order, Subscription
+from apps.billing.models import AffiliateLink, Coupon, Order, SellerEarning, SellerPayout, Subscription
 from apps.catalog.models import CourseLesson, CourseModule, Plan, Product, ProductQuestion
 from apps.notifications.tasks import deliver_whatsapp
 from apps.provisioning.models import Deliverable
@@ -17,6 +17,7 @@ from apps.storefront.models import Block, StorePage
 
 from .decorators import seller_required
 from .forms import (
+    AffiliateLinkForm,
     BlockOrderForm,
     BroadcastForm,
     CouponForm,
@@ -24,6 +25,7 @@ from .forms import (
     CourseModuleForm,
     DeliverableForm,
     EntitlementForm,
+    PayoutRequestForm,
     PlanForm,
     ProductForm,
     ProductQuestionForm,
@@ -734,3 +736,98 @@ def apply(request):
             return redirect("seller:apply")
 
     return render(request, "seller/apply.html", {"pending": False})
+
+
+# ── Earnings & Payouts ────────────────────────────────────────────────────────
+
+@seller_required
+def earnings(request):
+    seller = request.seller
+    all_earnings = SellerEarning.objects.filter(seller=seller).select_related("order__plan__product")
+    total_gross = all_earnings.filter(status=SellerEarning.Status.PENDING).aggregate(s=Sum("gross"))["s"] or 0
+    total_net = all_earnings.filter(status=SellerEarning.Status.PENDING).aggregate(s=Sum("net"))["s"] or 0
+    total_commission = all_earnings.filter(status=SellerEarning.Status.PENDING).aggregate(s=Sum("commission"))["s"] or 0
+    paid_out = all_earnings.filter(status=SellerEarning.Status.PAID_OUT).aggregate(s=Sum("net"))["s"] or 0
+    recent_payouts = SellerPayout.objects.filter(seller=seller).order_by("-created_at")[:10]
+    payout_form = PayoutRequestForm(initial={"amount": total_net})
+    return render(request, "seller/earnings.html", {
+        "seller": seller,
+        "earnings": all_earnings[:50],
+        "total_gross": total_gross,
+        "total_net": total_net,
+        "total_commission": total_commission,
+        "paid_out": paid_out,
+        "recent_payouts": recent_payouts,
+        "payout_form": payout_form,
+    })
+
+
+@seller_required
+@require_POST
+def payout_request(request):
+    seller = request.seller
+    if not seller.payout_bank_name or not seller.payout_account_number:
+        messages.error(request, "Please add your bank account details in Settings before requesting a payout.")
+        return redirect("seller:settings")
+
+    form = PayoutRequestForm(request.POST)
+    if form.is_valid():
+        amount = form.cleaned_data["amount"]
+        available = SellerEarning.objects.filter(
+            seller=seller, status=SellerEarning.Status.PENDING
+        ).aggregate(s=Sum("net"))["s"] or 0
+
+        if amount > available:
+            messages.error(request, f"Requested amount exceeds available balance (Rp{available:,}).")
+        else:
+            SellerPayout.objects.create(
+                seller=seller,
+                amount=amount,
+                bank_name=seller.payout_bank_name,
+                account_number=seller.payout_account_number,
+                account_name=seller.payout_account_name,
+            )
+            messages.success(request, f"Payout request for Rp{amount:,} submitted. Processing in 1–3 business days.")
+    else:
+        messages.error(request, "Invalid amount.")
+    return redirect("seller:earnings")
+
+
+# ── Affiliates ────────────────────────────────────────────────────────────────
+
+@seller_required
+def affiliates(request):
+    seller = request.seller
+    links = AffiliateLink.objects.filter(seller=seller).select_related("product").annotate(
+        commission_total=Sum("commissions__amount"),
+        commission_count=Count("commissions"),
+    ).order_by("-created_at")
+
+    form = AffiliateLinkForm(seller)
+    if request.method == "POST":
+        form = AffiliateLinkForm(seller, request.POST)
+        if form.is_valid():
+            link = form.save(commit=False)
+            link.seller = seller
+            link.code = link.code.upper()
+            link.save()
+            messages.success(request, f"Affiliate link /{link.code} created.")
+            return redirect("seller:affiliates")
+
+    return render(request, "seller/affiliates.html", {
+        "seller": seller,
+        "links": links,
+        "form": form,
+    })
+
+
+@seller_required
+@require_POST
+def affiliate_toggle(request, link_pk):
+    seller = request.seller
+    link = get_object_or_404(AffiliateLink, pk=link_pk, seller=seller)
+    link.is_active = not link.is_active
+    link.save(update_fields=["is_active", "updated_at"])
+    status = "activated" if link.is_active else "deactivated"
+    messages.success(request, f"Affiliate link {link.code} {status}.")
+    return redirect("seller:affiliates")

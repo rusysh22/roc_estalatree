@@ -2,7 +2,7 @@
 from django import forms
 
 from apps.accounts.models import SellerProfile
-from apps.billing.models import Coupon
+from apps.billing.models import AffiliateLink, Coupon, SellerPayout
 from apps.catalog.models import CourseLesson, CourseModule, Plan, Product, ProductQuestion
 from apps.provisioning.models import Deliverable, Entitlement
 from apps.storefront.models import Block, StorePage
@@ -11,12 +11,22 @@ from apps.storefront.models import Block, StorePage
 class SellerProfileForm(forms.ModelForm):
     class Meta:
         model = SellerProfile
-        fields = ["name", "bio", "logo_url", "wa_number"]
+        fields = [
+            "name", "bio", "logo_url", "wa_number",
+            "payout_bank_name", "payout_account_number", "payout_account_name",
+            "custom_domain", "ga_tracking_id", "fb_pixel_id",
+        ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input-field"}),
             "bio": forms.Textarea(attrs={"class": "input-field", "rows": 3}),
             "logo_url": forms.URLInput(attrs={"class": "input-field"}),
             "wa_number": forms.TextInput(attrs={"class": "input-field", "placeholder": "628123456789"}),
+            "payout_bank_name": forms.TextInput(attrs={"class": "input-field", "placeholder": "BCA / BNI / Mandiri"}),
+            "payout_account_number": forms.TextInput(attrs={"class": "input-field"}),
+            "payout_account_name": forms.TextInput(attrs={"class": "input-field"}),
+            "custom_domain": forms.TextInput(attrs={"class": "input-field", "placeholder": "shop.example.com"}),
+            "ga_tracking_id": forms.TextInput(attrs={"class": "input-field", "placeholder": "G-XXXXXXXXXX"}),
+            "fb_pixel_id": forms.TextInput(attrs={"class": "input-field", "placeholder": "123456789012345"}),
         }
 
 
@@ -191,3 +201,29 @@ class BroadcastForm(forms.Form):
         empty_label="— All products —",
         widget=forms.Select(attrs={"class": "input-field"}),
     )
+
+
+class PayoutRequestForm(forms.Form):
+    amount = forms.IntegerField(
+        min_value=50000,
+        label="Withdrawal amount (Rp)",
+        widget=forms.NumberInput(attrs={"class": "input-field", "placeholder": "Minimum Rp50,000"}),
+    )
+
+
+class AffiliateLinkForm(forms.ModelForm):
+    class Meta:
+        model = AffiliateLink
+        fields = ["code", "commission_rate", "label", "product", "is_active"]
+        widgets = {
+            "code": forms.TextInput(attrs={"class": "input-field uppercase", "placeholder": "MYREF2024"}),
+            "commission_rate": forms.NumberInput(attrs={"class": "input-field", "min": 1, "max": 50}),
+            "label": forms.TextInput(attrs={"class": "input-field", "placeholder": "Internal label"}),
+            "product": forms.Select(attrs={"class": "input-field"}),
+        }
+
+    def __init__(self, seller, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["product"].queryset = Product.objects.filter(seller=seller)
+        self.fields["product"].required = False
+        self.fields["product"].empty_label = "— All products —"

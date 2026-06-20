@@ -33,4 +33,8 @@ urlpatterns = [
     path("settings/", views.settings, name="settings"),
     path("apply/", views.apply, name="apply"),
     path("analytics/", views.analytics, name="analytics"),
+    path("earnings/", views.earnings, name="earnings"),
+    path("earnings/payout/", views.payout_request, name="payout_request"),
+    path("affiliates/", views.affiliates, name="affiliates"),
+    path("affiliates/<int:link_pk>/toggle/", views.affiliate_toggle, name="affiliate_toggle"),
 ]

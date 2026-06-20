@@ -2,6 +2,32 @@
 {% load money %}
 {% block page_title %}{% if store_page %}{{ store_page.title }}{% else %}Store{% endif %}{% endblock %}
 
+{% block head_extra %}
+{% if store_page and store_page.seller %}
+{% with seller=store_page.seller %}
+{% if seller.ga_tracking_id %}
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ seller.ga_tracking_id }}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '{{ seller.ga_tracking_id }}');
+</script>
+{% endif %}
+{% if seller.fb_pixel_id %}
+<!-- Meta Pixel -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '{{ seller.fb_pixel_id }}');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{ seller.fb_pixel_id }}&ev=PageView&noscript=1"/></noscript>
+{% endif %}
+{% endwith %}
+{% endif %}
+{% endblock %}
+
 {% block content %}
 {% if store_page %}
 

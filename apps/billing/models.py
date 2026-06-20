@@ -229,3 +229,127 @@ class Coupon(TimestampedModel):
         if plan and self.plans.exists() and not self.plans.filter(pk=plan.pk).exists():
             return False, "Coupon is not valid for this plan."
         return True, ""
+
+
+# ── Seller earnings & payouts ──────────────────────────────────────────────────
+
+class SellerEarning(TimestampedModel):
+    """Platform records one earning row per paid order.
+
+    gross = order.amount, commission = platform fee cut, net = gross - commission.
+    Immutable once created (no update/delete — same rule as LedgerEntry/AuditLog).
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PAID_OUT = "paid_out", "Paid Out"
+        VOIDED = "voided", "Voided"
+
+    seller = models.ForeignKey(
+        "accounts.SellerProfile", on_delete=models.PROTECT, related_name="earnings"
+    )
+    order = models.OneToOneField(
+        "billing.Order", on_delete=models.PROTECT, related_name="seller_earning"
+    )
+    gross = models.PositiveBigIntegerField(help_text="Order amount (IDR)")
+    commission = models.PositiveBigIntegerField(default=0, help_text="Platform fee (IDR)")
+    net = models.PositiveBigIntegerField(help_text="Seller receives (IDR)")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["seller", "status"])]
+
+    def __str__(self) -> str:
+        return f"Earning #{self.pk} for {self.seller} — Rp{self.net:,} [{self.status}]"
+
+
+class SellerPayout(TimestampedModel):
+    """Seller requests a withdrawal of their pending earnings."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+        COMPLETED = "completed", "Completed"
+
+    seller = models.ForeignKey(
+        "accounts.SellerProfile", on_delete=models.PROTECT, related_name="payouts"
+    )
+    amount = models.PositiveBigIntegerField(help_text="Requested withdrawal (IDR)")
+    bank_name = models.CharField(max_length=100)
+    account_number = models.CharField(max_length=50)
+    account_name = models.CharField(max_length=200)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    notes = models.TextField(blank=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["seller", "status"])]
+
+    def __str__(self) -> str:
+        return f"Payout #{self.pk} {self.seller} Rp{self.amount:,} [{self.status}]"
+
+
+# ── Affiliate program ─────────────────────────────────────────────────────────
+
+class AffiliateLink(TimestampedModel):
+    """A unique referral code created by a seller (or the platform owner).
+
+    When a buyer visits the store with ?ref=<code> the code is stored in their
+    session and an AffiliateCommission is recorded on purchase.
+    """
+
+    seller = models.ForeignKey(
+        "accounts.SellerProfile", on_delete=models.PROTECT, related_name="affiliate_links",
+        help_text="Product seller who owns this link programme",
+    )
+    affiliate_seller = models.ForeignKey(
+        "accounts.SellerProfile", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="affiliate_promotions",
+        help_text="The promoter (another seller). Null = external promoter.",
+    )
+    product = models.ForeignKey(
+        "catalog.Product", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="affiliate_links",
+        help_text="Restrict to this product. Null = applies to all seller products.",
+    )
+    code = models.CharField(max_length=30, unique=True, db_index=True)
+    commission_rate = models.PositiveSmallIntegerField(
+        default=10, help_text="Commission % of net order amount for the affiliate"
+    )
+    clicks = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    label = models.CharField(max_length=100, blank=True, help_text="Internal label for tracking")
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Ref:{self.code} ({self.commission_rate}%) for {self.seller}"
+
+
+class AffiliateCommission(TimestampedModel):
+    """Commission earned per paid order via an AffiliateLink.
+
+    Immutable once created.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PAID_OUT = "paid_out", "Paid Out"
+        VOIDED = "voided", "Voided"
+
+    link = models.ForeignKey(AffiliateLink, on_delete=models.PROTECT, related_name="commissions")
+    order = models.OneToOneField(
+        "billing.Order", on_delete=models.PROTECT, related_name="affiliate_commission"
+    )
+    amount = models.PositiveBigIntegerField(help_text="Commission earned (IDR)")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Commission #{self.pk} {self.link.code} Rp{self.amount:,} [{self.status}]"

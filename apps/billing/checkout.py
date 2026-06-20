@@ -36,6 +36,25 @@ from apps.wallet.services import debit
 logger = logging.getLogger(__name__)
 
 
+def _record_seller_earning(order) -> None:
+    """Create SellerEarning for a paid order. Must be called inside transaction.atomic()."""
+    try:
+        from apps.billing.models import SellerEarning
+        from apps.core.models import Setting
+        seller = order.plan.product.seller
+        if seller is None:
+            return
+        gross = order.amount
+        rate = seller.commission_rate or 0
+        commission = gross * rate // 100
+        SellerEarning.objects.get_or_create(
+            order=order,
+            defaults={"seller": seller, "gross": gross, "commission": commission, "net": gross - commission},
+        )
+    except Exception:
+        logger.exception("Failed to record seller earning for order %s", order.pk)
+
+
 class ContactPlanError(Exception):
     """Contact-type plans cannot be purchased via checkout."""
 
@@ -143,6 +162,7 @@ def complete_pending_order(order: Order) -> list[Grant]:
 
             # H1: provision inside atomic — failure rolls back debit + PAID
             grants = _provision_order(locked, subscription=subscription)
+            _record_seller_earning(locked)
             emit("order.paid", customer_id=locked.customer_id, order_id=locked.pk,
                  plan_name=str(locked.plan))
 
@@ -230,6 +250,7 @@ def checkout(
 
             # H1: provision inside atomic — KeyError rolls back Order creation
             grants = _provision_order(order, subscription=None)
+            _record_seller_earning(order)
             emit("order.paid", customer_id=order.customer_id, order_id=order.pk,
                  plan_name=str(order.plan))
 
@@ -306,6 +327,7 @@ def checkout(
 
             # H1: provision inside atomic — failure rolls back debit + PAID
             grants = _provision_order(order, subscription=subscription)
+            _record_seller_earning(order)
             emit("order.paid", customer_id=order.customer_id, order_id=order.pk,
                  plan_name=str(order.plan))
 
