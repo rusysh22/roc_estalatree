@@ -1,121 +1,385 @@
-﻿{% extends "seller/base.html" %}
+{% extends "seller/base.html" %}
 {% load money %}
 {% block topbar_title %}{% block page_title %}{{ title }}{% endblock %}{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl">
-  <!-- Back link -->
-  <a href="{% url 'seller:products' %}" class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-5">
-    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-    Back to Products
-  </a>
 
-  <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <h2 class="font-semibold text-gray-800 mb-5">{{ title }}</h2>
-    <form method="post" class="space-y-4">
-      {% csrf_token %}
-      {% for field in form %}
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}{% if field.field.required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}</label>
-        {{ field }}
-        {% if field.errors %}
-        <p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>
-        {% endif %}
-        {% if field.help_text %}
-        <p class="text-xs text-gray-400 mt-0.5">{{ field.help_text }}</p>
-        {% endif %}
-      </div>
-      {% endfor %}
-      <div class="flex gap-3 pt-2">
-        <button type="submit" class="btn-primary">{{ submit_label }}</button>
-        <a href="{% url 'seller:products' %}" class="btn-secondary">Cancel</a>
-      </div>
-    </form>
-  </div>
+<a href="{% url 'seller:products' %}" class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-5">
+  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+  Back to Products
+</a>
 
-  <!-- Plans panel (only when editing existing product) -->
-  {% if product %}
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
-  <!-- Course content shortcut -->
-  <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mt-5 flex items-center justify-between">
-    <div>
-      <p class="text-sm font-medium text-indigo-900">Course Content</p>
-      <p class="text-xs text-indigo-600 mt-0.5">Add modules and lessons for course-type plans</p>
-    </div>
-    <a href="{% url ‘seller:course_modules’ product.pk %}" class="text-xs bg-indigo-600 text-white font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors">
-      Manage
-    </a>
-  </div>
+  {# ═══════════ LEFT: Product Form (3/5) ═══════════ #}
+  <div class="lg:col-span-3">
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="font-semibold text-gray-800 mb-5">{{ title }}</h2>
+      <form method="post" class="space-y-6">
+        {% csrf_token %}
 
-  <div class="bg-white rounded-xl border border-gray-200 p-6 mt-5">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="font-semibold text-gray-800">Plans</h3>
-      <a href="{% url ‘seller:plan_create’ product.pk %}" class="btn-primary text-xs px-3 py-1.5">+ New Plan</a>
-    </div>
-    {% if plans %}
-    <div class="space-y-2">
-      {% for plan in plans %}
-      <div class="flex items-center justify-between border border-gray-100 rounded-lg px-4 py-3">
+        {# Product Name #}
         <div>
-          <p class="text-sm font-medium text-gray-800">{{ plan.name }}</p>
-          <p class="text-xs text-gray-500">{{ plan.price|rupiah }} / {{ plan.get_interval_display }}
-            {% if plan.seat_limit %} &middot; {{ plan.seat_limit }} seat(s){% endif %}
-            {% if plan.pwyw %}<span class="text-amber-600 ml-1">PWYW</span>{% endif %}
-            {% if plan.stock_quantity is not None %}<span class="text-blue-600 ml-1">Stock: {{ plan.stock_quantity }}</span>{% endif %}
-            {% if not plan.is_active %}<span class="text-red-400 ml-1">Inactive</span>{% endif %}
-          </p>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Product Name <span class="text-red-400">*</span></label>
+          {{ form.name }}
+          {% if form.name.errors %}<p class="text-xs text-red-500 mt-1">{{ form.name.errors.0 }}</p>{% endif %}
         </div>
-        <a href="{% url ‘seller:plan_edit’ product.pk plan.pk %}" class="text-xs text-indigo-600 hover:underline">Edit</a>
-      </div>
-      {% endfor %}
+
+        {# Product Type — visual radio cards #}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-2">Product Type <span class="text-red-400">*</span></label>
+          <div class="grid grid-cols-2 gap-3">
+
+            <label class="cursor-pointer block">
+              <input type="radio" name="{{ form.type.html_name }}" value="one_time" class="sr-only peer"
+                {% if form.type.value == 'one_time' %}checked{% endif %}>
+              <div class="border-2 border-gray-200 rounded-xl p-3.5 hover:bg-gray-50 hover:border-gray-300 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 transition-all h-full">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-gray-800 leading-tight">One-time</p>
+                    <p class="text-[10px] text-gray-400 mt-0.5">Pay once, access forever</p>
+                  </div>
+                </div>
+              </div>
+            </label>
+
+            <label class="cursor-pointer block">
+              <input type="radio" name="{{ form.type.html_name }}" value="recurring" class="sr-only peer"
+                {% if form.type.value == 'recurring' %}checked{% endif %}>
+              <div class="border-2 border-gray-200 rounded-xl p-3.5 hover:bg-gray-50 hover:border-gray-300 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 transition-all h-full">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-7 h-7 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-gray-800 leading-tight">Subscription</p>
+                    <p class="text-[10px] text-gray-400 mt-0.5">Monthly or yearly billing</p>
+                  </div>
+                </div>
+              </div>
+            </label>
+
+            <label class="cursor-pointer block">
+              <input type="radio" name="{{ form.type.html_name }}" value="free" class="sr-only peer"
+                {% if form.type.value == 'free' %}checked{% endif %}>
+              <div class="border-2 border-gray-200 rounded-xl p-3.5 hover:bg-gray-50 hover:border-gray-300 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 transition-all h-full">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-7 h-7 rounded-lg bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4H5z"/></svg>
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-gray-800 leading-tight">Free</p>
+                    <p class="text-[10px] text-gray-400 mt-0.5">No payment required</p>
+                  </div>
+                </div>
+              </div>
+            </label>
+
+            <label class="cursor-pointer block">
+              <input type="radio" name="{{ form.type.html_name }}" value="contact" class="sr-only peer"
+                {% if form.type.value == 'contact' %}checked{% endif %}>
+              <div class="border-2 border-gray-200 rounded-xl p-3.5 hover:bg-gray-50 hover:border-gray-300 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 transition-all h-full">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-gray-800 leading-tight">Contact / Lead</p>
+                    <p class="text-[10px] text-gray-400 mt-0.5">Inquiry form, no checkout</p>
+                  </div>
+                </div>
+              </div>
+            </label>
+
+          </div>
+          {% if form.type.errors %}<p class="text-xs text-red-500 mt-1">{{ form.type.errors.0 }}</p>{% endif %}
+        </div>
+
+        {# Visibility — visual radio cards #}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-2">Visibility</label>
+          <div class="grid grid-cols-3 gap-3">
+
+            <label class="cursor-pointer block">
+              <input type="radio" name="{{ form.visibility.html_name }}" value="draft" class="sr-only peer"
+                {% if form.visibility.value == 'draft' %}checked{% endif %}>
+              <div class="border-2 border-gray-200 rounded-xl p-3 text-center hover:bg-gray-50 hover:border-gray-300 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 transition-all h-full">
+                <div class="w-6 h-6 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center mx-auto mb-1.5">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                </div>
+                <p class="text-[11px] font-semibold text-gray-700">Draft</p>
+                <p class="text-[10px] text-gray-400 mt-0.5 leading-snug">Not visible anywhere</p>
+              </div>
+            </label>
+
+            <label class="cursor-pointer block">
+              <input type="radio" name="{{ form.visibility.html_name }}" value="unlisted" class="sr-only peer"
+                {% if form.visibility.value == 'unlisted' %}checked{% endif %}>
+              <div class="border-2 border-gray-200 rounded-xl p-3 text-center hover:bg-gray-50 hover:border-gray-300 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 transition-all h-full">
+                <div class="w-6 h-6 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-1.5">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                </div>
+                <p class="text-[11px] font-semibold text-gray-700">Unlisted</p>
+                <p class="text-[10px] text-gray-400 mt-0.5 leading-snug">Direct link only</p>
+              </div>
+            </label>
+
+            <label class="cursor-pointer block">
+              <input type="radio" name="{{ form.visibility.html_name }}" value="public" class="sr-only peer"
+                {% if form.visibility.value == 'public' %}checked{% endif %}>
+              <div class="border-2 border-gray-200 rounded-xl p-3 text-center hover:bg-gray-50 hover:border-gray-300 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 transition-all h-full">
+                <div class="w-6 h-6 rounded-lg bg-green-100 text-green-600 flex items-center justify-center mx-auto mb-1.5">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+                </div>
+                <p class="text-[11px] font-semibold text-gray-700">Public</p>
+                <p class="text-[10px] text-gray-400 mt-0.5 leading-snug">Listed on your store</p>
+              </div>
+            </label>
+
+          </div>
+          {% if form.visibility.errors %}<p class="text-xs text-red-500 mt-1">{{ form.visibility.errors.0 }}</p>{% endif %}
+        </div>
+
+        {# Description #}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Description</label>
+          {{ form.description }}
+          {% if form.description.errors %}<p class="text-xs text-red-500 mt-1">{{ form.description.errors.0 }}</p>{% endif %}
+        </div>
+
+        {# Cover Image with live preview #}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Cover Image URL <span class="text-gray-400 font-normal">(optional)</span></label>
+          <div class="flex items-start gap-3">
+            <div class="w-14 h-14 rounded-xl border-2 border-gray-200 bg-gray-50 flex-shrink-0 overflow-hidden flex items-center justify-center">
+              {% if form.cover_image_url.value %}
+              <img id="cover-preview" src="{{ form.cover_image_url.value }}" alt="" class="w-full h-full object-cover"
+                   onerror="this.style.display='none';document.getElementById('cover-ph').style.display='flex'">
+              <span id="cover-ph" style="display:none" class="w-full h-full items-center justify-center">
+              {% else %}
+              <img id="cover-preview" src="" alt="" class="w-full h-full object-cover hidden"
+                   onerror="this.style.display='none';document.getElementById('cover-ph').style.display='flex'">
+              <span id="cover-ph" class="w-full h-full flex items-center justify-center">
+              {% endif %}
+                <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              </span>
+            </div>
+            <div class="flex-1 min-w-0">
+              {{ form.cover_image_url }}
+              <p class="text-[10px] text-gray-400 mt-1">Paste an image URL. Recommended 800×600px or 4:3 ratio.</p>
+              {% if form.cover_image_url.errors %}<p class="text-xs text-red-500 mt-1">{{ form.cover_image_url.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        {# WhatsApp — only shown for contact type #}
+        <div id="wa-field" {% if form.type.value != 'contact' %}class="hidden"{% endif %}>
+          <label class="block text-xs font-medium text-gray-600 mb-1">WhatsApp Number</label>
+          {{ form.wa_number }}
+          <p class="text-[10px] text-gray-400 mt-1">Buyers are redirected here after submitting the form. Format: 628123456789</p>
+          {% if form.wa_number.errors %}<p class="text-xs text-red-500 mt-1">{{ form.wa_number.errors.0 }}</p>{% endif %}
+        </div>
+
+        {# Purchase Button Label #}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Button Label <span class="text-gray-400 font-normal">(optional)</span></label>
+          {{ form.purchase_button_label }}
+          <p class="text-[10px] text-gray-400 mt-1">Override the checkout button text. Defaults to "Buy Now".</p>
+          {% if form.purchase_button_label.errors %}<p class="text-xs text-red-500 mt-1">{{ form.purchase_button_label.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="flex gap-3 pt-1">
+          <button type="submit" class="btn-primary">{{ submit_label }}</button>
+          <a href="{% url 'seller:products' %}" class="btn-secondary">Cancel</a>
+        </div>
+      </form>
     </div>
-    {% else %}
-    <p class="text-sm text-gray-400">No plans yet. <a href="{% url ‘seller:plan_create’ product.pk %}" class="text-indigo-600 hover:underline">Add the first plan &rarr;</a></p>
-    {% endif %}
   </div>
 
-  <!-- Checkout Questions panel -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6 mt-5">
-    <h3 class="font-semibold text-gray-800 mb-1">Checkout Questions</h3>
-    <p class="text-xs text-gray-400 mb-4">Collect info from buyers before they complete their purchase (e.g. Discord username, license email).</p>
+  {# ═══════════ RIGHT: Context panels (2/5) ═══════════ #}
+  <div class="lg:col-span-2 space-y-5">
 
-    {% if questions %}
-    <div class="space-y-2 mb-4">
-      {% for q in questions %}
-      <div class="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg px-4 py-2.5">
-        <div>
-          <p class="text-sm font-medium text-gray-800">{{ q.label }}</p>
-          <p class="text-xs text-gray-400">{{ q.get_field_type_display }}{% if q.required %} &middot; required{% endif %}</p>
+    {% if product %}
+
+      {# Plans panel #}
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h3 class="font-semibold text-gray-800 text-sm">Plans</h3>
+            {% if not plans %}
+            <p class="text-xs text-amber-600 mt-0.5">At least one plan needed before buyers can purchase.</p>
+            {% else %}
+            <p class="text-xs text-gray-400 mt-0.5">{{ plans|length }} plan{{ plans|length|pluralize }}</p>
+            {% endif %}
+          </div>
+          <a href="{% url 'seller:plan_create' product.pk %}" class="btn-primary text-xs px-3 py-1.5">+ New Plan</a>
         </div>
-        <form method="post" action="{% url ‘seller:question_remove’ product.pk q.pk %}">
+        {% if plans %}
+        <div class="divide-y divide-gray-100">
+          {% for plan in plans %}
+          <div class="flex items-center justify-between px-5 py-3">
+            <div class="min-w-0 mr-3">
+              <p class="text-sm font-medium text-gray-800 truncate">{{ plan.name }}</p>
+              <p class="text-xs text-gray-400">
+                {{ plan.price|rupiah }}
+                {% if plan.interval != 'none' %}<span class="text-gray-300"> / </span>{{ plan.get_interval_display }}{% endif %}
+                {% if not plan.is_active %}<span class="text-red-400 ml-1">· Inactive</span>{% endif %}
+              </p>
+            </div>
+            <a href="{% url 'seller:plan_edit' product.pk plan.pk %}" class="btn-row-edit flex-shrink-0">Edit</a>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="px-5 py-8 text-center">
+          <div class="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <p class="text-sm text-gray-500 mb-3">No plans yet</p>
+          <a href="{% url 'seller:plan_create' product.pk %}" class="btn-primary text-xs px-3 py-1.5">+ Add First Plan</a>
+        </div>
+        {% endif %}
+      </div>
+
+      {# Course Content shortcut #}
+      {% if product.type != 'contact' %}
+      <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-indigo-900">Course Content</p>
+          <p class="text-xs text-indigo-500 mt-0.5">Manage modules & lessons</p>
+        </div>
+        <a href="{% url 'seller:course_modules' product.pk %}" class="btn-primary">Manage</a>
+      </div>
+      {% endif %}
+
+      {# Checkout Questions #}
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-800 text-sm mb-1">Checkout Questions</h3>
+        <p class="text-xs text-gray-400 mb-3">Extra info collected from buyers at checkout.</p>
+
+        {% if questions %}
+        <div class="space-y-2 mb-3">
+          {% for q in questions %}
+          <div class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+            <div class="min-w-0 mr-2">
+              <p class="text-xs font-medium text-gray-800 truncate">{{ q.label }}</p>
+              <p class="text-[10px] text-gray-400">{{ q.get_field_type_display }}{% if q.required %} · required{% endif %}</p>
+            </div>
+            <form method="post" action="{% url 'seller:question_remove' product.pk q.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn-row-remove">Remove</button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-xs text-gray-400 mb-3">No questions yet.</p>
+        {% endif %}
+
+        <form method="post" action="{% url 'seller:question_add' product.pk %}" class="border-t border-gray-100 pt-3">
           {% csrf_token %}
-          <button type="submit" class="text-xs text-red-500 hover:text-red-700 font-medium">Remove</button>
+          <div class="grid grid-cols-3 gap-1.5 mb-2">
+            {% for field in question_form %}
+            <div>
+              <label class="block text-[10px] text-gray-500 mb-0.5">{{ field.label }}</label>
+              {{ field }}
+              {% if field.errors %}<p class="text-[10px] text-red-500">{{ field.errors.0 }}</p>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          <button type="submit" class="btn-add">+ Add Question</button>
         </form>
       </div>
-      {% endfor %}
-    </div>
+
     {% else %}
-    <p class="text-sm text-gray-400 mb-4">No questions yet.</p>
+
+      {# Getting started guide — shown when creating a new product #}
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-800 text-sm mb-4">How it works</h3>
+        <div class="space-y-4">
+
+          <div class="flex items-start gap-3">
+            <div class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</div>
+            <div>
+              <p class="text-sm font-medium text-gray-800">Fill in product info</p>
+              <p class="text-xs text-gray-400 mt-0.5">Name, type, description, and cover image</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <div class="w-6 h-6 rounded-full bg-gray-200 text-gray-500 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</div>
+            <div>
+              <p class="text-sm font-medium text-gray-400">Add a plan &amp; price</p>
+              <p class="text-xs text-gray-400 mt-0.5">Set the price — one-time, monthly, or yearly</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <div class="w-6 h-6 rounded-full bg-gray-200 text-gray-500 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</div>
+            <div>
+              <p class="text-sm font-medium text-gray-400">Set up delivery</p>
+              <p class="text-xs text-gray-400 mt-0.5">File download, access link, license key, etc.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <div class="w-6 h-6 rounded-full bg-gray-200 text-gray-500 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">4</div>
+            <div>
+              <p class="text-sm font-medium text-gray-400">Add to your store</p>
+              <p class="text-xs text-gray-400 mt-0.5">Go to My Store and add this product as a block</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-700 leading-relaxed">
+        <strong>Tip:</strong> Save the product first, then you'll be able to add pricing plans and configure delivery on the next screen.
+      </div>
+
     {% endif %}
 
-    <form method="post" action="{% url ‘seller:question_add’ product.pk %}" class="border-t border-gray-100 pt-4">
-      {% csrf_token %}
-      <p class="text-xs font-medium text-gray-600 mb-2">Add question</p>
-      <div class="grid grid-cols-3 gap-2 mb-2">
-        {% for field in question_form %}
-        <div>
-          <label class="block text-xs text-gray-500 mb-1">{{ field.label }}</label>
-          {{ field }}
-          {% if field.errors %}<p class="text-xs text-red-500">{{ field.errors.0 }}</p>{% endif %}
-        </div>
-        {% endfor %}
-      </div>
-      <button type="submit" class="text-xs bg-indigo-50 text-indigo-700 font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors">
-        + Add Question
-      </button>
-    </form>
   </div>
-  {% endif %}
 </div>
-{% endblock %}
 
+<script>
+(function() {
+  // Cover image live preview
+  var inp = document.getElementById('{{ form.cover_image_url.id_for_label }}');
+  var prev = document.getElementById('cover-preview');
+  var ph = document.getElementById('cover-ph');
+  if (inp && prev) {
+    prev.addEventListener('error', function() {
+      prev.style.display = 'none';
+      if (ph) ph.style.display = 'flex';
+    });
+    function apply(url) {
+      if (url) {
+        prev.src = url; prev.classList.remove('hidden'); prev.style.display = '';
+        if (ph) ph.style.display = 'none';
+      } else {
+        prev.classList.add('hidden'); prev.style.display = 'none';
+        if (ph) ph.style.display = 'flex';
+      }
+    }
+    inp.addEventListener('change', function() { apply(this.value.trim()); });
+    inp.addEventListener('blur',   function() { apply(this.value.trim()); });
+  }
+
+  // Show/hide WhatsApp field based on product type
+  var waField = document.getElementById('wa-field');
+  if (waField) {
+    function syncWa() {
+      var c = document.querySelector('[name="{{ form.type.html_name }}"]:checked');
+      waField.classList.toggle('hidden', !c || c.value !== 'contact');
+    }
+    document.querySelectorAll('[name="{{ form.type.html_name }}"]').forEach(function(r) {
+      r.addEventListener('change', syncWa);
+    });
+  }
+})();
+</script>
+{% endblock %}

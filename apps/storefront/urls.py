@@ -12,5 +12,7 @@ urlpatterns = [
     path("orders/<public_id>/", views.order_status, name="order_status"),
     path("topup/", views.topup, name="topup"),
     path("contact/<int:product_pk>/", views.contact, name="contact"),
+    path("terms/", views.terms, name="terms"),
+    path("privacy/", views.privacy, name="privacy"),
     path("<slug:slug>/", views.page, name="store_page"),
 ]

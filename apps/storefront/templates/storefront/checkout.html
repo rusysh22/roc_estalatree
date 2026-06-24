@@ -81,13 +81,14 @@
     {% endif %}
   </div>
 
-  <!-- Wallet balance card -->
+  <!-- Wallet balance card (Only for recurring plans) -->
+  {% if plan.interval != 'none' %}
   <div class="bg-white rounded-xl border border-gray-200 p-5 mb-6">
     <div class="flex items-center justify-between">
       <div>
         <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-0.5">Wallet Balance</p>
         <p class="text-xl font-bold {% if shortfall > 0 %}text-red-600{% else %}text-indigo-600{% endif %}">
-          {{ wallet.balance|rupiah }}
+          {{ wallet_balance|rupiah }}
         </p>
       </div>
       {% if shortfall == 0 %}
@@ -111,6 +112,7 @@
     </div>
     {% endif %}
   </div>
+  {% endif %}
 
   <!-- PWYW price input -->
   {% if plan.pwyw %}
@@ -153,13 +155,34 @@
     <input type="hidden" name="checkout_token" value="{{ checkout_token }}">
     {% if coupon %}<input type="hidden" name="coupon_code" value="{{ coupon.code }}">{% endif %}
 
+    {% if not user.is_authenticated %}
+    <div class="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+      <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Your Email</p>
+      <div>
+        <label for="guest_email" class="block text-xs font-medium text-gray-600 mb-1">
+          Where should we send your receipt/access? <span class="text-red-400 ml-0.5">*</span>
+        </label>
+        <input type="email" name="guest_email" id="guest_email" required
+          placeholder="you@example.com"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400">
+      </div>
+      <p class="text-xs text-gray-400 mt-2">
+        Already have an account? <a href="{% url 'account_login' %}?next={{ request.path }}" class="text-indigo-600 hover:underline">Log in</a>
+      </p>
+    </div>
+    {% endif %}
+
     <button
       type="submit"
       class="w-full py-3.5 rounded-xl font-semibold text-sm transition-colors bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer">
-      {% if shortfall > 0 %}
-        Top-up &amp; Pay {{ effective_price|rupiah }}
+      {% if plan.interval == 'none' %}
+        {% if shortfall > 0 %}Pay {{ effective_price|rupiah }}{% else %}Confirm Order{% endif %}
       {% else %}
-        Confirm &amp; Pay {{ effective_price|rupiah }}
+        {% if shortfall > 0 %}
+          Top-up &amp; Pay {{ effective_price|rupiah }}
+        {% else %}
+          Confirm &amp; Pay {{ effective_price|rupiah }}
+        {% endif %}
       {% endif %}
     </button>
 
@@ -175,14 +198,14 @@
       </span>
       <span class="flex items-center gap-1">
         <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-        Wallet payment
+        {% if plan.interval == 'none' %}Payment Gateway{% else %}Wallet payment{% endif %}
       </span>
     </div>
   </form>
 
   <!-- Payment methods -->
   <div class="mt-5 pt-5 border-t border-gray-100">
-    <p class="text-xs text-center text-gray-400 mb-3">Top-up via Duitku — accepted payment methods</p>
+    <p class="text-xs text-center text-gray-400 mb-3">Accepted payment methods</p>
     <div class="flex flex-wrap justify-center gap-2">
       <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-500 bg-gray-50">Virtual Account</span>
       <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-500 bg-gray-50">QRIS</span>

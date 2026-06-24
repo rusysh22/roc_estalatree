@@ -16,6 +16,20 @@
   {{ redirect_field }}
 
   {% for field in form %}
+  {% if field.field.widget.input_type == 'checkbox' %}
+  <div class="flex items-center gap-2 pt-1">
+    <input
+      type="checkbox"
+      name="{{ field.html_name }}"
+      id="{{ field.id_for_label }}"
+      {% if field.value %}checked{% endif %}
+      class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+    >
+    <label for="{{ field.id_for_label }}" class="text-xs font-medium text-gray-600">
+      {{ field.label }}
+    </label>
+  </div>
+  {% else %}
   <div>
     <label for="{{ field.id_for_label }}" class="block text-xs font-medium text-gray-600 mb-1">
       {{ field.label }}
@@ -33,6 +47,7 @@
     <p class="text-xs text-red-600 mt-1">{{ error }}</p>
     {% endfor %}
   </div>
+  {% endif %}
   {% endfor %}
 
   {% if form.non_field_errors %}

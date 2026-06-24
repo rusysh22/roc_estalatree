@@ -439,33 +439,32 @@ def store(request):
     store_page = _get_or_create_store_page(seller)
 
     if request.method == "POST":
-        action = request.POST.get("action", "page")
-        if action == "theme":
-            theme_form = ThemeForm(request.POST)
-            form = StorePageForm(instance=store_page)
-            if theme_form.is_valid():
-                store_page.theme = {
-                    "primary_color": theme_form.cleaned_data.get("primary_color") or "#4f46e5",
-                    "background_color": theme_form.cleaned_data.get("background_color") or "#f9fafb",
-                    "banner_url": theme_form.cleaned_data.get("banner_url") or "",
-                    "layout": theme_form.cleaned_data.get("layout") or "default",
-                }
-                store_page.save(update_fields=["theme", "updated_at"])
-                messages.success(request, "Theme saved.")
-                return redirect("seller:store")
-        else:
-            form = StorePageForm(request.POST, instance=store_page)
-            theme_form = ThemeForm(initial=store_page.theme)
-            if form.is_valid():
-                form.save()
-                messages.success(request, "Store page updated.")
-                return redirect("seller:store")
+        form = StorePageForm(request.POST, instance=store_page)
+        theme_form = ThemeForm(request.POST)
+        if form.is_valid() and theme_form.is_valid():
+            store_page = form.save(commit=False)
+            store_page.theme = {
+                "primary_color": theme_form.cleaned_data.get("primary_color") or "#4f46e5",
+                "background_color": theme_form.cleaned_data.get("background_color") or "#f9fafb",
+                "banner_url": theme_form.cleaned_data.get("banner_url") or "",
+                "layout": theme_form.cleaned_data.get("layout") or "default",
+                "button_style": theme_form.cleaned_data.get("button_style") or "rounded",
+                "instagram": theme_form.cleaned_data.get("instagram") or "",
+                "tiktok": theme_form.cleaned_data.get("tiktok") or "",
+                "youtube": theme_form.cleaned_data.get("youtube") or "",
+                "twitter": theme_form.cleaned_data.get("twitter") or "",
+                "website": theme_form.cleaned_data.get("website") or "",
+            }
+            store_page.save()
+            messages.success(request, "Store settings saved successfully.")
+            return redirect("seller:store")
     else:
         form = StorePageForm(instance=store_page)
         theme_form = ThemeForm(initial=store_page.theme)
 
     blocks = store_page.blocks.select_related("product").order_by("position")
-    seller_products = _seller_products(seller).filter(visibility=Product.Visibility.PUBLIC)
+    already_blocked_pks = store_page.blocks.values_list("product_id", flat=True)
+    available_products = _seller_products(seller).exclude(pk__in=already_blocked_pks).order_by("name")
 
     return render(request, "seller/store.html", {
         "seller": seller,
@@ -473,36 +472,72 @@ def store(request):
         "form": form,
         "theme_form": theme_form,
         "blocks": blocks,
-        "available_products": seller_products,
+        "available_products": available_products,
     })
 
 
 @seller_required
-def block_add(request):
-    """HTMX: add a product block to the store page."""
+@require_POST
+def store_publish_toggle(request):
+    """Toggle store published / draft status."""
     seller = request.seller
-    if request.method != "POST":
-        raise Http404
+    store_page = _get_or_create_store_page(seller)
+    store_page.is_published = not store_page.is_published
+    store_page.save(update_fields=["is_published", "updated_at"])
+    if store_page.is_published:
+        messages.success(request, "Store is now Live — visitors can see it.")
+    else:
+        messages.success(request, "Store is now Draft — hidden from public.")
+    return redirect("seller:store")
+
+
+@seller_required
+@require_POST
+def block_add(request):
+    """Add a product block to the store page."""
+    seller = request.seller
     store_page = _get_or_create_store_page(seller)
     product_pk = request.POST.get("product_pk")
     if product_pk:
         product = get_object_or_404(_seller_products(seller), pk=product_pk)
         position = (store_page.blocks.aggregate(m=Count("pk"))["m"] or 0) + 1
-        Block.objects.get_or_create(
+        _, created = Block.objects.get_or_create(
             store_page=store_page, product=product,
             defaults={"type": Block.Type.PRODUCT, "position": position},
         )
+        if created:
+            messages.success(request, f"'{product.name}' added to your store.")
+        else:
+            messages.info(request, f"'{product.name}' is already in your store.")
+    else:
+        messages.error(request, "Please select a product to add.")
     return redirect("seller:store")
 
 
 @seller_required
+@require_POST
 def block_remove(request, block_pk):
     """Remove a block from the store page."""
     seller = request.seller
     store_page = _get_or_create_store_page(seller)
     block = get_object_or_404(Block, pk=block_pk, store_page=store_page)
-    if request.method == "POST":
-        block.delete()
+    name = block.product.name if block.product else "Block"
+    block.delete()
+    messages.success(request, f"'{name}' removed from your store.")
+    return redirect("seller:store")
+
+
+@seller_required
+@require_POST
+def block_toggle_visibility(request, block_pk):
+    """Toggle a block's visibility on the store page."""
+    seller = request.seller
+    store_page = _get_or_create_store_page(seller)
+    block = get_object_or_404(Block, pk=block_pk, store_page=store_page)
+    block.is_visible = not block.is_visible
+    block.save(update_fields=["is_visible", "updated_at"])
+    status = "visible" if block.is_visible else "hidden"
+    messages.success(request, f"Block is now {status}.")
     return redirect("seller:store")
 
 

@@ -102,6 +102,10 @@ CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": REDIS_URL,
+    },
+    "rate_limit": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env("REDIS_URL_RATE_LIMIT", default=REDIS_URL),
     }
 }
 

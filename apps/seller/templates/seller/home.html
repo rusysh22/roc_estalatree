@@ -4,6 +4,23 @@
 
 {% block content %}
 
+{% if products_count == 0 %}
+<!-- Onboarding card for new sellers -->
+<div class="bg-white rounded-xl border border-dashed border-indigo-200 p-6 mb-6 text-center">
+  <div class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+    <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+    </svg>
+  </div>
+  <p class="font-semibold text-gray-800 text-sm mb-1">Welcome to Estalatree!</p>
+  <p class="text-xs text-gray-400 mb-4">Create your first product, then publish your store so customers can find you.</p>
+  <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+    <a href="{% url 'seller:product_create' %}" class="btn-primary">Create First Product</a>
+    <a href="{% url 'seller:store' %}" class="btn-secondary">Set Up Your Store</a>
+  </div>
+</div>
+{% endif %}
+
 {% if pending_orders > 0 %}
 <!-- New order alert -->
 <div class="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 mb-5 flex items-center justify-between">
@@ -75,9 +92,9 @@
 <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 flex items-center justify-between">
   <div>
     <p class="text-sm font-medium text-indigo-900">{{ seller.name }}'s Store</p>
-    <p class="text-xs text-indigo-600 mt-0.5">{{ products_count }} product(s) &middot; <a href="{{ seller.store_url }}" target="_blank" class="underline">View public store &rarr;</a></p>
+    <p class="text-xs text-indigo-600 mt-0.5">{{ products_count }} product(s) &middot; <a href="{{ seller.store_url }}?preview=1" target="_blank" class="underline">View store &rarr;</a></p>
   </div>
-  <a href="{% url 'seller:products' %}" class="bg-indigo-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors">
+  <a href="{% url 'seller:product_create' %}" class="btn-primary">
     + Add Product
   </a>
 </div>

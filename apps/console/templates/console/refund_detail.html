@@ -1,4 +1,4 @@
-﻿{% extends "console/base.html" %}
+{% extends "console/base.html" %}
 {% load money %}
 {% block page_title %}Refund #{{ ref.pk }}{% endblock %}
 
@@ -20,11 +20,11 @@
       </div>
       <div class="flex justify-between">
         <dt class="text-gray-500">Order</dt>
-        <dd class="font-mono text-xs">{{ ref.order.public_id|default:"â€”" }}</dd>
+        <dd class="font-mono text-xs">{{ ref.order.public_id|default:"&mdash;" }}</dd>
       </div>
       <div class="flex justify-between">
         <dt class="text-gray-500">Order Amount</dt>
-        <dd class="font-semibold">{% if ref.order %}{{ ref.order.amount|rupiah }}{% else %}â€”{% endif %}</dd>
+        <dd class="font-semibold">{% if ref.order %}{{ ref.order.amount|rupiah }}{% else %}&mdash;{% endif %}</dd>
       </div>
       <div class="flex justify-between">
         <dt class="text-gray-500">Status</dt>

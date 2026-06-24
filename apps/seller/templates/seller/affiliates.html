@@ -33,9 +33,7 @@
       </div>
     </div>
     <div class="mt-4">
-      <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors">
-        Create Link
-      </button>
+      <button type="submit" class="btn-primary">Create Link</button>
     </div>
   </form>
 </div>
@@ -44,7 +42,7 @@
 <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
   <p class="text-xs text-blue-700">
     <strong>How it works:</strong> Share your product URL with <code class="bg-blue-100 px-1 rounded">?ref=CODE</code> — e.g.
-    <code class="bg-blue-100 px-1 rounded">{{ request.build_absolute_uri '/p/product-slug/' }}?ref=YOURCODE</code>.
+    <code class="bg-blue-100 px-1 rounded">{{ request.scheme }}://{{ request.get_host }}/p/product-slug/?ref=YOURCODE</code>.
     When a visitor buys, a commission is recorded automatically.
   </p>
 </div>
@@ -89,7 +87,7 @@
           <td class="px-5 py-3 text-right">
             <form method="post" action="{% url 'seller:affiliate_toggle' link.pk %}" class="inline">
               {% csrf_token %}
-              <button type="submit" class="text-xs text-gray-400 hover:text-indigo-600">
+              <button type="submit" class="{% if link.is_active %}btn-row-deactivate{% else %}btn-row-activate{% endif %}">
                 {% if link.is_active %}Deactivate{% else %}Activate{% endif %}
               </button>
             </form>

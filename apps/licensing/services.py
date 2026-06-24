@@ -101,14 +101,17 @@ def _check_rate_limit(identifier: str, limit: int) -> bool:
     M3: uses cache.add + cache.incr for atomic increment (no get/set race).
     Works with LocMemCache (dev) and Redis (prod).
     """
+    from django.core.cache import caches
+    rl_cache = caches["rate_limit"] if "rate_limit" in caches else cache
+    
     key = f"rate:activation:{identifier}"
     # add() is atomic: only sets if absent, with TTL
-    cache.add(key, 0, _RATE_WINDOW)
+    rl_cache.add(key, 0, _RATE_WINDOW)
     try:
-        count = cache.incr(key)
+        count = rl_cache.incr(key)
     except ValueError:
         # Safety net: key vanished between add() and incr() (rare)
-        cache.set(key, 1, _RATE_WINDOW)
+        rl_cache.set(key, 1, _RATE_WINDOW)
         count = 1
     return count > limit
 

@@ -1,4 +1,4 @@
-﻿{% extends "console/base.html" %}
+{% extends "console/base.html" %}
 {% load money %}
 {% block page_title %}Customers{% endblock %}
 
@@ -30,9 +30,9 @@
       {% for customer in customers %}
       <tr class="hover:bg-gray-50">
         <td class="px-4 py-3 font-medium">{{ customer.user.email }}</td>
-        <td class="px-4 py-3 text-gray-500">{{ customer.wa_number|default:"â€”" }}</td>
+        <td class="px-4 py-3 text-gray-500">{{ customer.wa_number|default:"&mdash;" }}</td>
         <td class="px-4 py-3 text-right font-mono">
-          {% if customer.wallet %}{{ customer.wallet.balance|rupiah }}{% else %}â€”{% endif %}
+          {% if customer.wallet %}{{ customer.wallet.balance|rupiah }}{% else %}&mdash;{% endif %}
         </td>
         <td class="px-4 py-3 text-gray-400">{{ customer.created_at|date:"d M Y" }}</td>
         <td class="px-4 py-3 text-right">

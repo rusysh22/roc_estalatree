@@ -161,3 +161,67 @@
 
 ### Minimum MVP path (demo-able end-to-end)
 **Phase 0 → 1 → 2 → 3 → 4 → 5 → 6** = complete business core (top-up, buy, activate, recurring). Phases 7–10 add UX & operations.
+
+---
+
+## Post-launch expansion — Lynk.id parity
+
+> Derived from [reviews/lynk-spec-adaptation.md](reviews/lynk-spec-adaptation.md). Honors the reconciliation principles: **no seller payout / no owner Free-PRO tiering in single-merchant** (deferred to multi-seller), **physical products skipped** (off digital/license positioning), and **extend Block/Provisioning, don't rebuild**. Phase 11.5 closes outstanding review items first.
+
+## Phase 11.5 — Cleanup & Pre-production hardening
+**Goal:** green CI + close remaining P0/P1 before feature expansion.
+- [ ] Fix 12 stale tests (Operator-Group fixtures + checkout copy assertions) → CI green.
+- [ ] Remove emoji `✓` in checkout; fix seller-home "This week" total (sum in view).
+- [ ] **B-3:** document closed-loop balance (non-cash store credit) in ToS + ADR.
+- [ ] **B-1 (external):** reconciliation report (Duitku settlement ↔ ledger).
+- [ ] Verify purchase email includes the file/link (BUG-2); decide direct-pay vs wallet-first at checkout.
+- [ ] Ops: Redis rate-limit in prod; money/concurrency tests on PostgreSQL; ledger backups; stable `PROVISIONING_SECRET_KEY`.
+- [ ] Run the **live golden-path E2E** (Duitku sandbox) and capture each step.
+**DoD:** CI green; P0 closed; one cycle proven live.
+
+## Phase 12 — Rich Digital Products & Checkout depth
+**Goal:** product/checkout depth matching Lynk's digital-product form (catalog/order layer only — never touches money core).
+- [ ] Product/Plan fields ([adaptation §C](reviews/lynk-spec-adaptation.md)): rich-text description, image gallery + preview video, `sale_price`, **pay-what-you-want** (`pwyw` + `min_price`), `stock_quantity` (nullable=unlimited, atomic decrement), `max_qty_per_checkout`, `purchase_button_label`.
+- [ ] **Custom questions** (`ProductQuestion`) → captured into `Order.custom_fields` (JSON); Name/Phone toggles enable WA follow-up.
+- [ ] **Add-ons / order bumps** at checkout; **reviews** (`ProductReview`, rating + curated) + sold-count badge.
+- [ ] Per-product: opt-in WA notification toggle, `custom_email_message`.
+**DoD:** seller configures a rich product; buyer sees gallery/PWYW/sale price/reviews; checkout captures custom fields + add-ons; stock decrements atomically.
+**Depends:** Phase 11.5.
+
+## Phase 13 — Appearance/Theme editor, Live preview, File hosting & Delivery
+**Goal:** storefront polish + reliable file delivery.
+- [ ] **Theme editor** using `StorePage.theme`: banner, profile image, about, color picker, layout variants (Classic/Modern/Clean).
+- [ ] **Block builder**: drag-drop reorder, per-block image/title/layout (Default/Grid/Large/Compact), `release_time` scheduling, enable/disable.
+- [ ] **Live mobile preview** (iframe of draft state).
+- [ ] **File upload + secure hosting** (S3-compatible, signed/expiring URLs); keep external-link option; **auto email delivery** + resend access.
+- [ ] Mobile-first pass on storefront/checkout.
+**DoD:** seller themes the page + reorders blocks with live preview; buyer receives the file via secure gated link + email.
+**Depends:** Phase 12.
+
+## Phase 14 — Course/E-course + new product types (via provisioning)
+**Goal:** broaden product types through the `Deliverable`/`Provisioner` pattern.
+- [ ] **Course**: `Deliverable.type=course` + `CourseProvisioner`; course/module/lesson models (video + PDF), player + progress.
+- [ ] **Membership/community**: reuse `Subscription` + a `community` access grant.
+- [ ] (Optional) **Event/ticketing**: `ticket` deliverable + QR + check-in scan. Blog/Media-kit as content `Block` types.
+- [ ] **DIFFER:** physical products skipped (shipping/logistics off-positioning).
+**DoD:** a course product sells and the buyer accesses the player with progress tracking.
+**Depends:** Phase 13.
+
+## Phase 15 — Analytics (funnel — differentiator) + Growth tools
+**Goal:** real analytics + marketing automation.
+- [ ] Per-block/link **views & clicks**, date-range, top products, sales distribution, social clicks.
+- [ ] **Funnel analytics** (view → click → checkout → paid + conversion) — Lynk lacks this; our differentiator.
+- [ ] **Email marketing** (broadcast + auto-responder); **automate-workflow** (trigger→action built on `core.events`); WA blast depth; custom post-purchase message.
+- [ ] In-app **notification bell**; Tutorials/knowledge-base.
+**DoD:** seller sees the conversion funnel and can run an email/automation campaign.
+**Depends:** Phase 13.
+
+## Phase 16 — Multi-seller activation (Stage 3)
+**Goal:** open the platform; this is where Lynk's payout/tiering/affiliate finally apply.
+- [ ] Finish per-seller isolation + public routing (`/s/<slug>`, StorePage per seller).
+- [ ] **Seller earnings ledger + payout/withdrawal** (KYC/verify gate) — the seller-side wallet.
+- [ ] **Affiliate program** (two-sided: be an affiliate / open one for your product).
+- [ ] **Seller plans** (Free/PRO) + platform transaction fee (`Setting`).
+- [ ] Custom domain + pixels/GA per seller.
+**DoD:** a second seller can onboard (KYC), sell, and withdraw earnings.
+**Depends:** Phases 12–15.

@@ -99,11 +99,11 @@ class EntitlementForm(forms.ModelForm):
 class StorePageForm(forms.ModelForm):
     class Meta:
         model = StorePage
-        fields = ["title", "description", "avatar_url", "is_published"]
+        fields = ["title", "description", "avatar_url"]
         widgets = {
-            "title": forms.TextInput(attrs={"class": "input-field"}),
-            "description": forms.Textarea(attrs={"class": "input-field", "rows": 3}),
-            "avatar_url": forms.URLInput(attrs={"class": "input-field"}),
+            "title": forms.TextInput(attrs={"class": "input-field", "placeholder": "Your store name"}),
+            "description": forms.Textarea(attrs={"class": "input-field", "rows": 3, "placeholder": "Tell customers a bit about your store…"}),
+            "avatar_url": forms.URLInput(attrs={"class": "input-field", "placeholder": "https://...", "id": "id_avatar_url"}),
         }
 
 
@@ -112,6 +112,11 @@ class ThemeForm(forms.Form):
         ("default", "Default (list)"),
         ("grid", "Grid (2 columns)"),
         ("compact", "Compact"),
+    ]
+    BUTTON_CHOICES = [
+        ("rounded", "Rounded"),
+        ("pill", "Pill"),
+        ("square", "Square"),
     ]
     primary_color = forms.CharField(
         max_length=7, initial="#4f46e5", required=False,
@@ -132,6 +137,31 @@ class ThemeForm(forms.Form):
         choices=LAYOUT_CHOICES,
         widget=forms.Select(attrs={"class": "input-field"}),
         initial="default",
+    )
+    button_style = forms.ChoiceField(
+        choices=BUTTON_CHOICES,
+        widget=forms.RadioSelect(attrs={"class": "sr-only peer"}),
+        initial="rounded",
+    )
+    instagram = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={"class": "input-field", "placeholder": "@username"}),
+    )
+    tiktok = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={"class": "input-field", "placeholder": "@username"}),
+    )
+    youtube = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={"class": "input-field", "placeholder": "@channel"}),
+    )
+    twitter = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={"class": "input-field", "placeholder": "@username"}),
+    )
+    website = forms.URLField(
+        required=False,
+        widget=forms.URLInput(attrs={"class": "input-field", "placeholder": "https://..."}),
     )
 
 

@@ -13,7 +13,9 @@ import uuid
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
 from apps.billing.models import Order, TopUp
@@ -83,12 +85,31 @@ def _record_affiliate_commission(request, order) -> None:
 
 # ── Store page ────────────────────────────────────────────────────────────────
 
+@xframe_options_sameorigin
 def page(request, slug=None):
-    """Public store page — the link-in-bio home."""
+    """Public store page — the link-in-bio home.
+
+    Supports ?preview=1 to bypass is_published check when the authenticated
+    user is the owner of the store (seller dashboard preview iframe).
+    """
+    is_preview = request.GET.get("preview") == "1"
+    qs = StorePage.objects.select_related("seller")
+
     if slug:
-        store_page = get_object_or_404(StorePage.objects.select_related("seller"), slug=slug, is_published=True)
+        if is_preview and request.user.is_authenticated:
+            store_page = get_object_or_404(qs, slug=slug)
+            # Only the store owner may preview an unpublished store
+            if not store_page.is_published:
+                is_owner = (
+                    store_page.seller is not None
+                    and store_page.seller.user_id == request.user.pk
+                )
+                if not is_owner:
+                    raise Http404
+        else:
+            store_page = get_object_or_404(qs, slug=slug, is_published=True)
     else:
-        store_page = StorePage.objects.select_related("seller").filter(is_published=True).first()
+        store_page = qs.filter(is_published=True).first()
 
     blocks = []
     sold_counts = {}
@@ -152,7 +173,7 @@ def product_detail(request, slug):
 
 # ── Checkout ──────────────────────────────────────────────────────────────────
 
-@login_required
+
 def checkout_plan(request, plan_pk):
     plan = get_object_or_404(Plan, pk=plan_pk, is_active=True)
     product = plan.product
@@ -161,7 +182,43 @@ def checkout_plan(request, plan_pk):
         messages.error(request, "Product not available.")
         return redirect("storefront:page")
 
-    customer, _ = _get_or_create_customer(request.user)
+    # Guest Checkout interception on POST
+    if not request.user.is_authenticated and request.method == "POST":
+        email = request.POST.get("guest_email", "").strip().lower()
+        if not email:
+            messages.error(request, "Email is required to checkout.")
+            return redirect(request.path)
+        
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.filter(email__iexact=email).first()
+        if user:
+            messages.info(request, "An account with this email exists. Please log in to complete your purchase.")
+            from django.urls import reverse
+            from urllib.parse import urlencode
+            return redirect(f"{reverse('account_login')}?{urlencode({'next': request.path, 'login_hint': email})}")
+        else:
+            username = email.split('@')[0]
+            base_username = username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+            user = User.objects.create_user(username=username, email=email)
+            user.set_unusable_password()
+            user.save()
+            from allauth.account.models import EmailAddress
+            EmailAddress.objects.create(user=user, email=email, primary=True, verified=False)
+            from allauth.account.utils import perform_login
+            perform_login(request, user, email_verification="none")
+            request.user = user
+
+    if request.user.is_authenticated:
+        customer, _ = _get_or_create_customer(request.user)
+        wallet_balance = customer.wallet.balance
+    else:
+        customer = None
+        wallet_balance = 0
 
     _SESSION_KEY = f"ck_token_{plan_pk}"
 
@@ -173,14 +230,15 @@ def checkout_plan(request, plan_pk):
         checkout_token = uuid.uuid4().hex
         request.session[_SESSION_KEY] = checkout_token
 
-        customer.wallet.refresh_from_db()
-
-        try:
-            from allauth.account.models import EmailAddress
-            if not EmailAddress.objects.filter(user=request.user, verified=True).exists():
-                messages.warning(request, "Your email is not verified. Please verify it to ensure order notifications reach you.")
-        except Exception:
-            pass
+        if request.user.is_authenticated:
+            customer.wallet.refresh_from_db()
+            wallet_balance = customer.wallet.balance
+            try:
+                from allauth.account.models import EmailAddress
+                if not EmailAddress.objects.filter(user=request.user, verified=True).exists():
+                    messages.warning(request, "Your email is not verified. Please verify it to ensure order notifications reach you.")
+            except Exception:
+                pass
 
         # Coupon preview (GET ?coupon_code=XXX)
         from apps.billing.models import Coupon
@@ -202,14 +260,14 @@ def checkout_plan(request, plan_pk):
 
         base_price = plan.price
         effective_price = max(0, base_price - discount)
-        shortfall = max(0, effective_price - customer.wallet.balance)
-        balance_after = customer.wallet.balance - effective_price if shortfall == 0 else 0
+        shortfall = max(0, effective_price - wallet_balance)
+        balance_after = wallet_balance - effective_price if shortfall == 0 else 0
 
         _emit_event(request, "checkout_start", product=product, plan=plan)
         return render(request, "storefront/checkout.html", {
             "plan": plan,
             "product": product,
-            "wallet": customer.wallet,
+            "wallet_balance": wallet_balance,
             "shortfall": shortfall,
             "balance_after": balance_after,
             "checkout_token": checkout_token,
@@ -410,3 +468,13 @@ def contact(request, product_pk):
         return redirect("storefront:page")
 
     return render(request, "storefront/contact.html", {"product": product})
+
+
+# ── Legal Pages ───────────────────────────────────────────────────────────────
+
+def terms(request):
+    return render(request, "storefront/terms.html")
+
+def privacy(request):
+    return render(request, "storefront/privacy.html")
+

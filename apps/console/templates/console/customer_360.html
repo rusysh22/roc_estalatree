@@ -1,4 +1,4 @@
-﻿{% extends "console/base.html" %}
+{% extends "console/base.html" %}
 {% load money %}
 {% block page_title %}{{ customer }} &mdash; 360&deg;{% endblock %}
 
@@ -151,7 +151,7 @@
             {{ grant.get_status_display }}
           </span>
         </td>
-        <td class="px-4 py-2 text-gray-400 text-xs">{{ grant.valid_until|date:"d M Y"|default:"â€”" }}</td>
+        <td class="px-4 py-2 text-gray-400 text-xs">{{ grant.valid_until|date:"d M Y"|default:"&mdash;" }}</td>
       </tr>
       {% empty %}
       <tr><td colspan="4" class="px-4 py-4 text-center text-gray-400 text-sm">No grants.</td></tr>
