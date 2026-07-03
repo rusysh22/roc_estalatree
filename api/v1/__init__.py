@@ -2,6 +2,7 @@
 from ninja import NinjaAPI
 
 from apps.licensing.api import router as licensing_router
+from apps.catalog.api import router as catalog_router
 
 api = NinjaAPI(
     title="Estalatree Activation API",
@@ -11,3 +12,4 @@ api = NinjaAPI(
 )
 
 api.add_router("/", licensing_router)
+api.add_router("/catalog", catalog_router)

@@ -113,6 +113,10 @@ class Order(TimestampedModel):
         default=dict, blank=True,
         help_text="Buyer answers to ProductQuestion intake fields",
     )
+    duration_multiplier = models.PositiveSmallIntegerField(
+        default=1,
+        help_text="Number of base intervals prepaid (e.g. 6 on a monthly plan = 6 months)",
+    )
 
     class Meta:
         ordering = ["-created_at"]

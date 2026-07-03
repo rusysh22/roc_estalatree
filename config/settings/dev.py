@@ -21,3 +21,7 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # django-debug-toolbar (optional, install separately if needed)
 INTERNAL_IPS = ["127.0.0.1"]
+
+# Keep sessions alive longer in development
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days
+SESSION_SAVE_EVERY_REQUEST = True

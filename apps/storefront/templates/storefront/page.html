@@ -6,21 +6,32 @@
 {% if store_page and store_page.seller %}
 {% with seller=store_page.seller %}
 {% if seller.ga_tracking_id %}
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id={{ seller.ga_tracking_id }}"></script>
+<!-- Google Analytics — deferred until cookie consent -->
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', '{{ seller.ga_tracking_id }}');
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+window._deferredGtag = function() {
+  var s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://www.googletagmanager.com/gtag/js?id={{ seller.ga_tracking_id }}';
+  document.head.appendChild(s);
+  s.onload = function() {
+    gtag('js', new Date());
+    gtag('config', '{{ seller.ga_tracking_id }}');
+  };
+};
+if (localStorage.getItem('cookie_consent') === 'accepted') window._deferredGtag();
 </script>
 {% endif %}
 {% if seller.fb_pixel_id %}
-<!-- Meta Pixel -->
+<!-- Meta Pixel — deferred until cookie consent -->
 <script>
-!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '{{ seller.fb_pixel_id }}');
-fbq('track', 'PageView');
+window._deferredFbq = function() {
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '{{ seller.fb_pixel_id }}');
+  fbq('track', 'PageView');
+};
+if (localStorage.getItem('cookie_consent') === 'accepted') window._deferredFbq();
 </script>
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id={{ seller.fb_pixel_id }}&ev=PageView&noscript=1"/></noscript>
 {% endif %}
@@ -180,13 +191,14 @@ fbq('track', 'PageView');
                 Chat via WhatsApp
               </a>
             {% else %}
-              <!-- Plans list -->
+              <!-- Plans list: max 3 shown, rest via detail page -->
               <div class="mt-3 space-y-2">
                 {% for plan in product.plans.all %}
                 {% if plan.is_active %}
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between py-2.5 px-3 bg-gray-50 rounded-lg border border-gray-100 gap-2">
-                  <div class="flex-1">
-                    <span class="text-sm font-medium text-gray-800">{{ plan.name }}</span>
+                {% if forloop.counter <= 3 %}
+                <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg border border-gray-100 gap-2">
+                  <div class="flex-1 min-w-0">
+                    <span class="text-sm font-medium text-gray-800 truncate">{{ plan.name }}</span>
                     {% if plan.interval != "none" %}
                     <span class="text-xs text-gray-400 ml-1">/ {{ plan.get_interval_display }}</span>
                     {% endif %}
@@ -194,23 +206,24 @@ fbq('track', 'PageView');
                     <span class="text-xs text-gray-400 ml-1">&middot; {{ plan.seat_limit }} seats</span>
                     {% endif %}
                   </div>
-                  <div class="flex items-center gap-3 self-start sm:self-auto shrink-0">
-                    <span class="font-bold text-gray-900">
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span class="font-bold text-gray-900 text-sm">
                       {% if plan.price == 0 %}Free{% else %}{{ plan.price|rupiah }}{% endif %}
                     </span>
                     <a href="{% url 'storefront:checkout' plan.pk %}"
-                       class="theme-primary-bg text-white text-xs font-semibold px-4 py-1.5 transition-colors hover:opacity-90 theme-btn-shape"
+                       class="theme-primary-bg text-white text-xs font-semibold px-3 py-1.5 transition-colors hover:opacity-90 theme-btn-shape"
                        style="background-color: {{ theme.primary_color|default:'#4f46e5' }}">
                       {% if plan.price == 0 %}Get free{% else %}Buy{% endif %}
                     </a>
                   </div>
                 </div>
                 {% endif %}
+                {% endif %}
                 {% endfor %}
               </div>
-              <!-- View detail link -->
-              <a href="{% url 'storefront:product' product.slug %}" class="inline-block mt-2 text-xs text-indigo-500 hover:underline">
-                View details &rarr;
+              <!-- Always show view details link -->
+              <a href="{% url 'storefront:product' product.slug %}" class="inline-flex items-center gap-1 mt-2 text-xs text-indigo-500 hover:underline">
+                View all plans &rarr;
               </a>
             {% endif %}
           </div>

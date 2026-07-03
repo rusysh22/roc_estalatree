@@ -240,28 +240,51 @@ def checkout_plan(request, plan_pk):
             except Exception:
                 pass
 
+        # Duration multiplier (recurring plans only)
+        duration_multiplier = 1
+        duration_discount_pct = 0
+        duration_discount_amount = 0
+        if plan.interval != 'none':
+            try:
+                duration_multiplier = max(1, int(request.GET.get("duration", 1)))
+            except (ValueError, TypeError):
+                duration_multiplier = 1
+            duration_discount_pct = int(plan.duration_discounts.get(str(duration_multiplier), 0))
+
         # Coupon preview (GET ?coupon_code=XXX)
         from apps.billing.models import Coupon
         discount = 0
         coupon_obj = None
         coupon_error = None
         coupon_code_get = request.GET.get("coupon_code", "").strip().upper()
+
+        # Base price after duration multiplier + duration discount
+        base_price = plan.price
+        if plan.interval != 'none' and duration_multiplier > 1:
+            subtotal = base_price * duration_multiplier
+            duration_discount_amount = subtotal * duration_discount_pct // 100
+            base_price = subtotal - duration_discount_amount
+        else:
+            duration_discount_amount = 0
+
         if coupon_code_get:
             try:
                 coupon_obj = Coupon.objects.get(code=coupon_code_get)
                 valid, reason = coupon_obj.is_valid_for(plan)
                 if valid:
-                    discount = coupon_obj.compute_discount(plan.price)
+                    discount = coupon_obj.compute_discount(base_price)
                 else:
                     coupon_error = reason
                     coupon_obj = None
             except Coupon.DoesNotExist:
                 coupon_error = "Coupon code not found."
 
-        base_price = plan.price
         effective_price = max(0, base_price - discount)
         shortfall = max(0, effective_price - wallet_balance)
         balance_after = wallet_balance - effective_price if shortfall == 0 else 0
+
+        master_direct_pay = Setting.get("DIRECT_PAY_ENABLED", "false").strip().lower() == "true"
+        direct_pay_active = master_direct_pay and plan.direct_pay
 
         _emit_event(request, "checkout_start", product=product, plan=plan)
         return render(request, "storefront/checkout.html", {
@@ -277,6 +300,10 @@ def checkout_plan(request, plan_pk):
             "discount": discount,
             "effective_price": effective_price,
             "questions": questions,
+            "duration_multiplier": duration_multiplier,
+            "duration_discount_pct": duration_discount_pct,
+            "duration_discount_amount": duration_discount_amount,
+            "direct_pay_active": direct_pay_active,
         })
 
     # POST — run checkout
@@ -286,6 +313,14 @@ def checkout_plan(request, plan_pk):
     checkout_token = request.POST.get("checkout_token") or request.session.get(_SESSION_KEY, uuid.uuid4().hex)
     checkout_key = f"ck:{request.user.pk}:{plan.pk}:{checkout_token}"
     return_url = request.build_absolute_uri("/orders/pending/")
+
+    # Duration multiplier
+    duration_multiplier = 1
+    if plan.interval != 'none':
+        try:
+            duration_multiplier = max(1, int(request.POST.get("duration", 1)))
+        except (ValueError, TypeError):
+            duration_multiplier = 1
 
     # PWYW price override
     price_override = None
@@ -336,6 +371,7 @@ def checkout_plan(request, plan_pk):
             checkout_key=checkout_key,
             coupon=coupon,
             price_override=price_override,
+            duration_multiplier=duration_multiplier,
             custom_fields=custom_fields,
             callback_url=_callback_url(request),
             return_url=return_url,

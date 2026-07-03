@@ -98,6 +98,21 @@
           </label>
         </div>
 
+        {# Direct Pay toggle #}
+        <div class="flex items-center justify-between py-1 border-t border-gray-100 pt-3">
+          <div>
+            <p class="text-sm font-medium text-gray-700">Direct Pay</p>
+            <p class="text-xs text-gray-400">Buyer pays via payment gateway directly — wallet balance is not used</p>
+            <p class="text-[10px] text-amber-600 mt-0.5">Requires <strong>DIRECT_PAY_ENABLED</strong> master setting to be active</p>
+          </div>
+          <label class="relative cursor-pointer flex-shrink-0">
+            <input type="checkbox" name="{{ form.direct_pay.html_name }}" id="{{ form.direct_pay.id_for_label }}"
+              class="sr-only peer" {% if form.direct_pay.value %}checked{% endif %}>
+            <div class="w-10 h-5 bg-gray-200 rounded-full peer-checked:bg-indigo-600 transition-colors"></div>
+            <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+          </label>
+        </div>
+
       </div>
     </div>
 
@@ -123,6 +138,26 @@
         {% endfor %}
       </div>
     </details>
+
+    {# Duration Discounts — only visible for recurring plans #}
+    <div id="duration-discounts-section" class="bg-white rounded-xl border border-gray-200 p-6 hidden">
+      <h2 class="font-semibold text-gray-800 mb-1">Duration Discounts</h2>
+      <p class="text-xs text-gray-400 mb-4">Buyers can prepay multiple intervals at a discount. E.g. "6 months at 10% off." Leave empty to disable.</p>
+
+      <div id="dd-rows" class="space-y-2 mb-3">
+        <!-- rows injected by JS -->
+      </div>
+
+      <button type="button" id="dd-add"
+        class="text-xs text-indigo-600 border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition-colors">
+        + Add tier
+      </button>
+
+      <p class="text-[10px] text-gray-400 mt-3">Multiplier = number of billing intervals (e.g. 6 on a monthly plan = 6 months). Discount = % off the total.</p>
+
+      {# Hidden field — JSON assembled by JS on submit #}
+      <div class="hidden">{{ form.duration_discounts }}</div>
+    </div>
 
     <div class="flex gap-3">
       <button type="submit" class="btn-primary">{{ submit_label }}</button>
@@ -343,7 +378,65 @@
 </form>
 
 <script>
+(function () {
+  // ── Duration discounts UI ──────────────────────────────────────────────────
+  var ddSection = document.getElementById('duration-discounts-section');
+  var ddRows    = document.getElementById('dd-rows');
+  var ddField   = document.getElementById('id_duration_discounts');
+  var intervalRadios = document.querySelectorAll('[name="{{ form.interval.html_name }}"]');
+
+  function showDDSection() {
+    var checked = document.querySelector('[name="{{ form.interval.html_name }}"]:checked');
+    if (checked && checked.value !== 'none') {
+      ddSection.classList.remove('hidden');
+    } else {
+      ddSection.classList.add('hidden');
+    }
+  }
+
+  function addRow(mult, disc) {
+    var row = document.createElement('div');
+    row.className = 'flex items-center gap-2';
+    row.innerHTML =
+      '<div class="flex items-center gap-2 flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">' +
+        '<input type="number" min="2" max="120" placeholder="Multiplier" value="' + (mult || '') + '"' +
+               ' class="w-20 bg-transparent text-sm text-gray-800 focus:outline-none" data-dd="mult">' +
+        '<span class="text-xs text-gray-400">×&nbsp;interval&nbsp;→</span>' +
+        '<input type="number" min="1" max="90" placeholder="Disc %" value="' + (disc || '') + '"' +
+               ' class="w-20 bg-transparent text-sm text-gray-800 focus:outline-none" data-dd="disc">' +
+        '<span class="text-xs text-gray-400">% off</span>' +
+      '</div>' +
+      '<button type="button" class="text-gray-300 hover:text-red-400 transition-colors dd-remove">✕</button>';
+    row.querySelector('.dd-remove').addEventListener('click', function () { row.remove(); buildJSON(); });
+    row.querySelectorAll('input').forEach(function (i) { i.addEventListener('input', buildJSON); });
+    ddRows.appendChild(row);
+  }
+
+  function buildJSON() {
+    var obj = {};
+    ddRows.querySelectorAll('.flex.items-center.gap-2.flex-1').forEach(function (r) {
+      var m = r.querySelector('[data-dd="mult"]').value.trim();
+      var d = r.querySelector('[data-dd="disc"]').value.trim();
+      if (m && d) obj[m] = parseInt(d, 10);
+    });
+    if (ddField) ddField.value = JSON.stringify(obj);
+  }
+
+  // Pre-fill existing values
+  try {
+    var existing = ddField ? JSON.parse(ddField.value || '{}') : {};
+    Object.keys(existing).forEach(function (k) { addRow(k, existing[k]); });
+  } catch (e) {}
+
+  document.getElementById('dd-add').addEventListener('click', function () { addRow('', ''); });
+  intervalRadios.forEach(function (r) { r.addEventListener('change', showDDSection); });
+  showDDSection();
+
+  document.getElementById('plan-form').addEventListener('submit', buildJSON);
+})();
+
 (function() {
+  // ── Deliverable config UI ──────────────────────────────────────────────────
   var radios   = document.querySelectorAll('[name="{{ deliverable_form.type.html_name }}"]');
   var configEl = document.getElementById('id_dlv-config');
 

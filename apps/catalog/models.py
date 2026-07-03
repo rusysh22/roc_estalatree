@@ -69,6 +69,15 @@ class Plan(SellerScopedModel):
     pwyw = models.BooleanField(default=False, help_text="Pay-what-you-want: buyer sets the price")
     min_price = models.PositiveBigIntegerField(default=0, help_text="Minimum price for PWYW (0 = no minimum)")
     stock_quantity = models.PositiveIntegerField(null=True, blank=True, help_text="Stock limit (null = unlimited)")
+    duration_discounts = models.JSONField(
+        default=dict, blank=True,
+        help_text='Discount % per multiplier. E.g. {"3":5,"6":10,"12":15} = 3× gets 5% off. Only for recurring plans.',
+    )
+    direct_pay = models.BooleanField(
+        default=True,
+        help_text="Buyer pays via payment gateway directly, bypassing wallet balance. "
+                  "Only active when DIRECT_PAY_ENABLED master setting is true.",
+    )
 
     class Meta:
         ordering = ["product", "sort_order", "price"]

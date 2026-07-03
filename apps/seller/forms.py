@@ -49,7 +49,8 @@ class PlanForm(forms.ModelForm):
     class Meta:
         model = Plan
         fields = ["name", "price", "interval", "seat_limit", "is_active",
-                  "sale_price", "pwyw", "min_price", "stock_quantity"]
+                  "sale_price", "pwyw", "min_price", "stock_quantity", "duration_discounts",
+                  "direct_pay"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input-field"}),
             "price": forms.NumberInput(attrs={"class": "input-field"}),

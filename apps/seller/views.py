@@ -274,13 +274,13 @@ def entitlement_add(request, product_pk, plan_pk):
     form = EntitlementForm(request.POST)
     if form.is_valid():
         key = form.cleaned_data["key"].upper().strip()
-        ent, _ = Entitlement.objects.get_or_create(
-            key=key,
-            defaults={
-                "name": form.cleaned_data["name"],
-                "value": form.cleaned_data["value"],
-            },
-        )
+        ent = Entitlement.objects.filter(key=key).first()
+        if ent is None:
+            ent = Entitlement.objects.create(
+                key=key,
+                name=form.cleaned_data["name"],
+                value=form.cleaned_data["value"],
+            )
         plan.entitlements.add(ent)
         messages.success(request, f"Entitlement '{key}' added to plan.")
     else:
@@ -404,14 +404,72 @@ def lesson_delete(request, product_pk, module_pk, lesson_pk):
 def orders(request):
     seller = request.seller
     status_filter = request.GET.get("status", "")
-    qs = _seller_orders(seller).order_by("-created_at")
+    search = request.GET.get("q", "").strip()
+
+    qs = _seller_orders(seller).select_related(
+        "customer__user", "plan__product", "subscription", "coupon"
+    ).order_by("-created_at")
+
     if status_filter:
         qs = qs.filter(status=status_filter)
+    if search:
+        qs = qs.filter(
+            Q(customer__user__email__icontains=search)
+            | Q(plan__product__name__icontains=search)
+            | Q(plan__name__icontains=search)
+        )
+
+    all_orders = _seller_orders(seller)
+    stats = {
+        "paid": all_orders.filter(status=Order.Status.PAID).count(),
+        "revenue": all_orders.filter(status=Order.Status.PAID).aggregate(t=Sum("amount"))["t"] or 0,
+        "pending": all_orders.filter(status=Order.Status.PENDING).count(),
+        "refunded": all_orders.filter(status=Order.Status.REFUNDED).count(),
+    }
+
     return render(request, "seller/orders.html", {
         "seller": seller,
-        "orders": qs[:100],
+        "orders": qs[:200],
         "status_filter": status_filter,
+        "search": search,
         "status_choices": Order.Status.choices,
+        "stats": stats,
+    })
+
+
+@seller_required
+def order_detail(request, pk):
+    seller = request.seller
+    order = get_object_or_404(
+        Order.objects.select_related(
+            "customer__user", "plan__product", "coupon", "subscription"
+        ),
+        pk=pk,
+        plan__product__in=_seller_products(seller),
+    )
+
+    dm = order.duration_multiplier
+    subtotal = order.plan.price * dm
+    if dm > 1:
+        disc_pct = int(order.plan.duration_discounts.get(str(dm), 0))
+        duration_discount_amount = subtotal * disc_pct // 100
+    else:
+        disc_pct = 0
+        duration_discount_amount = 0
+
+    try:
+        wallet_balance = order.customer.wallet.balance
+    except Exception:
+        wallet_balance = None
+
+    return render(request, "seller/order_detail.html", {
+        "seller": seller,
+        "order": order,
+        "subtotal": subtotal,
+        "dm": dm,
+        "duration_discount_pct": disc_pct,
+        "duration_discount_amount": duration_discount_amount,
+        "wallet_balance": wallet_balance,
     })
 
 
@@ -866,3 +924,195 @@ def affiliate_toggle(request, link_pk):
     status = "activated" if link.is_active else "deactivated"
     messages.success(request, f"Affiliate link {link.code} {status}.")
     return redirect("seller:affiliates")
+
+
+# ── Subscriptions ─────────────────────────────────────────────────────────────
+
+_SENSITIVE_PAYLOAD_KEYS = {
+    "download_url", "access_url", "password", "api_key",
+    "key", "token", "secret", "license_key",
+}
+
+_FIELD_LABELS = {
+    "download_url": "Download URL",
+    "access_url": "Access URL",
+    "username": "Username",
+    "password": "Password",
+    "api_key": "API Key",
+    "key": "Key",
+    "token": "Token",
+    "secret": "Secret",
+    "license_key": "License Key",
+    "license_id": "License ID",
+    "product_name": "Course",
+    "product_id": "Course ID",
+}
+
+
+def _build_grant_data(grants_qs):
+    """Return list of dicts with classified payload fields for template rendering."""
+    import json as _json
+    from apps.provisioning.crypto import decrypt as _decrypt
+
+    result = []
+    for g in grants_qs:
+        visible = []
+        secrets = []
+
+        for k, v in g.payload.items():
+            label = _FIELD_LABELS.get(k, k.replace("_", " ").title())
+            if k in _SENSITIVE_PAYLOAD_KEYS:
+                secrets.append((label, str(v)))
+            else:
+                visible.append((label, str(v)))
+
+        try:
+            plain = _decrypt(g.secret.ciphertext)
+            for k, v in _json.loads(plain).items():
+                label = _FIELD_LABELS.get(k, k.replace("_", " ").title())
+                existing_labels = {s[0] for s in secrets}
+                if label not in existing_labels:
+                    secrets.append((label, str(v)))
+        except Exception:
+            pass
+
+        result.append({
+            "grant": g,
+            "visible": visible,
+            "secrets": secrets,
+            "instructions": g.deliverable.instructions or "",
+            "has_data": bool(visible or secrets),
+        })
+    return result
+
+
+def _seller_subscriptions(seller):
+    products = _seller_products(seller)
+    return Subscription.objects.filter(plan__product__in=products).select_related(
+        "customer__user", "plan__product"
+    )
+
+
+@seller_required
+def subscriptions(request):
+    seller = request.seller
+    status_filter = request.GET.get("status", "")
+    search = request.GET.get("q", "").strip()
+
+    qs = _seller_subscriptions(seller).order_by("-created_at")
+
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+    if search:
+        qs = qs.filter(
+            Q(customer__user__email__icontains=search) |
+            Q(plan__name__icontains=search) |
+            Q(plan__product__name__icontains=search)
+        )
+
+    all_subs = _seller_subscriptions(seller)
+    stats = {
+        "active": all_subs.filter(status=Subscription.Status.ACTIVE).count(),
+        "grace": all_subs.filter(status=Subscription.Status.GRACE).count(),
+        "suspended": all_subs.filter(status=Subscription.Status.SUSPENDED).count(),
+        "cancelled": all_subs.filter(status=Subscription.Status.CANCELLED).count(),
+    }
+
+    return render(request, "seller/subscriptions.html", {
+        "seller": seller,
+        "subscriptions": qs[:200],
+        "status_filter": status_filter,
+        "search": search,
+        "stats": stats,
+        "status_choices": Subscription.Status.choices,
+        "now": timezone.now(),
+    })
+
+
+@seller_required
+@require_POST
+def subscription_cancel(request, sub_pk):
+    seller = request.seller
+    sub = get_object_or_404(
+        Subscription, pk=sub_pk, plan__product__in=_seller_products(seller)
+    )
+    if sub.status in (Subscription.Status.ACTIVE, Subscription.Status.GRACE):
+        sub.status = Subscription.Status.CANCELLED
+        sub.auto_renew = False
+        sub.save(update_fields=["status", "auto_renew", "updated_at"])
+        messages.success(request, f"Subscription #{sub.pk} ({sub.customer.user.email}) has been cancelled.")
+    else:
+        messages.warning(request, "Subscription is already cancelled or suspended.")
+    next_url = request.POST.get("next", "")
+    if next_url == "detail":
+        return redirect("seller:subscription_detail", pk=sub_pk)
+    return redirect("seller:subscriptions")
+
+
+@seller_required
+def subscription_detail(request, pk):
+    seller = request.seller
+    sub = get_object_or_404(
+        Subscription.objects.select_related("customer__user", "plan__product"),
+        pk=pk,
+        plan__product__in=_seller_products(seller),
+    )
+
+    related_orders = list(
+        sub.orders.select_related("customer__user", "plan__product", "coupon")
+        .order_by("created_at")
+    )
+
+    total_revenue = sum(o.amount for o in related_orders if o.status == Order.Status.PAID)
+    now = timezone.now()
+    diff = sub.current_period_end - now
+    days_remaining = diff.days
+    is_expired = sub.current_period_end < now
+
+    grant_data = _build_grant_data(sub.grants.select_related("deliverable").order_by("created_at"))
+
+    return render(request, "seller/subscription_detail.html", {
+        "seller": seller,
+        "sub": sub,
+        "related_orders": related_orders,
+        "total_revenue": total_revenue,
+        "days_remaining": days_remaining,
+        "days_overdue": abs(days_remaining),
+        "is_expired": is_expired,
+        "now": now,
+        "grant_data": grant_data,
+    })
+
+
+@seller_required
+@require_POST
+def subscription_toggle_suspend(request, sub_pk):
+    seller = request.seller
+    sub = get_object_or_404(
+        Subscription, pk=sub_pk, plan__product__in=_seller_products(seller)
+    )
+    if sub.status == Subscription.Status.SUSPENDED:
+        sub.status = Subscription.Status.ACTIVE
+        sub.save(update_fields=["status", "updated_at"])
+        messages.success(request, f"Subscription #{sub.pk} reactivated.")
+    elif sub.status in (Subscription.Status.ACTIVE, Subscription.Status.GRACE):
+        sub.status = Subscription.Status.SUSPENDED
+        sub.save(update_fields=["status", "updated_at"])
+        messages.success(request, f"Subscription #{sub.pk} suspended.")
+    else:
+        messages.warning(request, "Cannot change status of a cancelled subscription.")
+    return redirect("seller:subscription_detail", pk=sub_pk)
+
+
+@seller_required
+@require_POST
+def subscription_toggle_renew(request, sub_pk):
+    seller = request.seller
+    sub = get_object_or_404(
+        Subscription, pk=sub_pk, plan__product__in=_seller_products(seller)
+    )
+    sub.auto_renew = not sub.auto_renew
+    sub.save(update_fields=["auto_renew", "updated_at"])
+    label = "enabled" if sub.auto_renew else "disabled"
+    messages.success(request, f"Auto-renew {label} for subscription #{sub.pk}.")
+    return redirect("seller:subscription_detail", pk=sub_pk)

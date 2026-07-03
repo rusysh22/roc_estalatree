@@ -52,4 +52,49 @@
   </div>
   <p class="mt-3">&copy; {% now "Y" %} Estalatree. All rights reserved.</p>
 </footer>
+
+<!-- Cookie consent banner -->
+<div id="cookie-banner"
+     class="hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 shadow-lg">
+  <div class="max-w-3xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+    <p class="text-sm text-gray-600 flex-1 min-w-0">
+      We use cookies to keep you signed in and to understand how our site is used.
+      See our <a href="/privacy/" class="text-indigo-600 hover:underline">Privacy Policy</a> for details.
+    </p>
+    <div class="flex items-center gap-2 shrink-0">
+      <button onclick="cookieDecline()"
+              class="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg
+                     border border-gray-200 hover:border-gray-300 transition-colors">
+        Decline
+      </button>
+      <button onclick="cookieAccept()"
+              class="text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700
+                     px-4 py-1.5 rounded-lg transition-colors">
+        Accept All
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var consent = localStorage.getItem('cookie_consent');
+  if (!consent) {
+    document.getElementById('cookie-banner').classList.remove('hidden');
+  }
+})();
+
+function cookieAccept() {
+  localStorage.setItem('cookie_consent', 'accepted');
+  document.getElementById('cookie-banner').classList.add('hidden');
+  // Fire deferred analytics if loaded on this page
+  if (typeof window._deferredGtag === 'function') window._deferredGtag();
+  if (typeof window._deferredFbq === 'function') window._deferredFbq();
+}
+
+function cookieDecline() {
+  localStorage.setItem('cookie_consent', 'declined');
+  document.getElementById('cookie-banner').classList.add('hidden');
+}
+</script>
 {% endblock %}
