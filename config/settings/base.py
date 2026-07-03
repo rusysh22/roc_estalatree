@@ -17,7 +17,7 @@ env = environ.Env(
 # ── Security ─────────────────────────────────────────────────────────────────
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env("DJANGO_DEBUG", default=False)
-ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS", default=[])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
 
 # ── Application definition ───────────────────────────────────────────────────
 DJANGO_APPS = [

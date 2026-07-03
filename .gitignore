@@ -56,3 +56,7 @@ node_modules/
 # uv.lock is committed intentionally (lockfile)
 
 # .secrets.baseline IS committed (it's the approved-secrets inventory for detect-secrets)
+
+# Let's Encrypt runtime state (certs, private keys, ACME account) — regenerated per deploy
+certbot/conf/
+certbot/www/
