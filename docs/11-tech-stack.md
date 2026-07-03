@@ -13,7 +13,7 @@
 - **CI**: GitHub Actions (lint + tests + `makemigrations --check` + pip-audit).
 - **Observability**: Sentry + structured logging.
 - **Icons/UI**: Heroicons (SVG, inline/sprite), Tailwind — no emoji ([CONVENTIONS.md](CONVENTIONS.md)).
-- **Dev infra**: Docker Compose (db + redis) for parity.
+- **Dev infra**: Docker Compose (db + redis) for parity. **Production**: full Docker Compose stack behind nginx + Let's Encrypt — see [24-deployment.md](24-deployment.md).
 
 ## Project Structure (planned)
 ```

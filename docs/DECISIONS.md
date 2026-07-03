@@ -2,7 +2,7 @@
 
 > Records each decision **and its rationale** so future agents/sessions don't undo it without context. Newest on top. Keep entries short.
 >
-> **Closed-loop status:** All ADRs below are **Accepted / Final**. Do not change without explicit user instruction. If a new decision is needed, add a new ADR (next: ADR-020) and note it in [STATUS.md](STATUS.md).
+> **Closed-loop status:** All ADRs below are **Accepted / Final**. Do not change without explicit user instruction. If a new decision is needed, add a new ADR (next: ADR-021) and note it in [STATUS.md](STATUS.md).
 
 ---
 
@@ -24,6 +24,12 @@
 | **Icons** | Heroicons SVG inline/sprite; no emoji in UI. |
 
 ---
+
+### ADR-020 — Single-VM Docker Compose deployment; nginx terminates TLS
+**Status:** Accepted · 2026-07-03
+**Decision:** Production runs as one `docker compose` stack on one VM: `nginx` (TLS termination + reverse proxy + static/media serving) in front of `web` (gunicorn), `worker`/`beat` (Celery), `db` (Postgres), `redis`, and `certbot` (auto-renewal loop). No orchestrator, no managed DB/cache, no CDN yet. Details in [24-deployment.md](24-deployment.md).
+**Why:** Single-merchant scale doesn't justify Kubernetes or managed services yet; a Compose stack is the fastest path to a real HTTPS deployment and keeps ops surface small. Revisit if traffic or team size grows.
+**Fallout:** Required two settings fixes to work behind a reverse proxy — `SECURE_PROXY_SSL_HEADER` (else `SECURE_SSL_REDIRECT` loops forever, since gunicorn only ever sees plain HTTP from nginx) and `ALLOWED_HOSTS` parsed via `env.list()` (it was silently returning an unsplit string, matching per-character). Both fixed in `config/settings/{base,prod}.py`; see [24-deployment.md](24-deployment.md) §7 for the failure mode if reverted.
 
 ### ADR-019 — Python 3.12 + Django 5.2 LTS pinned
 **Status:** Accepted · 2026-06-18

@@ -39,6 +39,7 @@ A digital-product selling platform (lynk.id-style) whose differentiator is **tok
 | 21 | [21-user-journeys.md](21-user-journeys.md) | **A–Z connected journeys per persona** + friction-reducers |
 | 22 | [22-feature-catalog.md](22-feature-catalog.md) | Lynk.id PRO features → Estalatree all-access (no owner tiering) |
 | 23 | [23-configuration.md](23-configuration.md) | Config management — 3 tiers (.env vs DB Setting vs per-record) |
+| 24 | [24-deployment.md](24-deployment.md) | **Docker + nginx + Let's Encrypt** production deployment (berlanggan.web.id) |
 
 ---
 
