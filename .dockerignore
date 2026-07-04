@@ -1,0 +1,14 @@
+.git
+.github
+.venv
+node_modules
+certbot/conf
+certbot/www
+media
+.env
+.env.example
+.claude
+docs
+tests
+*.pyc
+__pycache__
