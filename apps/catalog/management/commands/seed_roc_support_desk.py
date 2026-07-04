@@ -46,6 +46,11 @@ PLAN_SPECS = {
     "enterprise": ("Enterprise", 9_999_000, Plan.Interval.YEARLY, 999),
 }
 
+# Multi-month packaging (docs/feedback item #8) — checkout's duration-multiplier
+# selector only appears when a monthly plan's duration_discounts is populated.
+# Not set on "enterprise" (yearly already, a multi-year commitment isn't the ask).
+DURATION_DISCOUNTS = {"3": 5, "6": 10, "12": 15}
+
 # plan_key -> storefront bullet list. Rendered by product.html as a checkmark
 # list; a value of "true" shows the key alone, any other value shows "key: value".
 PLAN_FEATURES = {
@@ -109,6 +114,7 @@ class Command(BaseCommand):
     def _seed_plans(self, product):
         plans = {}
         for key, (name, price, interval, max_agents) in PLAN_SPECS.items():
+            duration_discounts = DURATION_DISCOUNTS if interval == Plan.Interval.MONTHLY else {}
             plan, created = Plan.objects.get_or_create(
                 product=product,
                 name=name,
@@ -119,11 +125,15 @@ class Command(BaseCommand):
                     "sort_order": list(PLAN_SPECS).index(key),
                     "is_active": True,
                     "features": PLAN_FEATURES[key],
+                    "duration_discounts": duration_discounts,
                 },
             )
             if not created and plan.features != PLAN_FEATURES[key]:
                 plan.features = PLAN_FEATURES[key]
                 plan.save(update_fields=["features", "updated_at"])
+            if not created and plan.duration_discounts != duration_discounts:
+                plan.duration_discounts = duration_discounts
+                plan.save(update_fields=["duration_discounts", "updated_at"])
             Deliverable.objects.get_or_create(
                 plan=plan, type=Deliverable.Type.LICENSE_KEY, defaults={"config": {}}
             )
