@@ -7,7 +7,7 @@ Context vars used: payment_method_groups, form_id (optional — set when the
 radio inputs live outside the <form> and need a form="..." attribute).
 {% endcomment %}
 {% if payment_method_groups %}
-<div class="space-y-4">
+<div class="space-y-4 max-h-80 overflow-y-auto pr-1 -mr-1">
   {% for group in payment_method_groups %}
   <div data-payment-group data-open="false">
     <p class="text-[11px] font-bold text-ink-400 uppercase tracking-wide mb-2">{{ group.label }}</p>

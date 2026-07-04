@@ -282,7 +282,15 @@ def checkout_plan(request, plan_pk):
         if not email:
             messages.error(request, "Email is required to checkout.")
             return redirect(request.path)
-        
+
+        from django.core.exceptions import ValidationError
+        from django.core.validators import validate_email
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, "Please enter a valid email address.")
+            return redirect(request.path)
+
         from django.contrib.auth import get_user_model
         User = get_user_model()
         user = User.objects.filter(email__iexact=email).first()
@@ -500,6 +508,28 @@ def checkout_plan(request, plan_pk):
 
 
 # ── Order status ──────────────────────────────────────────────────────────────
+
+def order_pending(request):
+    """Duitku browser return URL after a payment attempt (topup/checkout).
+
+    This is only the front-channel redirect — actual crediting happens
+    asynchronously via the webhook (apps.billing.views.duitku_webhook). Route
+    the buyer to the right status page rather than showing anything final here.
+    """
+    merchant_order_id = request.GET.get("merchantOrderId", "")
+    topup_obj = (
+        TopUp.objects.filter(public_id=merchant_order_id)
+        .select_related("checkout_order")
+        .first()
+    )
+    if topup_obj and topup_obj.checkout_order:
+        return redirect("storefront:order_status", public_id=topup_obj.checkout_order.public_id)
+    if topup_obj:
+        messages.info(request, "Thanks! We're confirming your payment — your balance will update in a moment.")
+        return redirect("dashboard:wallet")
+    messages.error(request, "We couldn't find that transaction.")
+    return redirect("storefront:page")
+
 
 @login_required
 def order_status(request, public_id):

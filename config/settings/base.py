@@ -132,6 +132,13 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 SITE_ID = 1
+# Used to keep django.contrib.sites' Site(pk=SITE_ID) row (and therefore allauth's
+# email subject/body placeholders + absolute asset URLs in transactional emails)
+# in sync with the real domain — defaults from ALLOWED_HOSTS so no extra env var
+# is needed in most deployments. See apps/core/apps.py's post_migrate handler.
+SITE_DOMAIN = env("SITE_DOMAIN", default=(ALLOWED_HOSTS[0] if ALLOWED_HOSTS else "localhost:8000"))
+SITE_NAME = env("SITE_NAME", default="Berlanggan")
+SITE_URL_SCHEME = "http" if DEBUG else "https"
 
 # django-allauth (v65+ API)
 ACCOUNT_LOGIN_METHODS = {"email"}

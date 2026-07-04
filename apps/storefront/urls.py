@@ -9,6 +9,7 @@ urlpatterns = [
     path("", views.landing, name="page"),
     path("p/<slug:slug>/", views.product_detail, name="product"),
     path("checkout/<int:plan_pk>/", views.checkout_plan, name="checkout"),
+    path("orders/pending/", views.order_pending, name="order_pending"),
     path("orders/<public_id>/", views.order_status, name="order_status"),
     path("topup/", views.topup, name="topup"),
     path("contact/<int:product_pk>/", views.contact, name="contact"),
