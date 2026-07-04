@@ -4,18 +4,38 @@
 {% block subject %}Purchase successful: {{ order.plan }}{% endblock %}
 
 {% block content %}
-<p style="margin:0 0 4px 0; font-size:12px; font-weight:700; color:#2F7A55; text-transform:uppercase; letter-spacing:0.05em;">Purchase successful</p>
-<h1 style="margin:0 0 16px 0; font-size:20px; font-weight:800; color:#16130F;">{{ order.plan }}</h1>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px 0;">
+  <tr>
+    <td>
+      <p style="margin:0 0 4px 0; font-size:12px; font-weight:700; color:#2F7A55; text-transform:uppercase; letter-spacing:0.05em;">Purchase successful</p>
+      <h1 style="margin:0; font-size:20px; font-weight:800; color:#16130F;">{{ order.plan }}</h1>
+    </td>
+    <td align="right" valign="top">
+      <span style="display:inline-block; background-color:#2F7A55; color:#FFFFFF; font-size:11px; font-weight:800; letter-spacing:0.05em; text-transform:uppercase; padding:4px 12px; border-radius:9999px;">Paid</span>
+    </td>
+  </tr>
+</table>
+<p style="margin:0 0 16px 0; font-size:12px; color:#766C5D;">{{ order.created_at|date:"d M Y, H:i" }} WIB</p>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0; background-color:#FBF4EC; border-radius:14px;">
   <tr>
-    <td style="padding:14px 18px; font-size:13px; color:#766C5D;">Amount paid</td>
-    <td align="right" style="padding:14px 18px; font-size:15px; font-weight:700; color:#16130F;">{{ order.amount|rupiah }}</td>
+    <td style="padding:14px 18px 0 18px; font-size:13px; color:#766C5D;">Billed to</td>
+    <td align="right" style="padding:14px 18px 0 18px; font-size:13px; color:#16130F;">{{ order.customer.user.email }}</td>
   </tr>
   <tr>
-    <td style="padding:0 18px 14px 18px; font-size:13px; color:#766C5D;">Order ID</td>
-    <td align="right" style="padding:0 18px 14px 18px; font-size:13px; color:#16130F; font-family:monospace;">{{ order.public_id }}</td>
+    <td style="padding:10px 18px 0 18px; font-size:13px; color:#766C5D;">Amount paid</td>
+    <td align="right" style="padding:10px 18px 0 18px; font-size:15px; font-weight:700; color:#16130F;">{{ order.amount|rupiah }}</td>
   </tr>
+  <tr>
+    <td style="padding:10px 18px {% if order.invoice_number %}0{% else %}14px{% endif %} 18px; font-size:13px; color:#766C5D;">Order ID</td>
+    <td align="right" style="padding:10px 18px {% if order.invoice_number %}0{% else %}14px{% endif %} 18px; font-size:13px; color:#16130F; font-family:monospace;">{{ order.public_id }}</td>
+  </tr>
+  {% if order.invoice_number %}
+  <tr>
+    <td style="padding:10px 18px 14px 18px; font-size:13px; color:#766C5D;">Invoice No.</td>
+    <td align="right" style="padding:10px 18px 14px 18px; font-size:13px; color:#16130F; font-family:monospace;">INV-{{ order.invoice_number|stringformat:"06d" }}</td>
+  </tr>
+  {% endif %}
 </table>
 
 <p style="margin:0 0 12px 0; font-size:13px; font-weight:700; color:#16130F; text-transform:uppercase; letter-spacing:0.05em;">Your access</p>

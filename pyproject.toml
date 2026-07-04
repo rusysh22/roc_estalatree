@@ -26,6 +26,7 @@ dependencies = [
     "Pillow>=10,<11",
     # Production server
     "gunicorn>=23,<24",
+    "xhtml2pdf>=0.2.17",
 ]
 
 [project.optional-dependencies]

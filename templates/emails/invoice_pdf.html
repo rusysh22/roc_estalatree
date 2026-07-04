@@ -1,0 +1,77 @@
+{% load money %}<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 2.2cm; }
+  body { font-family: Helvetica, Arial, sans-serif; color: #16130F; font-size: 10.5pt; }
+  .brand { font-size: 16pt; font-weight: bold; color: #16130F; }
+  .muted { color: #766C5D; font-size: 9pt; }
+  .paid-badge { color: #2F7A55; font-weight: bold; font-size: 11pt; text-transform: uppercase; }
+  table.meta { width: 100%; margin-top: 18px; }
+  table.meta td { padding: 2px 0; font-size: 9.5pt; }
+  table.items { width: 100%; margin-top: 24px; border-collapse: collapse; }
+  table.items th { text-align: left; border-bottom: 1.5px solid #16130F; padding: 6px 4px; font-size: 9pt; text-transform: uppercase; color: #766C5D; }
+  table.items td { padding: 8px 4px; border-bottom: 0.75px solid #E5DFD3; font-size: 10pt; }
+  table.items td.amount, table.items th.amount { text-align: right; }
+  table.total { width: 100%; margin-top: 10px; }
+  table.total td { padding: 4px; font-size: 10.5pt; }
+  table.total td.label { text-align: right; color: #766C5D; }
+  table.total td.value { text-align: right; width: 120px; font-weight: bold; }
+  .grand-total td { font-size: 13pt; font-weight: bold; border-top: 1.5px solid #16130F; padding-top: 8px; }
+  .footer { margin-top: 40px; font-size: 8.5pt; color: #999; text-align: center; }
+</style>
+</head>
+<body>
+  <table style="width:100%;">
+    <tr>
+      <td class="brand">{{ site_name }}</td>
+      <td style="text-align:right;">
+        <div class="paid-badge">Paid in full</div>
+        <div class="muted">Invoice {% if order.invoice_number %}INV-{{ order.invoice_number|stringformat:"06d" }}{% else %}{{ order.public_id }}{% endif %}</div>
+      </td>
+    </tr>
+  </table>
+
+  <table class="meta">
+    <tr>
+      <td><span class="muted">Billed to</span><br>{{ order.customer.user.email }}</td>
+      <td style="text-align:right;"><span class="muted">Date issued</span><br>{{ order.created_at|date:"d F Y" }}</td>
+    </tr>
+    <tr>
+      <td><span class="muted">Order ID</span><br>{{ order.public_id }}</td>
+      <td style="text-align:right;"><span class="muted">Payment status</span><br>{{ order.get_status_display }}</td>
+    </tr>
+  </table>
+
+  <table class="items">
+    <thead>
+      <tr><th>Item</th><th class="amount">Amount</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ order.plan.product.name }} &mdash; {{ order.plan.name }}</td>
+        <td class="amount">{{ order.plan.price|rupiah }}</td>
+      </tr>
+      {% if order.discount %}
+      <tr>
+        <td>Coupon discount{% if order.coupon %} ({{ order.coupon.code }}){% endif %}</td>
+        <td class="amount">-{{ order.discount|rupiah }}</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <table class="total">
+    <tr class="grand-total">
+      <td class="label">Total paid</td>
+      <td class="value">{{ order.amount|rupiah }}</td>
+    </tr>
+  </table>
+
+  <div class="footer">
+    {{ site_name }} &middot; {{ site_domain }}<br>
+    This invoice confirms payment in full for the order above.
+  </div>
+</body>
+</html>

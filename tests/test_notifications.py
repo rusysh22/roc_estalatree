@@ -233,6 +233,7 @@ def test_no_wa_number_sends_email_only(mock_email, mock_wa, customer_no_wa):
 
 @pytest.mark.django_db(transaction=True)
 def test_order_confirmation_email_renders_and_sends(customer_with_wa, recurring_plan):
+    from django.conf import settings
     from django.core import mail
     from apps.billing.checkout import checkout
     from apps.notifications.tasks import deliver_order_confirmation_email
@@ -255,7 +256,18 @@ def test_order_confirmation_email_renders_and_sends(customer_with_wa, recurring_
     license = License.objects.filter(customer=customer_with_wa).first()
     html_body = sent.alternatives[0][0]
     assert license.key in html_body
-    assert "example.com" not in html_body
+    # Guards against the real production bug: Site(pk=1).domain stuck on the
+    # django.contrib.sites default — this checks our own site_domain setting,
+    # not the test factory's incidental @example.com buyer address.
+    assert settings.SITE_DOMAIN != "example.com"
+    assert f">{settings.SITE_DOMAIN}<" in html_body or settings.SITE_DOMAIN in html_body
+
+    # PDF invoice attached
+    assert len(sent.attachments) == 1
+    filename, content, mimetype = sent.attachments[0]
+    assert filename == f"invoice-{order.public_id}.pdf"
+    assert mimetype == "application/pdf"
+    assert content[:4] == b"%PDF"
 
 
 @pytest.mark.django_db

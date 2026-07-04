@@ -58,7 +58,7 @@ def handle_topup_paid(customer_id, amount, bonus=0, **kwargs):
         _wa(c, msg)
         if getattr(c, "notif_email", True):
             from apps.notifications.tasks import deliver_topup_confirmation_email
-            deliver_topup_confirmation_email.delay(c.user.email, amount, bonus)
+            deliver_topup_confirmation_email.delay(c.user.email, amount, bonus, customer_id)
     except Exception:
         logger.exception("handle_topup_paid: error for customer %s", customer_id)
 
