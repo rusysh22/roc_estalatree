@@ -84,7 +84,7 @@ def active_subscription(customer_with_wa, recurring_plan):
 
 @pytest.mark.django_db
 @patch("apps.notifications.tasks.deliver_whatsapp")
-@patch("apps.notifications.tasks.deliver_email")
+@patch("apps.notifications.tasks.deliver_topup_confirmation_email")
 def test_topup_paid_dispatches_wa_and_email(mock_email, mock_wa, customer_with_wa):
     handle_topup_paid(customer_id=customer_with_wa.pk, amount=100_000, bonus=0)
 
@@ -133,6 +133,25 @@ def test_order_paid_dispatches_with_license_key(mock_email, mock_wa, customer_wi
     wa_msg = mock_wa.delay.call_args[0][1]
     license = License.objects.filter(customer=customer_with_wa).first()
     assert license.key in wa_msg
+
+
+@pytest.mark.django_db(transaction=True)
+@patch("apps.notifications.tasks.deliver_whatsapp")
+@patch("apps.notifications.tasks.deliver_order_confirmation_email")
+def test_order_paid_dispatches_html_confirmation_email(mock_email, mock_wa, customer_with_wa, recurring_plan):
+    from apps.billing.checkout import checkout
+
+    credit(customer_with_wa.wallet, 100_000, LedgerEntry.Type.ADJUSTMENT,
+           ref="test:notif:order:fund2", note="")
+    order, _, _ = checkout(
+        customer=customer_with_wa,
+        plan=recurring_plan,
+        checkout_key="ck:notif:order:002",
+        callback_url="https://x.com/cb/",
+        return_url="https://x.com/ret/",
+    )
+
+    mock_email.delay.assert_called_once_with(customer_with_wa.user.email, order.pk)
 
 
 # ── 3. subscription.renewed → WA only ────────────────────────────────────────
@@ -202,12 +221,74 @@ def test_subscription_cancelled_sends_wa_not_email(mock_email, mock_wa, customer
 
 @pytest.mark.django_db
 @patch("apps.notifications.tasks.deliver_whatsapp")
-@patch("apps.notifications.tasks.deliver_email")
+@patch("apps.notifications.tasks.deliver_topup_confirmation_email")
 def test_no_wa_number_sends_email_only(mock_email, mock_wa, customer_no_wa):
     handle_topup_paid(customer_id=customer_no_wa.pk, amount=50_000, bonus=0)
 
     mock_wa.delay.assert_not_called()
     mock_email.delay.assert_called_once()
+
+
+# ── 7b. HTML email rendering (real send via locmem backend, no mocking) ─────────
+
+@pytest.mark.django_db(transaction=True)
+def test_order_confirmation_email_renders_and_sends(customer_with_wa, recurring_plan):
+    from django.core import mail
+    from apps.billing.checkout import checkout
+    from apps.notifications.tasks import deliver_order_confirmation_email
+
+    credit(customer_with_wa.wallet, 100_000, LedgerEntry.Type.ADJUSTMENT,
+           ref="test:notif:order:fund3", note="")
+    order, _, _ = checkout(
+        customer=customer_with_wa,
+        plan=recurring_plan,
+        checkout_key="ck:notif:order:003",
+        callback_url="https://x.com/cb/",
+        return_url="https://x.com/ret/",
+    )
+
+    deliver_order_confirmation_email(customer_with_wa.user.email, order.pk)
+
+    assert len(mail.outbox) == 1
+    sent = mail.outbox[0]
+    assert sent.to == [customer_with_wa.user.email]
+    license = License.objects.filter(customer=customer_with_wa).first()
+    html_body = sent.alternatives[0][0]
+    assert license.key in html_body
+    assert "example.com" not in html_body
+
+
+@pytest.mark.django_db
+def test_topup_confirmation_email_renders_and_sends(customer_with_wa):
+    from django.core import mail
+    from apps.notifications.tasks import deliver_topup_confirmation_email
+
+    deliver_topup_confirmation_email(customer_with_wa.user.email, 100_000, bonus=10_000)
+
+    assert len(mail.outbox) == 1
+    sent = mail.outbox[0]
+    html_body = sent.alternatives[0][0]
+    assert "100.000" in html_body
+    assert "10.000" in html_body
+    assert "example.com" not in html_body
+
+
+# ── 7c. Suppressed addresses never get emailed ──────────────────────────────────
+
+@pytest.mark.django_db
+def test_suppressed_email_is_not_sent(customer_with_wa):
+    from django.core import mail
+    from apps.notifications.models import EmailSuppression
+    from apps.notifications.tasks import deliver_email, deliver_topup_confirmation_email
+
+    EmailSuppression.objects.create(
+        email=customer_with_wa.user.email, reason=EmailSuppression.Reason.HARD_BOUNCE,
+    )
+
+    deliver_email(customer_with_wa.user.email, "Subject", "Body")
+    deliver_topup_confirmation_email(customer_with_wa.user.email, 50_000)
+
+    assert len(mail.outbox) == 0
 
 
 # ── 8. ConsoleBackend logs ────────────────────────────────────────────────────

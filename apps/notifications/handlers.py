@@ -56,7 +56,9 @@ def handle_topup_paid(customer_id, amount, bonus=0, **kwargs):
             f"Saldo siap digunakan untuk pembelian."
         )
         _wa(c, msg)
-        _email(c, "Top-up berhasil dikreditkan", msg)
+        if getattr(c, "notif_email", True):
+            from apps.notifications.tasks import deliver_topup_confirmation_email
+            deliver_topup_confirmation_email.delay(c.user.email, amount, bonus)
     except Exception:
         logger.exception("handle_topup_paid: error for customer %s", customer_id)
 
@@ -94,7 +96,9 @@ def handle_order_paid(customer_id, order_id, plan_name="", **kwargs):
             "Terima kasih! Simpan informasi akses ini dengan aman."
         )
         _wa(c, msg)
-        _email(c, f"Pembelian berhasil: {plan_name or order.plan}", msg)
+        if getattr(c, "notif_email", True):
+            from apps.notifications.tasks import deliver_order_confirmation_email
+            deliver_order_confirmation_email.delay(c.user.email, order.pk)
     except Exception:
         logger.exception("handle_order_paid: error for customer %s", customer_id)
 

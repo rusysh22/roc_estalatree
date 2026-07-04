@@ -31,3 +31,27 @@ class NotificationLog(TimestampedModel):
 
     def __str__(self):
         return f"{self.channel}:{self.recipient} [{self.dedup_key}]"
+
+
+class EmailSuppression(TimestampedModel):
+    """An address we must stop emailing (hard bounce, spam complaint, or manual block).
+
+    Populated by the ESP's bounce webhook (see apps.notifications.views) and
+    checked before every send in apps.notifications.tasks — protects sender
+    reputation from repeatedly hitting known-bad addresses.
+    """
+
+    class Reason(models.TextChoices):
+        HARD_BOUNCE = "hard_bounce", "Hard bounce"
+        SPAM_COMPLAINT = "spam_complaint", "Spam complaint"
+        MANUAL = "manual", "Manually suppressed"
+
+    email = models.EmailField(unique=True)
+    reason = models.CharField(max_length=20, choices=Reason.choices)
+    detail = models.TextField(blank=True, help_text="Raw reason/diagnostic from the ESP, if any")
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.email} [{self.reason}]"
