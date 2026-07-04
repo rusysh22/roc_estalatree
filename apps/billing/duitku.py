@@ -17,6 +17,7 @@ import logging
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,14 @@ PRODUCTION_URL = "https://passport.duitku.com/webapi"
 
 class DuitkuError(Exception):
     """Raised when Duitku returns an error or the network call fails."""
+
+
+@dataclass
+class PaymentMethod:
+    code: str
+    name: str
+    image_url: str
+    fee: int
 
 
 @dataclass
@@ -126,6 +135,37 @@ class DuitkuClient:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
+    def get_payment_methods(self, amount: int) -> list[PaymentMethod]:
+        """List payment methods enabled for this merchant, for the given amount.
+
+        Signature is SHA-256 (not MD5, unlike the other endpoints):
+          SHA256(merchantCode + paymentAmount + datetime + apiKey)
+        """
+        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        signature = hashlib.sha256(
+            f"{self.merchant_code}{amount}{dt}{self.api_key}".encode()
+        ).hexdigest()
+        payload = {
+            "merchantcode": self.merchant_code,
+            "amount": amount,
+            "datetime": dt,
+            "signature": signature,
+        }
+        result = self._post("/api/merchant/paymentmethod/getpaymentmethod", payload)
+        if result.get("responseCode") != "00":
+            raise DuitkuError(
+                f"Duitku get payment methods failed (responseCode={result.get('responseCode')}): {result}"
+            )
+        return [
+            PaymentMethod(
+                code=m["paymentMethod"],
+                name=m["paymentName"],
+                image_url=m.get("paymentImage", ""),
+                fee=int(m.get("totalFee", 0)),
+            )
+            for m in result.get("paymentFee", [])
+        ]
+
     def create_invoice(
         self,
         merchant_order_id: str,
@@ -134,10 +174,13 @@ class DuitkuClient:
         email: str,
         callback_url: str,
         return_url: str,
+        payment_method: str,
         expiry_period: int = 1440,
     ) -> InvoiceResult:
         """Request a payment invoice from Duitku. Returns payment URL + reference."""
-        signature = self._sign(self.merchant_code, amount, merchant_order_id, self.api_key)
+        # Request Transaction signature order per Duitku docs differs from the
+        # webhook/status signature: merchantCode + merchantOrderId + paymentAmount + apiKey.
+        signature = self._sign(self.merchant_code, merchant_order_id, amount, self.api_key)
         payload = {
             "merchantCode": self.merchant_code,
             "paymentAmount": amount,
@@ -148,6 +191,7 @@ class DuitkuClient:
             "returnUrl": return_url,
             "signature": signature,
             "expiryPeriod": expiry_period,
+            "paymentMethod": payment_method,
         }
         result = self._post("/api/merchant/v2/inquiry", payload)
         if result.get("statusCode") != "00":

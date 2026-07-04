@@ -33,6 +33,7 @@ def initiate_topup(
     customer,
     amount: int,
     *,
+    payment_method: str,
     bonus: int = 0,
     callback_url: str,
     return_url: str,
@@ -63,6 +64,7 @@ def initiate_topup(
         email=customer.user.email,
         callback_url=callback_url,
         return_url=return_url,
+        payment_method=payment_method,
     )
 
     topup.gateway_ref = result.reference

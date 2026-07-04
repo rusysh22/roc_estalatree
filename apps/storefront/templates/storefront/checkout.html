@@ -114,6 +114,25 @@
   </div>
   {% endif %}
 
+  <!-- Payment method (only when a TopUp is needed) -->
+  {% if shortfall > 0 %}
+  <div class="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+    <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Payment Method</p>
+    {% if payment_methods %}
+    <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
+      {% for pm in payment_methods %}
+      <label class="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 text-sm cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+        <input type="radio" name="payment_method" value="{{ pm.code }}" form="checkout-form" {% if forloop.first %}checked{% endif %} class="accent-indigo-600" required>
+        <span class="truncate">{{ pm.name }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-xs text-red-500">No payment methods available right now. Please try again later.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <!-- PWYW price input -->
   {% if plan.pwyw %}
   <div class="bg-white rounded-xl border border-gray-200 p-5 mb-4">

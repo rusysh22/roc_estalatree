@@ -176,7 +176,7 @@ def test_checkout_post_insufficient_balance_redirects_to_payment(authed_client, 
     mock_client.create_invoice.return_value = mock_result
 
     with patch("apps.billing.duitku.DuitkuClient.from_settings", return_value=mock_client):
-        resp = authed_client.post(reverse("storefront:checkout", args=[plan.pk]))
+        resp = authed_client.post(reverse("storefront:checkout", args=[plan.pk]), {"payment_method": "VC"})
 
     assert resp.status_code == 302
     assert "duitku.com" in resp["Location"] or "sandbox" in resp["Location"]
@@ -215,7 +215,7 @@ def test_topup_post_valid_amount_redirects_to_payment(authed_client, customer):
     mock_client.create_invoice.return_value = mock_result
 
     with patch("apps.billing.duitku.DuitkuClient.from_settings", return_value=mock_client):
-        resp = authed_client.post(reverse("storefront:topup"), {"amount": "100000"})
+        resp = authed_client.post(reverse("storefront:topup"), {"amount": "100000", "payment_method": "VC"})
 
     assert resp.status_code == 302
     assert "duitku.com" in resp["Location"] or "sandbox" in resp["Location"]

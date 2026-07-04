@@ -67,6 +67,10 @@ class CouponLimitError(Exception):
     """Coupon usage_limit reached at the moment of atomic increment (concurrent checkout)."""
 
 
+class PaymentMethodRequiredError(Exception):
+    """A TopUp is needed to cover the checkout but no payment_method was given."""
+
+
 def _assign_invoice_number(order: Order) -> None:
     """Assign the next sequential invoice number. Must be called inside transaction.atomic()."""
     if order.invoice_number:
@@ -192,6 +196,7 @@ def checkout(
     duitku_client=None,
     callback_url: str,
     return_url: str,
+    payment_method: str | None = None,
 ) -> tuple[Order, list[Grant], str | None]:
     """Purchase a plan for a customer.
 
@@ -335,6 +340,11 @@ def checkout(
 
     else:
         # Insufficient balance — initiate TopUp for the delta, link to pending Order
+        if not payment_method:
+            raise PaymentMethodRequiredError(
+                "A payment_method is required when the wallet balance is insufficient."
+            )
+
         delta = effective_price - wallet.balance
 
         with transaction.atomic():
@@ -358,6 +368,7 @@ def checkout(
         topup, payment_url = initiate_topup(
             customer=customer,
             amount=delta,
+            payment_method=payment_method,
             callback_url=callback_url,
             return_url=return_url,
             duitku_client=duitku_client,

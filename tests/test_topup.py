@@ -103,6 +103,7 @@ def mock_client():
 def test_initiate_topup_creates_pending(customer, mock_client):
     topup, payment_url = initiate_topup(
         customer, 100_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -119,6 +120,7 @@ def test_initiate_topup_creates_pending(customer, mock_client):
 def test_initiate_topup_does_not_credit_wallet(customer, mock_client):
     initiate_topup(
         customer, 50_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -130,7 +132,8 @@ def test_initiate_topup_does_not_credit_wallet(customer, mock_client):
 @pytest.mark.django_db
 def test_initiate_topup_rejects_zero(customer, mock_client):
     with pytest.raises(ValueError):
-        initiate_topup(customer, 0, callback_url="x", return_url="x", duitku_client=mock_client)
+        initiate_topup(customer, 0, payment_method="VC",
+        callback_url="x", return_url="x", duitku_client=mock_client)
 
 
 # ── Webhook: success ──────────────────────────────────────────────────────────
@@ -139,6 +142,7 @@ def test_initiate_topup_rejects_zero(customer, mock_client):
 def test_webhook_success_credits_wallet(customer, mock_client):
     topup, _ = initiate_topup(
         customer, 75_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -163,6 +167,7 @@ def test_webhook_success_credits_wallet(customer, mock_client):
 def test_webhook_with_bonus_creates_two_entries(customer, mock_client):
     topup, _ = initiate_topup(
         customer, 100_000, bonus=10_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -186,6 +191,7 @@ def test_webhook_duplicate_no_double_credit(customer, mock_client):
     """Same resultCode + same order → idempotency key dedupes correctly (M2 key format)."""
     topup, _ = initiate_topup(
         customer, 50_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -208,6 +214,7 @@ def test_webhook_duplicate_no_double_credit(customer, mock_client):
 def test_webhook_invalid_signature_rejected(customer, mock_client):
     topup, _ = initiate_topup(
         customer, 50_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -233,6 +240,7 @@ def test_webhook_invalid_signature_rejected(customer, mock_client):
 def test_webhook_non_success_no_credit(customer, mock_client):
     topup, _ = initiate_topup(
         customer, 50_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -255,6 +263,7 @@ def test_webhook_view_returns_200_on_success(customer, mock_client, settings):
 
     topup, _ = initiate_topup(
         customer, 60_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -282,6 +291,7 @@ def test_webhook_view_returns_400_on_invalid_signature(customer, mock_client):
 
     topup, _ = initiate_topup(
         customer, 60_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -304,6 +314,7 @@ def test_webhook_view_returns_400_on_invalid_signature(customer, mock_client):
 def test_recheck_credits_when_duitku_confirms(customer, mock_client):
     topup, _ = initiate_topup(
         customer, 80_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -324,6 +335,7 @@ def test_recheck_credits_when_duitku_confirms(customer, mock_client):
 def test_recheck_marks_failed_when_duitku_reports_failure(customer, mock_client):
     topup, _ = initiate_topup(
         customer, 80_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -341,6 +353,7 @@ def test_recheck_marks_failed_when_duitku_reports_failure(customer, mock_client)
 def test_recheck_already_paid_is_noop(customer, mock_client):
     topup, _ = initiate_topup(
         customer, 80_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -365,6 +378,7 @@ def test_webhook_amount_mismatch_not_credited(customer, mock_client):
     """Webhook with amount != topup.amount must not credit the wallet (M1)."""
     topup, _ = initiate_topup(
         customer, 100_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -388,6 +402,7 @@ def test_recheck_amount_mismatch_not_credited(customer, mock_client):
     """Safety-net: Duitku-reported amount != topup.amount → not credited (M1)."""
     topup, _ = initiate_topup(
         customer, 100_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -422,6 +437,7 @@ def test_non_success_then_success_credits(customer, mock_client):
     """
     topup, _ = initiate_topup(
         customer, 70_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,
@@ -460,6 +476,7 @@ def test_recheck_marks_expired_after_window(customer, mock_client):
 
     topup, _ = initiate_topup(
         customer, 50_000,
+        payment_method="VC",
         callback_url="https://example.com/cb",
         return_url="https://example.com/return",
         duitku_client=mock_client,

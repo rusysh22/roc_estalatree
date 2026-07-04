@@ -94,7 +94,7 @@ sudo docker compose up -d certbot
 | `REDIS_URL` / `CELERY_BROKER_URL` | `redis://redis:6379/0` | Container hostname `redis`. |
 | `DUITKU_CALLBACK_URL` | `https://berlanggan.web.id/billing/webhook/duitku/` | Must be publicly reachable HTTPS for the gateway to call back. |
 
-Blank in the current deployment (fill in when available): `DUITKU_MERCHANT_CODE`, `DUITKU_API_KEY`, `GOOGLE_CLIENT_ID/SECRET`, `SENTRY_DSN`, `EMAIL_HOST*` (email currently has no working backend configured — `EMAIL_BACKEND` is forced to SMTP by `prod.py` but no SMTP host is set, so outbound email will fail silently until these are filled in).
+`DUITKU_MERCHANT_CODE`/`DUITKU_API_KEY` (sandbox) and `EMAIL_HOST*` were filled in on 2026-07-04 — SMTP is smtp.sumopod.com, port 465/SSL (`EMAIL_USE_SSL=True`, not `EMAIL_USE_TLS`; `base.py` now reads both `EMAIL_USE_TLS`/`EMAIL_USE_SSL` and the rest of the `EMAIL_HOST*` vars from env, which it previously did not). Still blank: `GOOGLE_CLIENT_ID/SECRET`, `SENTRY_DSN`.
 
 ## 5. Redeploying after a code change
 

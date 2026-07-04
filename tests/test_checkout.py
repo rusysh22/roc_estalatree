@@ -30,7 +30,7 @@ class MockDuitkuClient:
     """Stub Duitku client — no network calls."""
 
     def create_invoice(self, merchant_order_id, amount, product_details, email,
-                       callback_url, return_url, expiry_period=1440):
+                       callback_url, return_url, payment_method, expiry_period=1440):
         from apps.billing.duitku import InvoiceResult
         return InvoiceResult(
             payment_url=f"https://sandbox.duitku.com/pay/{merchant_order_id}",
@@ -183,6 +183,7 @@ def test_checkout_insufficient_balance(customer, one_time_plan):
         duitku_client=MockDuitkuClient(),
         callback_url=CALLBACK_URL,
         return_url=RETURN_URL,
+        payment_method="VC",
     )
 
     assert order.status == Order.Status.PENDING
@@ -212,6 +213,7 @@ def test_topup_and_buy_completes_order(customer, one_time_plan):
         duitku_client=MockDuitkuClient(),
         callback_url=CALLBACK_URL,
         return_url=RETURN_URL,
+        payment_method="VC",
     )
     assert order.status == Order.Status.PENDING
     assert grants == []
@@ -413,6 +415,7 @@ def test_balance_spent_before_completion_order_stays_pending(customer, one_time_
         checkout_key="ck_m2_001",
         duitku_client=MockDuitkuClient(),
         callback_url=CALLBACK_URL, return_url=RETURN_URL,
+        payment_method="VC",
     )
     assert order.status == Order.Status.PENDING
 

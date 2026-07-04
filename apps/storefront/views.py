@@ -42,6 +42,18 @@ def _callback_url(request):
     return request.build_absolute_uri("/billing/webhook/duitku/")
 
 
+def _payment_methods(amount: int):
+    """Fetch Duitku payment methods for the given amount. Returns [] on gateway failure."""
+    from apps.billing.duitku import DuitkuClient, DuitkuError
+
+    try:
+        client = DuitkuClient.from_settings()
+        return client.get_payment_methods(amount)
+    except DuitkuError:
+        logger.exception("Failed to fetch Duitku payment methods")
+        return []
+
+
 # ── Analytics helpers ─────────────────────────────────────────────────────────
 
 def _emit_event(request, event_type, *, product=None, plan=None):
@@ -277,10 +289,16 @@ def checkout_plan(request, plan_pk):
             "discount": discount,
             "effective_price": effective_price,
             "questions": questions,
+            "payment_methods": _payment_methods(shortfall) if shortfall > 0 else [],
         })
 
     # POST — run checkout
-    from apps.billing.checkout import checkout, CheckoutIdempotencyError, CouponLimitError
+    from apps.billing.checkout import (
+        checkout,
+        CheckoutIdempotencyError,
+        CouponLimitError,
+        PaymentMethodRequiredError,
+    )
     from apps.billing.models import Coupon
 
     checkout_token = request.POST.get("checkout_token") or request.session.get(_SESSION_KEY, uuid.uuid4().hex)
@@ -329,6 +347,8 @@ def checkout_plan(request, plan_pk):
         except Coupon.DoesNotExist:
             messages.warning(request, "Coupon code not found.")
 
+    payment_method = request.POST.get("payment_method", "").strip() or None
+
     try:
         order, grants, payment_url = checkout(
             customer=customer,
@@ -339,13 +359,17 @@ def checkout_plan(request, plan_pk):
             custom_fields=custom_fields,
             callback_url=_callback_url(request),
             return_url=return_url,
+            payment_method=payment_method,
         )
     except CheckoutIdempotencyError:
         messages.error(request, "Duplicate checkout — please try again.")
         return redirect("storefront:product", slug=product.slug)
     except CouponLimitError:
         messages.error(request, "Coupon is no longer available — usage limit reached.")
-        return redirect("storefront:checkout_plan", plan_pk=plan.pk)
+        return redirect("storefront:checkout", plan_pk=plan.pk)
+    except PaymentMethodRequiredError:
+        messages.error(request, "Please choose a payment method.")
+        return redirect("storefront:checkout", plan_pk=plan.pk)
 
     if payment_url:
         return redirect(payment_url)
@@ -386,11 +410,14 @@ def topup(request):
             amount = int(request.POST.get("amount", 0))
         except (ValueError, TypeError):
             amount = 0
+        payment_method = request.POST.get("payment_method", "").strip()
 
         if amount < MIN_TOPUP:
             messages.error(request, f"Minimum top-up is Rp{MIN_TOPUP:,}.")
         elif amount > MAX_TOPUP:
             messages.error(request, f"Maximum top-up is Rp{MAX_TOPUP:,}.")
+        elif not payment_method:
+            messages.error(request, "Please choose a payment method.")
         else:
             from apps.billing.services import initiate_topup
 
@@ -400,6 +427,7 @@ def topup(request):
                 topup_obj, payment_url = initiate_topup(
                     customer=customer,
                     amount=amount,
+                    payment_method=payment_method,
                     bonus=bonus,
                     callback_url=_callback_url(request),
                     return_url=request.build_absolute_uri("/dashboard/wallet/"),
@@ -432,6 +460,7 @@ def topup(request):
         "min_topup": MIN_TOPUP,
         "max_topup": MAX_TOPUP,
         "prefill_amount": prefill_amount,
+        "payment_methods": _payment_methods(prefill_amount or MIN_TOPUP),
     })
 
 

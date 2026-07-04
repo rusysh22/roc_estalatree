@@ -42,6 +42,22 @@
         <p class="text-xs text-gray-400 mt-1">Min {{ min_topup|rupiah }} &middot; Max {{ max_topup|rupiah }}</p>
       </div>
 
+      <div class="mb-5">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Payment method</label>
+        {% if payment_methods %}
+        <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
+          {% for pm in payment_methods %}
+          <label class="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 text-sm cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+            <input type="radio" name="payment_method" value="{{ pm.code }}" {% if forloop.first %}checked{% endif %} class="accent-indigo-600" required>
+            <span class="truncate">{{ pm.name }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-xs text-red-500">No payment methods available right now. Please try again later.</p>
+        {% endif %}
+      </div>
+
       <button type="submit"
               class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl">
         Proceed to payment
