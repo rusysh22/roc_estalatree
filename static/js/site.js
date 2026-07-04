@@ -4,6 +4,89 @@
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
 
+  // ── Global loading / buffer indicator ─────────────────────────────────────
+  // A slim top progress bar for full-page navigation (link clicks, form
+  // submits) and htmx partial requests, plus a spinner injected into the
+  // clicked submit button so buttons can't be double-clicked mid-request.
+  function initLoadingIndicator() {
+    var bar = document.getElementById("page-progress-bar");
+    if (!bar) return;
+    var hideTimer = null;
+
+    function start() {
+      if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+      bar.classList.add("is-active");
+      bar.style.width = "0%";
+      void bar.offsetWidth; // force reflow so the width transition retriggers
+      bar.style.width = "80%";
+    }
+
+    function done() {
+      bar.style.width = "100%";
+      hideTimer = setTimeout(function () {
+        bar.classList.remove("is-active");
+        bar.style.width = "0%";
+      }, 250);
+    }
+
+    function isHtmxElement(el) {
+      return !!(el.closest && el.closest("[hx-get],[hx-post],[hx-put],[hx-patch],[hx-delete]"));
+    }
+
+    function setButtonLoading(btn) {
+      if (!btn || btn.dataset.loadingActive === "true") return;
+      btn.dataset.loadingActive = "true";
+      btn.dataset.originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.classList.add("opacity-70", "cursor-not-allowed");
+      btn.innerHTML = '<span class="btn-spinner" style="margin-right:.5em;"></span>' + btn.innerHTML;
+    }
+
+    function resetButton(btn) {
+      if (!btn || btn.dataset.loadingActive !== "true") return;
+      btn.disabled = false;
+      btn.classList.remove("opacity-70", "cursor-not-allowed");
+      btn.innerHTML = btn.dataset.originalHtml || btn.innerHTML;
+      delete btn.dataset.loadingActive;
+    }
+
+    // Full-page navigation: same-origin link clicks (skip new tabs, downloads,
+    // in-page anchors, and modified clicks that open in a new tab).
+    document.addEventListener("click", function (e) {
+      var link = e.target.closest && e.target.closest("a[href]");
+      if (!link || isHtmxElement(link)) return;
+      if (link.target && link.target !== "_self") return;
+      if (link.hasAttribute("download")) return;
+      var href = link.getAttribute("href") || "";
+      if (!href || href.charAt(0) === "#" || href.indexOf("mailto:") === 0 || href.indexOf("tel:") === 0) return;
+      if (link.origin !== window.location.origin) return;
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      start();
+    });
+
+    // Full-page navigation: regular (non-htmx) form submits.
+    document.addEventListener("submit", function (e) {
+      var form = e.target;
+      if (!form || isHtmxElement(form) || form.hasAttribute("data-no-loading")) return;
+      start();
+      setButtonLoading(form.querySelector('button[type="submit"]:not([disabled])'));
+    }, true);
+
+    // htmx partial requests (dashboard / seller / console).
+    document.body.addEventListener("htmx:beforeRequest", function () { start(); });
+    document.body.addEventListener("htmx:afterRequest", function () { done(); });
+    document.body.addEventListener("htmx:responseError", function () { done(); });
+    document.body.addEventListener("htmx:sendError", function () { done(); });
+
+    // Restore any spinner-ified buttons if the page is served from bfcache
+    // (back/forward navigation) so a stale disabled state never lingers.
+    window.addEventListener("pageshow", function () {
+      bar.classList.remove("is-active");
+      bar.style.width = "0%";
+      document.querySelectorAll('[data-loading-active="true"]').forEach(resetButton);
+    });
+  }
+
   function initScrollReveal() {
     var items = document.querySelectorAll("[data-reveal]");
     if (!items.length) return;
@@ -142,6 +225,25 @@
     });
   }
 
+  function initPaymentMethodGroups() {
+    var toggles = document.querySelectorAll("[data-payment-toggle]");
+    toggles.forEach(function (btn) {
+      var group = btn.closest("[data-payment-group]");
+      if (!group) return;
+      var hiddenItems = group.querySelectorAll("[data-payment-extra]");
+      var moreLabel = btn.getAttribute("data-more-label") || "Show more";
+      var lessLabel = btn.getAttribute("data-less-label") || "Show less";
+      btn.addEventListener("click", function () {
+        var isOpen = group.getAttribute("data-open") === "true";
+        group.setAttribute("data-open", isOpen ? "false" : "true");
+        hiddenItems.forEach(function (el) {
+          el.classList.toggle("hidden", isOpen);
+        });
+        btn.textContent = isOpen ? moreLabel : lessLabel;
+      });
+    });
+  }
+
   function initFaqAccordion() {
     var items = document.querySelectorAll("[data-faq-item]");
     items.forEach(function (item) {
@@ -172,12 +274,14 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    safeInit(initLoadingIndicator);
     safeInit(initScrollReveal);
     safeInit(initMagneticButtons);
     safeInit(initTiltCards);
     safeInit(initCountUp);
     safeInit(initMobileNav);
     safeInit(initPasswordToggle);
+    safeInit(initPaymentMethodGroups);
     safeInit(initFaqAccordion);
   });
 })();

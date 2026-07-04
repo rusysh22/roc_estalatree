@@ -142,3 +142,37 @@
     animation: none;
   }
 }
+
+/* ── Global loading / buffer indicator ────────────────────────────────────── */
+#page-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, var(--color-primary-400), var(--color-primary-600));
+  z-index: 9999;
+  opacity: 0;
+  transition: width .3s ease-out, opacity .2s ease-out;
+  pointer-events: none;
+}
+#page-progress-bar.is-active {
+  opacity: 1;
+}
+
+@keyframes btn-spinner-spin {
+  to { transform: rotate(360deg); }
+}
+.btn-spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: btn-spinner-spin .6s linear infinite;
+  vertical-align: -0.15em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-spinner { animation-duration: 1.5s; }
+}

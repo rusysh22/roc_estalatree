@@ -308,6 +308,32 @@ def test_webhook_view_returns_400_on_invalid_signature(customer, mock_client):
     assert response.status_code == 400
 
 
+@pytest.mark.django_db
+def test_webhook_view_form_encoded_credits_topup(customer, mock_client):
+    """Regression test: Duitku posts the callback as application/x-www-form-urlencoded,
+    not JSON. Post it the real way (no content_type override, so Django parses it into
+    request.POST) and exercise the real view -> process_webhook_payload path end to end
+    (no mocking of process_webhook_payload) to confirm the TopUp actually gets credited."""
+    from unittest.mock import patch
+
+    topup, _ = initiate_topup(
+        customer, 60_000,
+        payment_method="VC",
+        callback_url="https://example.com/cb",
+        return_url="https://example.com/return",
+        duitku_client=mock_client,
+    )
+    payload = make_webhook_payload(mock_client, topup.public_id, 60_000)
+
+    client = Client()
+    with patch("apps.billing.duitku.DuitkuClient.from_settings", return_value=mock_client):
+        response = client.post(reverse("billing:duitku_webhook"), data=payload)
+
+    assert response.status_code == 200
+    topup.refresh_from_db()
+    assert topup.status == TopUp.Status.PAID
+
+
 # ── Safety-net: recheck_topup_status ─────────────────────────────────────────
 
 @pytest.mark.django_db

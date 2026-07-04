@@ -29,12 +29,33 @@ class DuitkuError(Exception):
     """Raised when Duitku returns an error or the network call fails."""
 
 
+def classify_payment_method_type(code: str) -> str:
+    """Classify a Duitku payment method code into a display group.
+
+    Returns one of: "va", "ewallet", "qris", "retail", "cc", "other".
+    Code lists per Duitku's documented payment method codes.
+    """
+    code = (code or "").upper()
+    if code in ("VC",):
+        return "cc"
+    if code in ("FT", "IR", "ALFMART", "INDOMARET"):
+        return "retail"
+    if code in ("OV", "OL", "DA", "SA", "LA", "SL", "JP"):
+        return "ewallet"
+    if code in ("SP", "LQ", "GQ", "NQ", "AG"):
+        return "qris"
+    if code in ("VA", "BT", "B1", "A1", "I1", "M2", "BC", "BR", "BV", "NC", "DN"):
+        return "va"
+    return "other"
+
+
 @dataclass
 class PaymentMethod:
     code: str
     name: str
     image_url: str
     fee: int
+    method_type: str = "other"
 
 
 @dataclass
@@ -162,6 +183,7 @@ class DuitkuClient:
                 name=m["paymentName"],
                 image_url=m.get("paymentImage", ""),
                 fee=int(m.get("totalFee", 0)),
+                method_type=classify_payment_method_type(m["paymentMethod"]),
             )
             for m in result.get("paymentFee", [])
         ]

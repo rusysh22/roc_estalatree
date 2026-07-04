@@ -202,6 +202,37 @@ def test_checkout_post_insufficient_balance_redirects_to_payment(authed_client, 
     assert "duitku.com" in resp["Location"] or "sandbox" in resp["Location"]
 
 
+@pytest.mark.django_db(transaction=True)
+def test_guest_checkout_creates_account_and_redirects_to_payment(public_product):
+    """Regression test: the custom User model has no `username` field (email-only
+    auth, see apps/accounts/models.py). Guest checkout must not try to generate/filter
+    by username — that previously crashed with a 500 (FieldError) for every anonymous
+    guest checkout that needed a top-up."""
+    from apps.accounts.models import Customer, User
+
+    plan = public_product.plans.first()
+    guest_email = "newguest@example.com"
+    assert not User.objects.filter(email=guest_email).exists()
+
+    mock_result = MagicMock()
+    mock_result.reference = "REF456"
+    mock_result.payment_url = "https://sandbox.duitku.com/pay/REF456"
+
+    mock_client = MagicMock()
+    mock_client.create_invoice.return_value = mock_result
+
+    with patch("apps.billing.duitku.DuitkuClient.from_settings", return_value=mock_client):
+        resp = Client().post(reverse("storefront:checkout", args=[plan.pk]), {
+            "guest_email": guest_email,
+            "payment_method": "VC",
+        })
+
+    assert resp.status_code == 302
+    assert "duitku.com" in resp["Location"] or "sandbox" in resp["Location"]
+    user = User.objects.get(email=guest_email)
+    assert Customer.objects.filter(user=user).exists()
+
+
 # ── 7. Order status ───────────────────────────────────────────────────────────
 
 @pytest.mark.django_db(transaction=True)

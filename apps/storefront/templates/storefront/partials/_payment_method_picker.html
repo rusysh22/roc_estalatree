@@ -1,0 +1,47 @@
+{% comment %}
+Renders payment_method_groups (list of {key, label, methods}) as a grouped,
+logo-based radio picker. Each group shows up to 4 methods, with a "show more"
+toggle for the rest (handled by initPaymentMethodGroups() in site.js).
+
+Context vars used: payment_method_groups, form_id (optional — set when the
+radio inputs live outside the <form> and need a form="..." attribute).
+{% endcomment %}
+{% if payment_method_groups %}
+<div class="space-y-4">
+  {% for group in payment_method_groups %}
+  <div data-payment-group data-open="false">
+    <p class="text-[11px] font-bold text-ink-400 uppercase tracking-wide mb-2">{{ group.label }}</p>
+    <div class="grid grid-cols-2 gap-2">
+      {% for pm in group.methods %}
+      <label class="flex items-center gap-2 border-2 border-ink-100 rounded-xl px-2.5 py-2 cursor-pointer
+                    has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50 transition-colors
+                    {% if forloop.counter > 4 %}hidden{% endif %}"
+             {% if forloop.counter > 4 %}data-payment-extra{% endif %}>
+        <input type="radio" name="payment_method" value="{{ pm.code }}"
+               {% if form_id %}form="{{ form_id }}"{% endif %}
+               {% if forloop.parentloop.first and forloop.first %}checked{% endif %}
+               class="sr-only peer" required>
+        <span class="w-9 h-6 bg-white border border-ink-100 rounded flex items-center justify-center shrink-0 overflow-hidden">
+          {% if pm.image_url %}
+          <img src="{{ pm.image_url }}" alt="" class="w-full h-full object-contain p-0.5" loading="lazy"
+               onerror="this.style.visibility='hidden'">
+          {% endif %}
+        </span>
+        <span class="truncate text-xs font-semibold text-ink-700 peer-checked:text-primary-700">{{ pm.name }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    {% if group.methods|length > 4 %}
+    <button type="button" data-payment-toggle
+            data-more-label="Show {{ group.methods|length|add:"-4" }} more"
+            data-less-label="Show less"
+            class="mt-2 text-xs font-semibold text-primary-600 hover:text-primary-700 cursor-pointer">
+      Show {{ group.methods|length|add:"-4" }} more
+    </button>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-xs text-primary-600">No payment methods available right now. Please try again later.</p>
+{% endif %}

@@ -168,20 +168,7 @@
       {% if direct_pay_active or shortfall > 0 %}
       <div class="bg-white rounded-2xl border border-ink-100 p-5">
         <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-3">Payment Method</p>
-        {% if payment_methods %}
-        <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
-          {% for pm in payment_methods %}
-          <label class="flex items-center gap-2 border-2 border-ink-100 rounded-xl px-3 py-2 text-sm cursor-pointer
-                        has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50">
-            <input type="radio" name="payment_method" value="{{ pm.code }}" form="checkout-form"
-              {% if forloop.first %}checked{% endif %} class="accent-primary-600" required>
-            <span class="truncate">{{ pm.name }}</span>
-          </label>
-          {% endfor %}
-        </div>
-        {% else %}
-        <p class="text-xs text-primary-600">No payment methods available right now. Please try again later.</p>
-        {% endif %}
+        {% include "storefront/partials/_payment_method_picker.html" with form_id="checkout-form" %}
       </div>
       {% endif %}
 

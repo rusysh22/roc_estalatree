@@ -57,6 +57,29 @@ def _payment_methods(amount: int):
         return []
 
 
+# Display order + label for grouped payment method rendering.
+PAYMENT_METHOD_GROUPS = [
+    ("va", "Bank Transfer / Virtual Account"),
+    ("qris", "QRIS"),
+    ("ewallet", "E-Wallet"),
+    ("retail", "Convenience Store"),
+    ("cc", "Credit / Debit Card"),
+    ("other", "Other"),
+]
+
+
+def _group_payment_methods(methods):
+    """Group a flat list of PaymentMethod into [{key, label, methods}], empty groups omitted."""
+    buckets = {key: [] for key, _label in PAYMENT_METHOD_GROUPS}
+    for pm in methods:
+        buckets.setdefault(pm.method_type, buckets["other"]).append(pm)
+    return [
+        {"key": key, "label": label, "methods": buckets[key]}
+        for key, label in PAYMENT_METHOD_GROUPS
+        if buckets[key]
+    ]
+
+
 # ── Analytics helpers ─────────────────────────────────────────────────────────
 
 def _emit_event(request, event_type, *, product=None, plan=None):
@@ -269,13 +292,7 @@ def checkout_plan(request, plan_pk):
             from urllib.parse import urlencode
             return redirect(f"{reverse('account_login')}?{urlencode({'next': request.path, 'login_hint': email})}")
         else:
-            username = email.split('@')[0]
-            base_username = username
-            counter = 1
-            while User.objects.filter(username=username).exists():
-                username = f"{base_username}{counter}"
-                counter += 1
-            user = User.objects.create_user(username=username, email=email)
+            user = User.objects.create_user(email=email)
             user.set_unusable_password()
             user.save()
             from allauth.account.models import EmailAddress
@@ -362,6 +379,7 @@ def checkout_plan(request, plan_pk):
         # some amount will actually be charged through the gateway.
         charge_amount = effective_price if direct_pay_active else shortfall
         payment_methods = _payment_methods(charge_amount) if charge_amount > 0 else []
+        payment_method_groups = _group_payment_methods(payment_methods)
 
         _emit_event(request, "checkout_start", product=product, plan=plan)
         return render(request, "storefront/checkout.html", {
@@ -378,6 +396,7 @@ def checkout_plan(request, plan_pk):
             "effective_price": effective_price,
             "questions": questions,
             "payment_methods": payment_methods,
+            "payment_method_groups": payment_method_groups,
             "duration_multiplier": duration_multiplier,
             "duration_discount_pct": duration_discount_pct,
             "duration_discount_amount": duration_discount_amount,
@@ -554,6 +573,7 @@ def topup(request):
         {"value": v, "label": f"{v:,}"}
         for v in [50_000, 100_000, 200_000, 500_000, 1_000_000, 2_000_000]
     ]
+    topup_payment_methods = _payment_methods(prefill_amount or MIN_TOPUP)
     return render(request, "storefront/topup.html", {
         "customer": customer,
         "wallet": customer.wallet,
@@ -561,7 +581,8 @@ def topup(request):
         "min_topup": MIN_TOPUP,
         "max_topup": MAX_TOPUP,
         "prefill_amount": prefill_amount,
-        "payment_methods": _payment_methods(prefill_amount or MIN_TOPUP),
+        "payment_methods": topup_payment_methods,
+        "payment_method_groups": _group_payment_methods(topup_payment_methods),
     })
 
 

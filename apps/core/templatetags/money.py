@@ -31,11 +31,28 @@ def user_surfaces(context):
     except Exception:
         surfaces["dashboard"] = False
     surfaces["console"] = user.is_superuser or user.groups.filter(name="Operator").exists()
+    surfaces["seller"] = False
+    surfaces["seller_store_url"] = ""
     try:
+        from django.urls import reverse
+
         from apps.accounts.models import SellerProfile
-        surfaces["seller"] = SellerProfile.objects.filter(user=user, is_approved=True).exists()
+
+        seller = SellerProfile.objects.filter(user=user, is_approved=True).select_related("store_page").first()
+        if seller:
+            surfaces["seller"] = True
+            store_page = getattr(seller, "store_page", None)
+            if store_page:
+                url = reverse("storefront:store_page", args=[store_page.slug])
+                # Store page exists but isn't published yet — preview it as the owner
+                # instead of hitting the public 404 that a normal visitor would get.
+                surfaces["seller_store_url"] = url if store_page.is_published else f"{url}?preview=1"
+            else:
+                # No StorePage row yet (seller has never opened the page builder) —
+                # send them there instead of a link that would 404.
+                surfaces["seller_store_url"] = reverse("seller:store")
     except Exception:
-        surfaces["seller"] = False
+        pass
     return surfaces
 
 

@@ -486,8 +486,13 @@ def _get_or_create_store_page(seller):
             "title": seller.name,
             "description": seller.bio or "",
             "is_published": False,
+            "seller": seller,
         },
     )
+    if store_page.seller_id is None:
+        # Backfill rows created before this FK was set at creation time.
+        store_page.seller = seller
+        store_page.save(update_fields=["seller"])
     return store_page
 
 

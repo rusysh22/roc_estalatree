@@ -25,10 +25,16 @@ def duitku_webhook(request):
     - 400       → invalid signature (definitively bad; no retry needed)
     - 500       → unexpected error or TopUp not found (Duitku retries — safe)
     """
-    try:
-        payload = json.loads(request.body)
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return HttpResponseBadRequest("Invalid JSON payload")
+    # Duitku sends the callback as application/x-www-form-urlencoded, not JSON —
+    # request.POST already parses that. Fall back to JSON for robustness (some
+    # sandbox/test tooling posts JSON instead).
+    if request.POST:
+        payload = request.POST.dict()
+    else:
+        try:
+            payload = json.loads(request.body)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return HttpResponseBadRequest("Invalid or empty payload")
 
     merchant_order_id = str(payload.get("merchantOrderId", ""))
     result_code = str(payload.get("resultCode", ""))
