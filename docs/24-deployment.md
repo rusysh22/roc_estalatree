@@ -98,15 +98,17 @@ sudo docker compose up -d certbot
 
 ## 5. Redeploying after a code change
 
-The image bakes the app source in at build time (`COPY . .` — no source bind-mount), so **editing files on the host does nothing until the image is rebuilt**:
+The image bakes the app source in at build time (`COPY . .` — no source bind-mount), so **editing files on the host does nothing until the image is rebuilt**. Run:
 
 ```bash
-git pull
-sudo docker compose build web worker beat
-sudo docker compose up -d web worker beat
+./deploy.sh
 ```
 
-`docker-entrypoint.sh` re-runs `migrate` and `collectstatic` on every `web` start, so new migrations/static assets ship automatically. Restarting nginx/db/redis is not needed for an app-only change.
+which does `git pull` → rebuild `web`/`worker`/`beat` → recreate them → wait for gunicorn to actually respond → reload nginx → curl `https://berlanggan.web.id/` to confirm, falling back to a full nginx restart and printing logs if anything's still broken.
+
+`docker-entrypoint.sh` re-runs `migrate` and `collectstatic` on every `web` start, so new migrations/static assets ship automatically.
+
+**nginx must be reloaded after every `web` recreate.** `nginx/conf.d/app.conf` has `upstream django { server web:8000; }` — nginx resolves that hostname once at start/reload and caches the IP. Recreating the `web` container gives it a new IP on the `berlanggan_default` network; until nginx reloads, it keeps proxying to the old (now-gone) IP and every request 502s with `connect() failed (111: Connection refused)` in the nginx logs. `deploy.sh` handles this automatically (`nginx -s reload`, or a full restart if reload alone doesn't clear it) — this is why the manual `git pull` + rebuild sequence above is no longer the recommended path.
 
 ## 6. Certificate renewal
 
