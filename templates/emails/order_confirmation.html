@@ -1,0 +1,73 @@
+{% extends "emails/base.html" %}
+{% load money %}
+
+{% block subject %}Purchase successful: {{ order.plan }}{% endblock %}
+
+{% block content %}
+<p style="margin:0 0 4px 0; font-size:12px; font-weight:700; color:#2F7A55; text-transform:uppercase; letter-spacing:0.05em;">Purchase successful</p>
+<h1 style="margin:0 0 16px 0; font-size:20px; font-weight:800; color:#16130F;">{{ order.plan }}</h1>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0; background-color:#FBF4EC; border-radius:14px;">
+  <tr>
+    <td style="padding:14px 18px; font-size:13px; color:#766C5D;">Amount paid</td>
+    <td align="right" style="padding:14px 18px; font-size:15px; font-weight:700; color:#16130F;">{{ order.amount|rupiah }}</td>
+  </tr>
+  <tr>
+    <td style="padding:0 18px 14px 18px; font-size:13px; color:#766C5D;">Order ID</td>
+    <td align="right" style="padding:0 18px 14px 18px; font-size:13px; color:#16130F; font-family:monospace;">{{ order.public_id }}</td>
+  </tr>
+</table>
+
+<p style="margin:0 0 12px 0; font-size:13px; font-weight:700; color:#16130F; text-transform:uppercase; letter-spacing:0.05em;">Your access</p>
+
+{% for grant in grants %}
+  {% if grant.type == "license_key" and grant.payload.license_key %}
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 14px 0;">
+    <tr>
+      <td style="background-color:#FBF4EC; border:2px dashed #C9C3BA; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:800; letter-spacing:0.1em; color:#16130F; word-break:break-all;">
+        {{ grant.payload.license_key }}
+      </td>
+    </tr>
+  </table>
+  {% elif grant.type == "download" and grant.payload.download_url %}
+  <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0;">
+    <tr>
+      <td style="border-radius:9999px; background-color:#FF5A36;">
+        <a href="{{ grant.payload.download_url }}" target="_blank"
+           style="display:inline-block; padding:12px 28px; font-size:14px; font-weight:700; color:#FFFFFF; text-decoration:none; border-radius:9999px;">
+          Download your file
+        </a>
+      </td>
+    </tr>
+  </table>
+  {% elif grant.type == "access_link" and grant.payload.access_url %}
+  <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0;">
+    <tr>
+      <td style="border-radius:9999px; background-color:#FF5A36;">
+        <a href="{{ grant.payload.access_url }}" target="_blank"
+           style="display:inline-block; padding:12px 28px; font-size:14px; font-weight:700; color:#FFFFFF; text-decoration:none; border-radius:9999px;">
+          Open your access
+        </a>
+      </td>
+    </tr>
+  </table>
+  {% elif grant.type == "credentials" or grant.type == "api_key" %}
+  <p style="margin:0 0 14px 0; font-size:14px; color:#3C3529;">Your credentials/API key are ready — view them securely on your dashboard (link below).</p>
+  {% endif %}
+{% empty %}
+<p style="margin:0 0 14px 0; font-size:14px; color:#3C3529;">Your product is ready — view the details on your dashboard.</p>
+{% endfor %}
+
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 20px 0;">
+  <tr>
+    <td style="border-radius:9999px; border:2px solid #16130F;">
+      <a href="{{ order_url }}" target="_blank"
+         style="display:inline-block; padding:12px 28px; font-size:14px; font-weight:700; color:#16130F; text-decoration:none; border-radius:9999px;">
+        View order details
+      </a>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0; font-size:12px; color:#766C5D;">Keep this email safe — it contains your access information. If you didn't make this purchase, contact support immediately.</p>
+{% endblock content %}
