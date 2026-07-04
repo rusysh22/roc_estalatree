@@ -1,32 +1,40 @@
 {% extends "base.html" %}
+{% load static %}
 {% block page_title %}Become a Seller{% endblock %}
+{% block body_class %}bg-cream text-ink-900 min-h-screen{% endblock %}
+{% block body_attrs %}style="font-family: var(--font-sans);"{% endblock %}
 
 {% block body %}
-<div class="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
   <div class="w-full max-w-md">
     <div class="text-center mb-8">
-      <div class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-3">
-        <span class="text-xl font-bold text-white">E</span>
-      </div>
-      <h1 class="text-xl font-bold text-gray-900">Become a Seller</h1>
-      <p class="text-sm text-gray-500 mt-1">Apply to open your store on Berlanggan</p>
+      <img src="{% static 'images/brand/logo-mark.png' %}" alt="Berlanggan" class="w-12 h-12 object-contain mx-auto mb-3">
+      <h1 class="text-xl font-extrabold text-ink-900">Become a Seller</h1>
+      <p class="text-sm text-ink-500 mt-1">Apply to open your store on Berlanggan</p>
     </div>
 
-    {% if pending %}
-    <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
-      <svg class="w-10 h-10 text-amber-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      <h2 class="font-semibold text-amber-800 mb-1">Application Pending</h2>
-      <p class="text-sm text-amber-700">Your seller application is under review. We'll notify you via email once approved.</p>
+    {% if suspended %}
+    <div class="bg-white border border-ink-100 rounded-2xl p-6 text-center">
+      <svg class="w-10 h-10 text-primary-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 105.636 5.636a9 9 0 0012.728 12.728zM5.636 5.636l12.728 12.728"/></svg>
+      <h2 class="font-bold text-ink-900 mb-1">Seller Account Suspended</h2>
+      <p class="text-sm text-ink-500">Your seller account is currently suspended. Contact support if you think this is a mistake.</p>
     </div>
     {% else %}
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <div class="bg-white rounded-2xl border border-ink-100 p-6">
       {% if messages %}
       <div class="mb-4 space-y-2">
         {% for msg in messages %}
-        <div class="px-3 py-2 rounded-lg text-sm {% if msg.tags == 'error' %}bg-red-50 text-red-700{% else %}bg-green-50 text-green-700{% endif %}">
+        <div class="px-3 py-2 rounded-xl text-sm {% if msg.tags == 'error' %}bg-primary-50 text-primary-700{% else %}bg-moss-50 text-moss-700{% endif %}">
           {{ msg }}
         </div>
         {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if not email_verified %}
+      <div class="px-3 py-2.5 rounded-xl text-sm bg-gold-50 text-gold-800 mb-4">
+        Please verify your email before applying —
+        <a href="{% url 'account_email' %}" class="underline font-semibold">verify now</a>.
       </div>
       {% endif %}
 
@@ -34,13 +42,13 @@
         {% csrf_token %}
         <div class="space-y-4">
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Store Name <span class="text-red-400">*</span></label>
+            <label class="block text-xs font-semibold text-ink-600 mb-1">Store Name <span class="text-primary-500">*</span></label>
             <input type="text" name="store_name" required placeholder="My Awesome Store"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400">
-            <p class="text-xs text-gray-400 mt-1">This will be your store's public name and URL slug.</p>
+              class="w-full border border-ink-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400">
+            <p class="text-xs text-ink-400 mt-1">This will be your store's public name and URL slug.</p>
           </div>
-          <button type="submit"
-            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm py-2.5 rounded-lg transition-colors">
+          <button type="submit" {% if not email_verified %}disabled{% endif %}
+            class="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold text-sm py-3 rounded-full transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
             Submit Application
           </button>
         </div>
@@ -48,8 +56,8 @@
     </div>
     {% endif %}
 
-    <p class="text-center text-xs text-gray-400 mt-4">
-      <a href="/" class="hover:underline text-gray-500">← Back to store</a>
+    <p class="text-center text-xs text-ink-400 mt-4">
+      <a href="{% url 'storefront:page' %}" class="hover:underline text-ink-500">&larr; Back to store</a>
     </p>
   </div>
 </div>

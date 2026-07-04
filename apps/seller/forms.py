@@ -97,6 +97,24 @@ class EntitlementForm(forms.ModelForm):
         }
 
 
+class OnboardingProductForm(forms.Form):
+    """Deliberately minimal — the mandatory onboarding wizard's "first product" step.
+
+    Full product/plan editing (description, cover image, deliverables, etc.) happens
+    later on the regular product-edit page; this just needs enough to have something
+    sellable so the store isn't empty when they finish onboarding.
+    """
+    product_name = forms.CharField(
+        max_length=200,
+        widget=forms.TextInput(attrs={"class": "input-field", "placeholder": "e.g. Notion Template Pack"}),
+    )
+    price = forms.IntegerField(
+        min_value=0,
+        widget=forms.NumberInput(attrs={"class": "input-field", "placeholder": "e.g. 50000"}),
+        help_text="Whole IDR, no decimals. Set to 0 for a free product.",
+    )
+
+
 class StorePageForm(forms.ModelForm):
     class Meta:
         model = StorePage

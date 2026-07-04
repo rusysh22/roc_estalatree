@@ -54,6 +54,9 @@ def seller_required(view_func):
         if not seller.is_approved:
             return redirect("seller:apply")
 
+        if not seller.onboarding_completed:
+            return redirect("seller:onboarding")
+
         request.seller = seller
         return view_func(request, *args, **kwargs)
 

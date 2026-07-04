@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load static money %}
+{% block page_title %}Set Up Your Store{% endblock %}
+{% block body_class %}bg-cream text-ink-900 min-h-screen{% endblock %}
+{% block body_attrs %}style="font-family: var(--font-sans);"{% endblock %}
+
+{% block body %}
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-md">
+    <div class="text-center mb-6">
+      <img src="{% static 'images/brand/logo-mark.png' %}" alt="Berlanggan" class="w-12 h-12 object-contain mx-auto mb-3">
+      <h1 class="text-xl font-extrabold text-ink-900">Set Up Your Store</h1>
+      <p class="text-sm text-ink-500 mt-1">A few quick steps before your store goes live.</p>
+    </div>
+
+    <!-- Progress -->
+    <div class="flex items-center justify-center gap-2 mb-6">
+      <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold
+        {% if step == "identity" %}bg-primary-500 text-white{% else %}bg-moss-500 text-white{% endif %}">1</span>
+      <span class="w-8 h-0.5 bg-ink-200"></span>
+      <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold
+        {% if step == "identity" %}bg-white border border-ink-200 text-ink-400{% elif step == "product" %}bg-primary-500 text-white{% else %}bg-moss-500 text-white{% endif %}">2</span>
+      <span class="w-8 h-0.5 bg-ink-200"></span>
+      <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold
+        {% if step == "publish" %}bg-primary-500 text-white{% else %}bg-white border border-ink-200 text-ink-400{% endif %}">3</span>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-ink-100 p-6">
+      {% if messages %}
+      <div class="mb-4 space-y-2">
+        {% for msg in messages %}
+        <div class="px-3 py-2 rounded-xl text-sm {% if msg.tags == 'error' %}bg-primary-50 text-primary-700{% else %}bg-moss-50 text-moss-700{% endif %}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if step == "identity" %}
+      <h2 class="font-bold text-ink-900 mb-1">Store identity</h2>
+      <p class="text-xs text-ink-400 mb-4">This is how customers will see your store. You can change it anytime later.</p>
+      <form method="post">
+        {% csrf_token %}
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-ink-600 mb-1">Store name</label>
+            {{ form.title }}
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-ink-600 mb-1">Short description <span class="text-ink-300 font-normal">(optional)</span></label>
+            {{ form.description }}
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-ink-600 mb-1">Avatar/logo URL <span class="text-ink-300 font-normal">(optional)</span></label>
+            {{ form.avatar_url }}
+          </div>
+          <button type="submit" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold text-sm py-3 rounded-full transition-colors cursor-pointer">
+            Continue &rarr;
+          </button>
+        </div>
+      </form>
+
+      {% elif step == "product" %}
+      <h2 class="font-bold text-ink-900 mb-1">Your first product</h2>
+      <p class="text-xs text-ink-400 mb-4">Add one product to sell. You can add more, edit pricing, and attach files/licenses after finishing setup.</p>
+      <form method="post">
+        {% csrf_token %}
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-ink-600 mb-1">Product name</label>
+            {{ form.product_name }}
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-ink-600 mb-1">Price (Rp)</label>
+            {{ form.price }}
+            <p class="text-xs text-ink-400 mt-1">{{ form.price.help_text }}</p>
+          </div>
+          <button type="submit" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold text-sm py-3 rounded-full transition-colors cursor-pointer">
+            Continue &rarr;
+          </button>
+        </div>
+      </form>
+
+      {% else %}
+      <h2 class="font-bold text-ink-900 mb-1">Ready to publish</h2>
+      <p class="text-xs text-ink-400 mb-4">Here's a quick summary — go live when you're ready.</p>
+      <div class="bg-cream rounded-xl p-4 mb-5 space-y-2">
+        <div class="flex justify-between text-sm">
+          <span class="text-ink-500">Store</span>
+          <span class="font-semibold text-ink-900">{{ store_page.title }}</span>
+        </div>
+        {% if product %}
+        <div class="flex justify-between text-sm">
+          <span class="text-ink-500">Product</span>
+          <span class="font-semibold text-ink-900">{{ product.name }}</span>
+        </div>
+        <div class="flex justify-between text-sm">
+          <span class="text-ink-500">Price</span>
+          <span class="font-semibold text-ink-900">{{ product.plans.first.price|rupiah }}</span>
+        </div>
+        {% endif %}
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold text-sm py-3 rounded-full transition-colors cursor-pointer">
+          Go live &rarr;
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -25,6 +25,7 @@ from .forms import (
     CourseModuleForm,
     DeliverableForm,
     EntitlementForm,
+    OnboardingProductForm,
     PayoutRequestForm,
     PlanForm,
     ProductForm,
@@ -802,21 +803,32 @@ def settings(request):
 # ── Apply (seller application) ────────────────────────────────────────────────
 
 def apply(request):
-    """Non-authenticated users / customers apply to become a seller."""
-    from django.contrib.auth.decorators import login_required
+    """Logged-in, email-verified users apply to become a seller — approved instantly
+    (no manual review step, see docs/feedback — is_approved stays available for
+    later moderation/suspension, it's just no longer part of the application path).
+    """
     if not request.user.is_authenticated:
         return redirect("/accounts/login/?next=/seller/apply/")
 
     try:
         seller = request.user.seller_profile
-        if seller.is_approved:
-            return redirect("seller:home")
-        # Already applied — show pending message
-        return render(request, "seller/apply.html", {"pending": True})
+        if not seller.is_approved:
+            # Only reachable for accounts suspended after the fact (moderation) —
+            # instant approval means nothing is created in a not-approved state anymore.
+            return render(request, "seller/apply.html", {"suspended": True})
+        if not seller.onboarding_completed:
+            return redirect("seller:onboarding")
+        return redirect("seller:home")
     except SellerProfile.DoesNotExist:
         pass
 
+    from allauth.account.models import EmailAddress
+    email_verified = EmailAddress.objects.filter(user=request.user, verified=True).exists()
+
     if request.method == "POST":
+        if not email_verified:
+            messages.error(request, "Please verify your email before applying as a seller.")
+            return redirect("account_email")
         name = request.POST.get("store_name", "").strip()
         slug_candidate = slugify(name)
         if not name:
@@ -828,12 +840,97 @@ def apply(request):
                 user=request.user,
                 name=name,
                 slug=slug_candidate,
-                is_approved=False,
+                is_approved=True,
+                onboarding_completed=False,
             )
-            messages.success(request, "Application submitted! You'll be notified when approved.")
-            return redirect("seller:apply")
+            messages.success(request, "You're in! Let's set up your store.")
+            return redirect("seller:onboarding")
 
-    return render(request, "seller/apply.html", {"pending": False})
+    return render(request, "seller/apply.html", {"suspended": False, "email_verified": email_verified})
+
+
+# ── Onboarding (mandatory first-time store setup wizard) ─────────────────────
+
+def onboarding(request):
+    """Mandatory 3-step wizard a new seller must finish before reaching the regular
+    dashboard (see docs/feedback — deliberately not skippable, unlike a typical
+    dismissible-nudge onboarding flow).
+
+    Steps: identity (store name/avatar/bio) -> product (one sellable plan) ->
+    publish (go live). seller.onboarding_step tracks resume position; seller_required
+    (apps/seller/decorators.py) redirects here for any seller who hasn't finished.
+    """
+    if not request.user.is_authenticated:
+        return redirect("/accounts/login/?next=/seller/onboarding/")
+
+    try:
+        seller = request.user.seller_profile
+    except SellerProfile.DoesNotExist:
+        return redirect("seller:apply")
+
+    if not seller.is_approved:
+        return redirect("seller:apply")
+
+    if seller.onboarding_completed:
+        return redirect("seller:home")
+
+    store_page = _get_or_create_store_page(seller)
+    step = seller.onboarding_step
+
+    if step == SellerProfile.OnboardingStep.IDENTITY:
+        if request.method == "POST":
+            form = StorePageForm(request.POST, instance=store_page)
+            if form.is_valid():
+                form.save()
+                seller.onboarding_step = SellerProfile.OnboardingStep.PRODUCT
+                seller.save(update_fields=["onboarding_step", "updated_at"])
+                return redirect("seller:onboarding")
+        else:
+            form = StorePageForm(instance=store_page)
+        return render(request, "seller/onboarding.html", {
+            "seller": seller, "step": step, "form": form,
+        })
+
+    if step == SellerProfile.OnboardingStep.PRODUCT:
+        if request.method == "POST":
+            form = OnboardingProductForm(request.POST)
+            if form.is_valid():
+                product = Product.objects.create(
+                    seller=seller if not seller.user.is_superuser else None,
+                    name=form.cleaned_data["product_name"],
+                    type=Product.Type.FREE if form.cleaned_data["price"] == 0 else Product.Type.ONE_TIME,
+                    visibility=Product.Visibility.PUBLIC,
+                )
+                plan = Plan.objects.create(
+                    seller=product.seller,
+                    product=product,
+                    name="Standard",
+                    price=form.cleaned_data["price"],
+                )
+                position = (store_page.blocks.aggregate(m=Count("pk"))["m"] or 0) + 1
+                Block.objects.create(store_page=store_page, product=product, type=Block.Type.PRODUCT, position=position)
+                seller.onboarding_step = SellerProfile.OnboardingStep.PUBLISH
+                seller.save(update_fields=["onboarding_step", "updated_at"])
+                return redirect("seller:onboarding")
+        else:
+            form = OnboardingProductForm()
+        return render(request, "seller/onboarding.html", {
+            "seller": seller, "step": step, "form": form,
+        })
+
+    # step == PUBLISH
+    if request.method == "POST":
+        store_page.is_published = True
+        store_page.save(update_fields=["is_published", "updated_at"])
+        seller.onboarding_completed = True
+        seller.save(update_fields=["onboarding_completed", "updated_at"])
+        messages.success(request, "Your store is live!")
+        return redirect("seller:home")
+
+    product = _seller_products(seller).prefetch_related("plans").first()
+    return render(request, "seller/onboarding.html", {
+        "seller": seller, "step": step, "store_page": store_page, "product": product,
+    })
 
 
 # ── Earnings & Payouts ────────────────────────────────────────────────────────

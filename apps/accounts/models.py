@@ -76,6 +76,11 @@ class SellerProfile(TimestampedModel):
         FREE = "free", "Free"
         PRO = "pro", "PRO"
 
+    class OnboardingStep(models.TextChoices):
+        IDENTITY = "identity", "Store identity"
+        PRODUCT = "product", "First product"
+        PUBLISH = "publish", "Publish"
+
     user = models.OneToOneField(
         "accounts.User",
         null=True,
@@ -87,6 +92,16 @@ class SellerProfile(TimestampedModel):
     slug = models.SlugField(unique=True)
     is_active = models.BooleanField(default=True)
     is_approved = models.BooleanField(default=True)
+    onboarding_completed = models.BooleanField(
+        default=True,
+        help_text="False forces the seller through the guided store-setup wizard "
+        "(apply() sets this to False for every newly-created SellerProfile).",
+    )
+
+    onboarding_step = models.CharField(
+        max_length=20, choices=OnboardingStep.choices, default=OnboardingStep.IDENTITY,
+        help_text="Where a not-yet-onboarded seller resumes the setup wizard.",
+    )
     commission_rate = models.PositiveSmallIntegerField(
         default=0, help_text="Platform commission percentage (0–100)"
     )

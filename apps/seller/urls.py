@@ -34,6 +34,7 @@ urlpatterns = [
     path("broadcast/", views.broadcast, name="broadcast"),
     path("settings/", views.settings, name="settings"),
     path("apply/", views.apply, name="apply"),
+    path("onboarding/", views.onboarding, name="onboarding"),
     path("analytics/", views.analytics, name="analytics"),
     path("earnings/", views.earnings, name="earnings"),
     path("earnings/payout/", views.payout_request, name="payout_request"),
