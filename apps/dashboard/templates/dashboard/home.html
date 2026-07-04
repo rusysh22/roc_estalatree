@@ -3,20 +3,20 @@
 {% block page_title %}Home{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">Dashboard</h1>
+<h1 class="text-2xl font-extrabold text-ink-900 mb-6 tracking-tight">Dashboard</h1>
 
 <!-- Renewal CTA banner (H-24 shortfall) -->
 {% if next_sub and shortfall > 0 and hours_until < 24 %}
-<div class="mb-6 bg-amber-50 border border-amber-300 rounded-lg px-5 py-4 flex items-center justify-between">
+<div class="mb-6 bg-gold-50 border border-gold-300 rounded-2xl px-5 py-4 flex items-center justify-between">
   <div>
-    <p class="font-medium text-amber-900">
+    <p class="font-bold text-gold-800">
       Renewal due in {{ hours_until|rupiah }}h &mdash; balance short by
       <strong>{{ shortfall|rupiah }}</strong>
     </p>
-    <p class="text-sm text-amber-700 mt-0.5">{{ next_sub.plan.name }}</p>
+    <p class="text-sm text-gold-700 mt-0.5">{{ next_sub.plan.name }}</p>
   </div>
   <a href="{% url 'dashboard:wallet' %}"
-     class="ml-4 shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded">
+     class="ml-4 shrink-0 bg-gold-500 hover:bg-gold-600 text-ink-900 text-sm font-bold px-4 py-2 rounded-xl">
     Top up now
   </a>
 </div>
@@ -24,65 +24,65 @@
 
 <!-- Balance card -->
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-  <div class="bg-white rounded-lg border border-gray-200 p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Balance</p>
-    <p class="text-2xl font-bold text-indigo-600">{{ wallet.balance|rupiah }}</p>
-    <a href="{% url 'dashboard:wallet' %}" class="text-xs text-indigo-500 hover:underline mt-1 inline-block">View ledger</a>
+  <div class="bg-white rounded-2xl border border-ink-100 p-5">
+    <p class="text-xs text-ink-400 uppercase tracking-wide mb-1">Balance</p>
+    <p class="text-2xl font-bold text-primary-600">{{ wallet.balance|rupiah }}</p>
+    <a href="{% url 'dashboard:wallet' %}" class="text-xs text-primary-500 hover:underline mt-1 inline-block">View ledger</a>
   </div>
 
   {% if next_sub %}
-  <div class="bg-white rounded-lg border border-gray-200 p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Next Renewal</p>
+  <div class="bg-white rounded-2xl border border-ink-100 p-5">
+    <p class="text-xs text-ink-400 uppercase tracking-wide mb-1">Next Renewal</p>
     <p class="text-lg font-semibold">{{ next_sub.current_period_end|date:"d M Y" }}</p>
-    <p class="text-xs text-gray-500 mt-0.5">{{ next_sub.plan.name }} &mdash; {{ next_sub.plan.price|rupiah }}</p>
+    <p class="text-xs text-ink-500 mt-0.5">{{ next_sub.plan.name }} &mdash; {{ next_sub.plan.price|rupiah }}</p>
   </div>
   {% endif %}
 
-  <div class="bg-white rounded-lg border border-gray-200 p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Active Licenses</p>
+  <div class="bg-white rounded-2xl border border-ink-100 p-5">
+    <p class="text-xs text-ink-400 uppercase tracking-wide mb-1">Active Licenses</p>
     <p class="text-2xl font-bold">{{ recent_grants|length }}</p>
-    <a href="{% url 'dashboard:products' %}" class="text-xs text-indigo-500 hover:underline mt-1 inline-block">View all</a>
+    <a href="{% url 'dashboard:products' %}" class="text-xs text-primary-500 hover:underline mt-1 inline-block">View all</a>
   </div>
 </div>
 
 <!-- Active subscriptions -->
 {% if active_subs %}
 <section class="mb-8">
-  <h2 class="text-lg font-semibold mb-3">Subscriptions</h2>
-  <div class="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+  <h2 class="text-lg font-bold mb-3">Subscriptions</h2>
+  <div class="bg-white rounded-2xl border border-ink-100 divide-y divide-ink-100">
     {% for sub in active_subs %}
     <div class="flex items-center justify-between px-5 py-3">
       <div>
         <p class="font-medium text-sm">{{ sub.plan.name }}</p>
-        <p class="text-xs text-gray-500">Renews {{ sub.current_period_end|date:"d M Y" }}</p>
+        <p class="text-xs text-ink-500">Renews {{ sub.current_period_end|date:"d M Y" }}</p>
       </div>
       <span class="text-xs px-2 py-0.5 rounded-full
-        {% if sub.status == 'active' %}bg-green-100 text-green-700
-        {% elif sub.status == 'grace' %}bg-amber-100 text-amber-700
-        {% elif sub.status == 'suspended' %}bg-red-100 text-red-700
-        {% else %}bg-gray-100 text-gray-600{% endif %}">
+        {% if sub.status == 'active' %}bg-moss-100 text-moss-700
+        {% elif sub.status == 'grace' %}bg-gold-100 text-gold-700
+        {% elif sub.status == 'suspended' %}bg-primary-100 text-primary-700
+        {% else %}bg-ink-100 text-ink-600{% endif %}">
         {{ sub.get_status_display }}
       </span>
     </div>
     {% endfor %}
   </div>
-  <a href="{% url 'dashboard:subscriptions' %}" class="text-sm text-indigo-500 hover:underline mt-2 inline-block">Manage subscriptions</a>
+  <a href="{% url 'dashboard:subscriptions' %}" class="text-sm text-primary-500 hover:underline mt-2 inline-block">Manage subscriptions</a>
 </section>
 {% endif %}
 
 <!-- Recent products -->
 {% if recent_grants %}
 <section>
-  <h2 class="text-lg font-semibold mb-3">Recent Purchases</h2>
-  <div class="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+  <h2 class="text-lg font-bold mb-3">Recent Purchases</h2>
+  <div class="bg-white rounded-2xl border border-ink-100 divide-y divide-ink-100">
     {% for grant in recent_grants %}
     <div class="flex items-center justify-between px-5 py-3">
       <p class="font-medium text-sm">{{ grant.order.plan }}</p>
-      <span class="text-xs text-gray-400">{{ grant.created_at|date:"d M Y" }}</span>
+      <span class="text-xs text-ink-400">{{ grant.created_at|date:"d M Y" }}</span>
     </div>
     {% endfor %}
   </div>
-  <a href="{% url 'dashboard:products' %}" class="text-sm text-indigo-500 hover:underline mt-2 inline-block">View all products</a>
+  <a href="{% url 'dashboard:products' %}" class="text-sm text-primary-500 hover:underline mt-2 inline-block">View all products</a>
 </section>
 {% endif %}
 {% endblock %}

@@ -3,79 +3,79 @@
 {% block page_title %}Cockpit{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">Cockpit</h1>
+<h1 class="text-2xl font-extrabold text-ink-900 mb-6 tracking-tight">Cockpit</h1>
 
 <!-- KPI cards -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-  <div class="bg-white rounded-lg border border-gray-200 p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Balance Liability</p>
-    <p class="text-2xl font-bold text-indigo-600">{{ kpi.balance_liability|rupiah }}</p>
-    <p class="text-xs text-gray-400 mt-1">Total customer wallet balance</p>
+  <div class="bg-white rounded-2xl border border-ink-100 p-5">
+    <p class="text-xs text-ink-500 uppercase tracking-wide mb-1">Balance Liability</p>
+    <p class="text-2xl font-bold text-primary-600">{{ kpi.balance_liability|rupiah }}</p>
+    <p class="text-xs text-ink-400 mt-1">Total customer wallet balance</p>
   </div>
-  <div class="bg-white rounded-lg border border-gray-200 p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Revenue (All Time)</p>
-    <p class="text-2xl font-bold text-green-600">{{ kpi.revenue|rupiah }}</p>
-    <p class="text-xs text-gray-400 mt-1">Sum of paid orders</p>
+  <div class="bg-white rounded-2xl border border-ink-100 p-5">
+    <p class="text-xs text-ink-500 uppercase tracking-wide mb-1">Revenue (All Time)</p>
+    <p class="text-2xl font-bold text-moss-600">{{ kpi.revenue|rupiah }}</p>
+    <p class="text-xs text-ink-400 mt-1">Sum of paid orders</p>
   </div>
-  <div class="bg-white rounded-lg border border-gray-200 p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Active Grants</p>
-    <p class="text-2xl font-bold text-gray-800">{{ kpi.active_grants }}</p>
-    <p class="text-xs text-gray-400 mt-1">Licenses + entitlements</p>
+  <div class="bg-white rounded-2xl border border-ink-100 p-5">
+    <p class="text-xs text-ink-500 uppercase tracking-wide mb-1">Active Grants</p>
+    <p class="text-2xl font-bold text-ink-800">{{ kpi.active_grants }}</p>
+    <p class="text-xs text-ink-400 mt-1">Licenses + entitlements</p>
   </div>
-  <div class="bg-white rounded-lg border border-gray-200 p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">New Orders (7d)</p>
-    <p class="text-2xl font-bold text-gray-800">{{ kpi.new_orders_7d }}</p>
-    <p class="text-xs text-gray-400 mt-1">Paid in last 7 days</p>
+  <div class="bg-white rounded-2xl border border-ink-100 p-5">
+    <p class="text-xs text-ink-500 uppercase tracking-wide mb-1">New Orders (7d)</p>
+    <p class="text-2xl font-bold text-ink-800">{{ kpi.new_orders_7d }}</p>
+    <p class="text-xs text-ink-400 mt-1">Paid in last 7 days</p>
   </div>
-  <div class="bg-white rounded-lg border border-gray-200 p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Failed Renewals</p>
-    <p class="text-2xl font-bold {% if kpi.failed_renewals %}text-red-600{% else %}text-gray-800{% endif %}">{{ kpi.failed_renewals }}</p>
-    <p class="text-xs text-gray-400 mt-1">Grace + Suspended subs</p>
+  <div class="bg-white rounded-2xl border border-ink-100 p-5">
+    <p class="text-xs text-ink-500 uppercase tracking-wide mb-1">Failed Renewals</p>
+    <p class="text-2xl font-bold {% if kpi.failed_renewals %}text-primary-600{% else %}text-ink-800{% endif %}">{{ kpi.failed_renewals }}</p>
+    <p class="text-xs text-ink-400 mt-1">Grace + Suspended subs</p>
   </div>
-  <div class="bg-white rounded-lg border border-gray-200 p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Pending Top-ups</p>
-    <p class="text-2xl font-bold {% if kpi.pending_topups %}text-amber-600{% else %}text-gray-800{% endif %}">{{ kpi.pending_topups }}</p>
-    <p class="text-xs text-gray-400 mt-1">Awaiting payment</p>
+  <div class="bg-white rounded-2xl border border-ink-100 p-5">
+    <p class="text-xs text-ink-500 uppercase tracking-wide mb-1">Pending Top-ups</p>
+    <p class="text-2xl font-bold {% if kpi.pending_topups %}text-gold-600{% else %}text-ink-800{% endif %}">{{ kpi.pending_topups }}</p>
+    <p class="text-xs text-ink-400 mt-1">Awaiting payment</p>
   </div>
-  <div class="bg-white rounded-lg border border-gray-200 p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Open Leads</p>
-    <p class="text-2xl font-bold text-gray-800">{{ kpi.open_leads }}</p>
-    <p class="text-xs text-gray-400 mt-1">Unassigned new leads</p>
+  <div class="bg-white rounded-2xl border border-ink-100 p-5">
+    <p class="text-xs text-ink-500 uppercase tracking-wide mb-1">Open Leads</p>
+    <p class="text-2xl font-bold text-ink-800">{{ kpi.open_leads }}</p>
+    <p class="text-xs text-ink-400 mt-1">Unassigned new leads</p>
   </div>
-  <div class="bg-white rounded-lg border border-gray-200 p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Pending Refunds</p>
-    <p class="text-2xl font-bold {% if kpi.open_refunds %}text-red-600{% else %}text-gray-800{% endif %}">{{ kpi.open_refunds }}</p>
-    <p class="text-xs text-gray-400 mt-1">Awaiting approval</p>
+  <div class="bg-white rounded-2xl border border-ink-100 p-5">
+    <p class="text-xs text-ink-500 uppercase tracking-wide mb-1">Pending Refunds</p>
+    <p class="text-2xl font-bold {% if kpi.open_refunds %}text-primary-600{% else %}text-ink-800{% endif %}">{{ kpi.open_refunds }}</p>
+    <p class="text-xs text-ink-400 mt-1">Awaiting approval</p>
   </div>
 </div>
 
 <!-- Work queue -->
-<h2 class="text-lg font-semibold mb-3">Work Queue</h2>
+<h2 class="text-lg font-bold mb-3">Work Queue</h2>
 
 {% if not queue %}
-<div class="bg-white rounded-lg border border-gray-200 px-5 py-8 text-center text-gray-400 text-sm">
+<div class="bg-white rounded-2xl border border-ink-100 px-5 py-8 text-center text-ink-400 text-sm">
   Queue empty &mdash; nothing needs attention.
 </div>
 {% else %}
-<div class="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+<div class="bg-white rounded-2xl border border-ink-100 divide-y divide-ink-100">
   {% for item in queue %}
   <div class="flex items-center justify-between px-5 py-3">
     <div>
       <div class="flex items-center gap-2 mb-0.5">
-        <span class="text-xs px-1.5 py-0.5 rounded font-medium
-          {% if item.type == 'lead' %}bg-indigo-100 text-indigo-700
-          {% elif item.type == 'refund' %}bg-red-100 text-red-700
-          {% elif item.type == 'stuck_topup' %}bg-amber-100 text-amber-700
-          {% else %}bg-gray-100 text-gray-600{% endif %}">
+        <span class="text-xs px-1.5 py-0.5 rounded-lg font-bold
+          {% if item.type == 'lead' %}bg-primary-100 text-primary-700
+          {% elif item.type == 'refund' %}bg-primary-100 text-primary-700
+          {% elif item.type == 'stuck_topup' %}bg-gold-100 text-gold-700
+          {% else %}bg-ink-100 text-ink-600{% endif %}">
           {{ item.type|title|cut:"_" }}
         </span>
-        <span class="text-sm font-medium text-gray-800">{{ item.label }}</span>
+        <span class="text-sm font-medium text-ink-800">{{ item.label }}</span>
       </div>
-      <p class="text-xs text-gray-400">{{ item.sub }}</p>
+      <p class="text-xs text-ink-400">{{ item.sub }}</p>
     </div>
     <div class="flex items-center gap-4">
-      <span class="text-xs text-gray-400">{{ item.created_at|timesince }} ago</span>
-      <a href="{{ item.url }}" class="text-xs text-indigo-600 hover:underline">Action</a>
+      <span class="text-xs text-ink-400">{{ item.created_at|timesince }} ago</span>
+      <a href="{{ item.url }}" class="text-xs text-primary-600 hover:underline">Action</a>
     </div>
   </div>
   {% endfor %}
@@ -84,11 +84,11 @@
 
 <!-- Quick exports -->
 <div class="mt-8">
-  <h2 class="text-lg font-semibold mb-3">Exports</h2>
+  <h2 class="text-lg font-bold mb-3">Exports</h2>
   <div class="flex gap-3">
-    <a href="{% url 'console:export_csv' 'orders' %}" class="text-sm px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700">Download Orders CSV</a>
-    <a href="{% url 'console:export_csv' 'topups' %}" class="text-sm px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700">Download Top-ups CSV</a>
-    <a href="{% url 'console:export_csv' 'ledger' %}" class="text-sm px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700">Download Ledger CSV</a>
+    <a href="{% url 'console:export_csv' 'orders' %}" class="text-sm px-4 py-2 bg-ink-800 text-white rounded-xl hover:bg-ink-700">Download Orders CSV</a>
+    <a href="{% url 'console:export_csv' 'topups' %}" class="text-sm px-4 py-2 bg-ink-800 text-white rounded-xl hover:bg-ink-700">Download Top-ups CSV</a>
+    <a href="{% url 'console:export_csv' 'ledger' %}" class="text-sm px-4 py-2 bg-ink-800 text-white rounded-xl hover:bg-ink-700">Download Ledger CSV</a>
   </div>
 </div>
 {% endblock %}

@@ -1,4 +1,4 @@
-# STATUS — Estalatree Progress Board
+# STATUS — Berlanggan Progress Board
 
 > **Update this file whenever a task is completed.** It is the source of truth for cross-agent handoff. Format: check `[x]` + date + short note.
 

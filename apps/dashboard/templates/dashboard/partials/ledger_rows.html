@@ -2,25 +2,25 @@
 {% if page.object_list %}
 
 <!-- Mobile card list (hidden on sm+) -->
-<div class="sm:hidden divide-y divide-gray-100">
+<div class="sm:hidden divide-y divide-ink-100">
   {% for entry in page.object_list %}
   <div class="px-4 py-3">
     <div class="flex items-start justify-between mb-1">
-      <span class="text-xs text-gray-500">{{ entry.created_at|date:"d M Y H:i" }}</span>
+      <span class="text-xs text-ink-500">{{ entry.created_at|date:"d M Y H:i" }}</span>
       <span class="font-mono text-sm font-semibold
-        {% if entry.amount > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+        {% if entry.amount > 0 %}text-moss-600{% else %}text-primary-600{% endif %}">
         {{ entry.amount|rupiah_signed }}
       </span>
     </div>
     <div class="flex items-center justify-between">
-      <span class="px-2 py-0.5 rounded text-xs
-        {% if entry.amount > 0 %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+      <span class="px-2 py-0.5 rounded-lg text-xs
+        {% if entry.amount > 0 %}bg-moss-100 text-moss-700{% else %}bg-primary-100 text-primary-700{% endif %}">
         {{ entry.get_type_display }}
       </span>
-      <span class="text-xs text-gray-400 font-mono">Saldo: {{ entry.balance_after|rupiah }}</span>
+      <span class="text-xs text-ink-400 font-mono">Saldo: {{ entry.balance_after|rupiah }}</span>
     </div>
     {% if entry.note %}
-    <p class="text-xs text-gray-500 mt-1 truncate">{{ entry.note }}</p>
+    <p class="text-xs text-ink-500 mt-1 truncate">{{ entry.note }}</p>
     {% endif %}
   </div>
   {% endfor %}
@@ -29,7 +29,7 @@
 <!-- Desktop table (hidden below sm) -->
 <table class="hidden sm:table w-full text-sm">
   <thead>
-    <tr class="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
+    <tr class="border-b border-ink-100 text-xs text-ink-500 uppercase tracking-wide">
       <th class="text-left px-5 py-3">Date</th>
       <th class="text-left px-5 py-3">Type</th>
       <th class="text-left px-5 py-3">Note</th>
@@ -37,29 +37,29 @@
       <th class="text-right px-5 py-3">Balance after</th>
     </tr>
   </thead>
-  <tbody class="divide-y divide-gray-50">
+  <tbody class="divide-y divide-ink-50">
     {% for entry in page.object_list %}
-    <tr class="hover:bg-gray-50">
-      <td class="px-5 py-3 text-gray-500 whitespace-nowrap">{{ entry.created_at|date:"d M Y H:i" }}</td>
+    <tr class="hover:bg-cream">
+      <td class="px-5 py-3 text-ink-500 whitespace-nowrap">{{ entry.created_at|date:"d M Y H:i" }}</td>
       <td class="px-5 py-3">
-        <span class="px-2 py-0.5 rounded text-xs
-          {% if entry.amount > 0 %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+        <span class="px-2 py-0.5 rounded-lg text-xs
+          {% if entry.amount > 0 %}bg-moss-100 text-moss-700{% else %}bg-primary-100 text-primary-700{% endif %}">
           {{ entry.get_type_display }}
         </span>
       </td>
-      <td class="px-5 py-3 text-gray-600 max-w-xs truncate">{{ entry.note }}</td>
+      <td class="px-5 py-3 text-ink-600 max-w-xs truncate">{{ entry.note }}</td>
       <td class="px-5 py-3 text-right font-mono
-        {% if entry.amount > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+        {% if entry.amount > 0 %}text-moss-600{% else %}text-primary-600{% endif %}">
         {{ entry.amount|rupiah_signed }}
       </td>
-      <td class="px-5 py-3 text-right font-mono text-gray-700">{{ entry.balance_after|rupiah }}</td>
+      <td class="px-5 py-3 text-right font-mono text-ink-700">{{ entry.balance_after|rupiah }}</td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
 
 <!-- Pagination -->
-<div class="flex items-center justify-between px-5 py-3 border-t border-gray-100 text-sm text-gray-500">
+<div class="flex items-center justify-between px-5 py-3 border-t border-ink-100 text-sm text-ink-500">
   <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
   <div class="flex gap-2">
     {% if page.has_previous %}
@@ -67,7 +67,7 @@
       hx-get="{% url 'dashboard:ledger_partial' %}?page={{ page.previous_page_number }}"
       hx-target="#ledger-table"
       hx-swap="innerHTML"
-      class="px-3 py-1 rounded border border-gray-200 hover:bg-gray-50">
+      class="px-3 py-1 rounded-lg border border-ink-200 hover:bg-cream">
       Previous
     </button>
     {% endif %}
@@ -76,12 +76,12 @@
       hx-get="{% url 'dashboard:ledger_partial' %}?page={{ page.next_page_number }}"
       hx-target="#ledger-table"
       hx-swap="innerHTML"
-      class="px-3 py-1 rounded border border-gray-200 hover:bg-gray-50">
+      class="px-3 py-1 rounded-lg border border-ink-200 hover:bg-cream">
       Next
     </button>
     {% endif %}
   </div>
 </div>
 {% else %}
-<p class="px-5 py-8 text-center text-gray-400 text-sm">No transactions yet.</p>
+<p class="px-5 py-8 text-center text-ink-400 text-sm">No transactions yet.</p>
 {% endif %}

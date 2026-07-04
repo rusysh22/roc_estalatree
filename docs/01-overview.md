@@ -2,9 +2,9 @@
 
 ## Vision
 
-**Estalatree** is a digital-product selling platform whose key differentiator is **token-based licensing & activation for open-source products**, powered by a **Sumopod-style prepaid balance (top-up)** system.
+**Berlanggan** is a digital-product selling platform whose key differentiator is **token-based licensing & activation for open-source products**, powered by a **Sumopod-style prepaid balance (top-up)** system.
 
-Customers top up a balance, then buy or subscribe to products. OSS products (desktop, CLI, self-hosted web apps) "phone home" to the Estalatree API for online token validation — while the subscription is active the product runs; when it lapses the product locks itself.
+Customers top up a balance, then buy or subscribe to products. OSS products (desktop, CLI, self-hosted web apps) "phone home" to the Berlanggan API for online token validation — while the subscription is active the product runs; when it lapses the product locks itself.
 
 ## Why a balance model?
 

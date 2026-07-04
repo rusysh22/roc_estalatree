@@ -2,48 +2,48 @@
 {% block page_title %}Audit Log{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">Audit Log</h1>
+<h1 class="text-2xl font-extrabold text-ink-900 mb-6 tracking-tight">Audit Log</h1>
 
 <form method="get" class="flex gap-3 mb-6">
   <input type="text" name="action" value="{{ action_filter }}" placeholder="Filter by action…"
-         class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+         class="border border-ink-300 rounded-xl px-3 py-2 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-primary-500">
   <input type="text" name="actor" value="{{ actor_filter }}" placeholder="Filter by actor email…"
-         class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-  <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700">Filter</button>
+         class="border border-ink-300 rounded-xl px-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-primary-500">
+  <button type="submit" class="bg-primary-500 text-white px-4 py-2 rounded-full text-sm hover:bg-primary-600">Filter</button>
   {% if action_filter or actor_filter %}
-  <a href="{% url 'console:audit_log' %}" class="px-4 py-2 text-sm text-gray-600 hover:underline">Clear</a>
+  <a href="{% url 'console:audit_log' %}" class="px-4 py-2 text-sm text-ink-600 hover:underline">Clear</a>
   {% endif %}
 </form>
 
-<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+<div class="bg-white rounded-2xl border border-ink-100 overflow-hidden">
   <div class="overflow-x-auto">
   <table class="w-full min-w-[700px] text-sm">
-    <thead class="bg-gray-50 border-b border-gray-200">
+    <thead class="bg-ink-50 border-b border-ink-200">
       <tr>
-        <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Time</th>
-        <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Action</th>
-        <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Actor</th>
-        <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Target</th>
-        <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Meta</th>
+        <th class="text-left px-4 py-3 text-xs font-bold text-ink-500 uppercase">Time</th>
+        <th class="text-left px-4 py-3 text-xs font-bold text-ink-500 uppercase">Action</th>
+        <th class="text-left px-4 py-3 text-xs font-bold text-ink-500 uppercase">Actor</th>
+        <th class="text-left px-4 py-3 text-xs font-bold text-ink-500 uppercase">Target</th>
+        <th class="text-left px-4 py-3 text-xs font-bold text-ink-500 uppercase">Meta</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-gray-100">
+    <tbody class="divide-y divide-ink-100">
       {% for entry in entries %}
-      <tr class="hover:bg-gray-50">
-        <td class="px-4 py-2 text-xs text-gray-400 whitespace-nowrap">{{ entry.created_at|date:"d M Y H:i:s" }}</td>
+      <tr class="hover:bg-ink-50">
+        <td class="px-4 py-2 text-xs text-ink-400 whitespace-nowrap">{{ entry.created_at|date:"d M Y H:i:s" }}</td>
         <td class="px-4 py-2 font-mono text-xs">{{ entry.action }}</td>
         <td class="px-4 py-2 text-xs">{{ entry.actor.email|default:"—" }}</td>
-        <td class="px-4 py-2 text-xs text-gray-500">
+        <td class="px-4 py-2 text-xs text-ink-500">
           {% if entry.target_type %}{{ entry.target_type }}:{{ entry.target_id }}{% else %}—{% endif %}
         </td>
-        <td class="px-4 py-2 text-xs text-gray-400 font-mono">{{ entry.meta|truncatechars:80 }}</td>
+        <td class="px-4 py-2 text-xs text-ink-400 font-mono">{{ entry.meta|truncatechars:80 }}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">No entries found.</td></tr>
+      <tr><td colspan="5" class="px-4 py-6 text-center text-ink-400">No entries found.</td></tr>
       {% endfor %}
     </tbody>
   </table>
   </div>
 </div>
-<p class="text-xs text-gray-400 mt-2">Showing latest 200 entries.</p>
+<p class="text-xs text-ink-400 mt-2">Showing latest 200 entries.</p>
 {% endblock %}

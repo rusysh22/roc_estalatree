@@ -1,15 +1,15 @@
-# Estalatree vs Lynk.id — Gap Analysis (Seller & User POV)
+# Berlanggan vs Lynk.id — Gap Analysis (Seller & User POV)
 
 **Date:** 2026-06-20 · **Reviewer:** assistant (review-only).
 **Lens:** judged on **ease-of-use** and **detail/polish**, gap-focused. "It exists" is not a pass — depth and UX count. Severity = how far below lynk.id's standard: **▲▲▲ big** · **▲▲ moderate** · **▲ minor**.
 
-> Fairness first — where Estalatree is genuinely *ahead/different* (lynk.id has none of these): token **licensing + online activation + seat/device management**; **prepaid recurring via saldo** (solves Indonesia's no-auto-debit problem); generalized provisioning (license/credentials/api_key/download/link); immutable-ledger money rigor + panic controls; multi-surface RBAC + Operator Console + Customer 360; owner keeps 100% (no platform 5% fee / withdrawal fee). These are real moats. The rest of this doc is deliberately about the gaps.
+> Fairness first — where Berlanggan is genuinely *ahead/different* (lynk.id has none of these): token **licensing + online activation + seat/device management**; **prepaid recurring via saldo** (solves Indonesia's no-auto-debit problem); generalized provisioning (license/credentials/api_key/download/link); immutable-ledger money rigor + panic controls; multi-surface RBAC + Operator Console + Customer 360; owner keeps 100% (no platform 5% fee / withdrawal fee). These are real moats. The rest of this doc is deliberately about the gaps.
 
 ---
 
 ## A. Seller POV (the creator running a store)
 
-| Capability | Lynk.id depth | Estalatree now | Gap |
+| Capability | Lynk.id depth | Berlanggan now | Gap |
 |---|---|---|---|
 | **Page builder / Appearance** | Rich theme editor (colors, fonts, button styles, avatar, cover, social icons), drag-drop block reorder, live mobile preview, many block types | `StorePage` + `Block` (product + link only); `theme` JSON unused; no editor, no drag-drop, no preview | ▲▲▲ |
 | **Product type breadth** | Digital download, **e-course (multi-lesson video player + progress)**, membership, event/webinar ticket, booking/appointment, physical, donation/tip | License-centric + download/link/credentials/api_key; **no course player, no membership, no events/booking** | ▲▲▲ |
@@ -28,7 +28,7 @@
 
 ## B. User POV (the buyer)
 
-| Capability | Lynk.id depth | Estalatree now | Gap |
+| Capability | Lynk.id depth | Berlanggan now | Gap |
 |---|---|---|---|
 | **Checkout simplicity** | **Just pay for this item** — one-page, many methods, no wallet concept | **Prepaid wallet**: must have/top-up saldo (mitigated by top-up-and-buy, but heavier mental model for one-off buyers) | ▲▲▲ (by design) |
 | **Payment methods** | Cards, paylater, all e-wallets, QRIS, retail | Duitku set; no card/paylater | ▲▲ |
@@ -46,9 +46,9 @@
 
 ## C. The three deltas that matter most
 
-1. **Wallet vs direct-pay (User ease).** Estalatree's prepaid saldo is *superior* for recurring/licensing but *heavier* for a casual one-off buyer than lynk's "just pay." Top-up-and-buy narrows it, but the wallet mental model + login wall still loses casual-purchase simplicity. **Trade-off, not a bug — but be honest it costs first-purchase ease.**
-2. **Bahasa Indonesia (User trust).** lynk.id speaks the buyer's language end-to-end. Estalatree's English-only checkout is a real conversion/trust gap for the Indonesian mass market. The i18n hook exists (deferred) — for a consumer storefront this should be pulled forward.
-3. **Page builder + analytics + marketing suite (Seller pull).** This is *why creators pick lynk.id*: a delightful page editor, real analytics, and built-in growth tools (affiliate/email/upsell). Estalatree's seller surface is functional CRUD, not a creator product yet.
+1. **Wallet vs direct-pay (User ease).** Berlanggan's prepaid saldo is *superior* for recurring/licensing but *heavier* for a casual one-off buyer than lynk's "just pay." Top-up-and-buy narrows it, but the wallet mental model + login wall still loses casual-purchase simplicity. **Trade-off, not a bug — but be honest it costs first-purchase ease.**
+2. **Bahasa Indonesia (User trust).** lynk.id speaks the buyer's language end-to-end. Berlanggan's English-only checkout is a real conversion/trust gap for the Indonesian mass market. The i18n hook exists (deferred) — for a consumer storefront this should be pulled forward.
+3. **Page builder + analytics + marketing suite (Seller pull).** This is *why creators pick lynk.id*: a delightful page editor, real analytics, and built-in growth tools (affiliate/email/upsell). Berlanggan's seller surface is functional CRUD, not a creator product yet.
 
 ## D. To credibly rival lynk.id (priority for parity)
 
@@ -69,4 +69,4 @@
 ---
 
 ## E. Bottom line
-Estalatree **out-classes lynk.id on the licensing/recurring engine and money rigor** — that's its reason to exist. But measured purely on *consumer ease* and *creator delight*, it is **not yet at lynk.id's level**: the storefront is a functional catalog, not a polished page-builder; analytics and marketing tools are thin; and two consumer fundamentals — **Bahasa Indonesia** and **frictionless pay** — are weaker. None of this is architectural debt; it's product surface + localization. Prioritize Indonesian UI, the page-builder/appearance, buyer-library polish, and broader payment methods to close the felt gap fastest.
+Berlanggan **out-classes lynk.id on the licensing/recurring engine and money rigor** — that's its reason to exist. But measured purely on *consumer ease* and *creator delight*, it is **not yet at lynk.id's level**: the storefront is a functional catalog, not a polished page-builder; analytics and marketing tools are thin; and two consumer fundamentals — **Bahasa Indonesia** and **frictionless pay** — are weaker. None of this is architectural debt; it's product surface + localization. Prioritize Indonesian UI, the page-builder/appearance, buyer-library polish, and broader payment methods to close the felt gap fastest.

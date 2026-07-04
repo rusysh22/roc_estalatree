@@ -21,7 +21,7 @@
 
 Legend: ✓ have · ~ partial · ✗ missing
 
-| Lynk.id capability | Estalatree now | Note |
+| Lynk.id capability | Berlanggan now | Note |
 |---|---|---|
 | Link-in-bio store page | ✓ | blocks: product/link/heading/text |
 | Product cover image | ✓ | `cover_image_url` added + shown |
@@ -54,7 +54,7 @@ Legend: ✓ have · ~ partial · ✗ missing
 
 ## Seller POV — feature comparison
 
-| Lynk.id capability | Estalatree now | Note |
+| Lynk.id capability | Berlanggan now | Note |
 |---|---|---|
 | Seller dashboard KPIs | ✓ | revenue / orders / active subs / pending |
 | **Revenue chart** | ✓ | 7-day bar chart (new) — closes a big analytics gap |
@@ -84,7 +84,7 @@ Legend: ✓ have · ~ partial · ✗ missing
 
 ## Net comparison
 
-- **Where Estalatree now matches or beats lynk.id:** licensing + seat/device management, prepaid-recurring, gated/expiring downloads, reveal-once secrets, money-rigor + panic controls, checkout clarity (balance-after, shortfall guard), seller revenue chart + entitlement UI.
+- **Where Berlanggan now matches or beats lynk.id:** licensing + seat/device management, prepaid-recurring, gated/expiring downloads, reveal-once secrets, money-rigor + panic controls, checkout clarity (balance-after, shortfall guard), seller revenue chart + entitlement UI.
 - **Where it's still clearly behind (ease/detail):** direct pay-per-item simplicity & guest checkout; product breadth (course player, membership, reviews, cart); seller growth suite (affiliate, email, upsell); appearance/page-builder depth; payout (by design); analytics depth.
 - **Felt gap closing fastest if prioritized:** appearance/page-builder, richer product cards/types, and (optionally) a true one-action top-up-and-buy or a direct-pay path for casual buyers.
 

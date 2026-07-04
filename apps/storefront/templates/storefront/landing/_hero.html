@@ -1,0 +1,49 @@
+<section class="relative overflow-hidden">
+  <!-- Decorative blobs -->
+  <div class="landing-blob absolute -top-24 -right-32 w-[420px] h-[420px] bg-primary-200/60 blur-2xl" aria-hidden="true"></div>
+  <div class="landing-blob absolute top-40 -left-24 w-72 h-72 bg-moss-200/50 blur-2xl" aria-hidden="true"></div>
+
+  <div class="relative max-w-7xl mx-auto px-5 sm:px-8 pt-14 sm:pt-20 pb-16 sm:pb-24">
+    <div class="max-w-3xl" data-reveal>
+      <span class="landing-chip">
+        <svg class="w-3.5 h-3.5 text-moss-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+        Secure checkout &middot; instant delivery
+      </span>
+
+      <h1 class="mt-6 text-4xl sm:text-6xl font-extrabold tracking-tight leading-[1.05] text-ink-900">
+        Sell subscriptions, digital goods, and access —
+        <span class="text-primary-500">without the busywork.</span>
+      </h1>
+
+      <p class="mt-6 text-base sm:text-lg text-ink-500 max-w-xl leading-relaxed">
+        Berlanggan is a marketplace built for creators and sellers: one link for your whole storefront,
+        instant delivery on every sale, and a wallet checkout buyers actually trust.
+      </p>
+
+      <div class="mt-9 flex flex-wrap items-center gap-3">
+        <a href="#trending" data-magnetic class="landing-btn-primary">
+          Explore products
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+        </a>
+        <a href="{% url 'seller:apply' %}" data-magnetic class="landing-btn-secondary">
+          Start selling
+        </a>
+      </div>
+
+      <div class="mt-12 grid grid-cols-3 gap-6 max-w-md">
+        <div>
+          <p class="text-2xl sm:text-3xl font-extrabold text-ink-900"><span data-countup="{{ trending_products|length|default:0 }}">0</span>+</p>
+          <p class="text-xs text-ink-400 font-semibold uppercase tracking-wide mt-1">Live products</p>
+        </div>
+        <div>
+          <p class="text-2xl sm:text-3xl font-extrabold text-ink-900"><span data-countup="{{ featured_sellers|length|default:0 }}">0</span>+</p>
+          <p class="text-xs text-ink-400 font-semibold uppercase tracking-wide mt-1">Active sellers</p>
+        </div>
+        <div>
+          <p class="text-2xl sm:text-3xl font-extrabold text-ink-900">Instant</p>
+          <p class="text-xs text-ink-400 font-semibold uppercase tracking-wide mt-1">Product delivery</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

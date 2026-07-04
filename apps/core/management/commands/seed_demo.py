@@ -17,7 +17,7 @@ Seller
   SellerProfile  payout bank + GA pixel stub
 
 Products (all linked to seller)
-  1. Estalatree Analytics       RECURRING  — 3 plans (Starter/Pro/Team) + LICENSE_KEY
+  1. Berlanggan Analytics       RECURRING  — 3 plans (Starter/Pro/Team) + LICENSE_KEY
   2. Ultimate Design Pack       ONE_TIME   — 1 plan, sale_price, stock
   3. Name Your Price Template   ONE_TIME   — PWYW plan, min Rp 15.000
   4. Copywriting Masterclass    ONE_TIME   — COURSE deliverable, modules + lessons
@@ -154,10 +154,10 @@ class Command(BaseCommand):
 
         # 1. RECURRING — Analytics SaaS
         analytics, _ = Product.objects.get_or_create(
-            slug="estalatree-analytics",
+            slug="berlanggan-analytics",
             defaults={
                 "seller": seller,
-                "name": "Estalatree Analytics",
+                "name": "Berlanggan Analytics",
                 "type": Product.Type.RECURRING,
                 "visibility": Product.Visibility.PUBLIC,
                 "description": (
@@ -176,7 +176,7 @@ class Command(BaseCommand):
         products["starter"] = starter
         products["pro_plan"] = pro_plan
         products["team_plan"] = team_plan
-        self.stdout.write("  Product: Estalatree Analytics (RECURRING) OK")
+        self.stdout.write("  Product: Berlanggan Analytics (RECURRING) OK")
 
         # 2. ONE_TIME — Design Pack (sale price + stock + questions)
         design, _ = Product.objects.get_or_create(

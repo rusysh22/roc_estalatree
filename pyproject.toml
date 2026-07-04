@@ -1,5 +1,5 @@
 [project]
-name = "estalatree"
+name = "berlanggan"
 version = "0.1.0"
 description = "Token-based licensing & activation platform with prepaid balance."
 requires-python = ">=3.12"

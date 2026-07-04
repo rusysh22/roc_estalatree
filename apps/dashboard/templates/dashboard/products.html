@@ -2,40 +2,40 @@
 {% block page_title %}My Products{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">My Products</h1>
+<h1 class="text-2xl font-extrabold text-ink-900 mb-6 tracking-tight">My Products</h1>
 
 {% if licenses %}
-<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">License Keys</h2>
+<h2 class="text-sm font-bold text-ink-500 uppercase tracking-wide mb-3">License Keys</h2>
 <div class="space-y-4 mb-8">
   {% for license in licenses %}
-  <div class="bg-white rounded-lg border border-gray-200 p-5">
+  <div class="bg-white rounded-2xl border border-ink-100 p-5">
     <div class="flex items-start justify-between mb-3">
       <div>
-        <p class="font-semibold">{{ license.plan.product.name }}</p>
-        <p class="text-xs text-gray-500">{{ license.plan.name }}</p>
+        <p class="font-bold text-ink-900">{{ license.plan.product.name }}</p>
+        <p class="text-xs text-ink-500">{{ license.plan.name }}</p>
       </div>
       <span class="text-xs px-2 py-0.5 rounded-full
-        {% if license.status == 'active' %}bg-green-100 text-green-700
-        {% elif license.status == 'suspended' %}bg-amber-100 text-amber-700
-        {% else %}bg-red-100 text-red-700{% endif %}">
+        {% if license.status == 'active' %}bg-moss-100 text-moss-700
+        {% elif license.status == 'suspended' %}bg-gold-100 text-gold-700
+        {% else %}bg-primary-100 text-primary-700{% endif %}">
         {{ license.get_status_display }}
       </span>
     </div>
 
     <!-- License key with copy -->
-    <div class="bg-gray-50 rounded border border-gray-200 flex items-center gap-2 px-3 py-2 mb-3">
-      <code class="flex-1 font-mono text-sm tracking-widest text-gray-800" id="key-{{ license.pk }}">{{ license.key }}</code>
+    <div class="bg-cream rounded-lg border border-ink-100 flex items-center gap-2 px-3 py-2 mb-3">
+      <code class="flex-1 font-mono text-sm tracking-widest text-ink-800" id="key-{{ license.pk }}">{{ license.key }}</code>
       <button
         onclick="navigator.clipboard.writeText('{{ license.key }}').then(() => this.textContent='Copied!')"
-        class="text-xs text-indigo-600 hover:text-indigo-800 font-medium shrink-0 transition-all">
+        class="text-xs text-primary-600 hover:text-primary-800 font-semibold shrink-0 transition-all">
         Copy
       </button>
     </div>
 
     <!-- Seat usage -->
-    <div class="text-xs text-gray-500 flex items-center gap-4">
+    <div class="text-xs text-ink-500 flex items-center gap-4">
       <span>Seats: {{ license.active_seat_count }}/{{ license.seat_limit }}</span>
-      <a href="{% url 'dashboard:devices' %}" class="text-indigo-500 hover:underline">Manage devices</a>
+      <a href="{% url 'dashboard:devices' %}" class="text-primary-500 hover:underline">Manage devices</a>
     </div>
   </div>
   {% endfor %}
@@ -43,19 +43,19 @@
 {% endif %}
 
 {% if other_grants %}
-<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Other Access</h2>
+<h2 class="text-sm font-bold text-ink-500 uppercase tracking-wide mb-3">Other Access</h2>
 <div class="space-y-4">
   {% for grant in other_grants %}
-  <div class="bg-white rounded-lg border border-gray-200 p-5">
+  <div class="bg-white rounded-2xl border border-ink-100 p-5">
     <div class="flex items-start justify-between mb-3">
       <div>
-        <p class="font-semibold">{{ grant.deliverable.plan.product.name }}</p>
-        <p class="text-xs text-gray-500">{{ grant.deliverable.plan.name }} &middot; {{ grant.get_type_display }}</p>
+        <p class="font-bold text-ink-900">{{ grant.deliverable.plan.product.name }}</p>
+        <p class="text-xs text-ink-500">{{ grant.deliverable.plan.name }} &middot; {{ grant.get_type_display }}</p>
       </div>
       <span class="text-xs px-2 py-0.5 rounded-full
-        {% if grant.status == 'active' %}bg-green-100 text-green-700
-        {% elif grant.status == 'suspended' %}bg-amber-100 text-amber-700
-        {% else %}bg-red-100 text-red-700{% endif %}">
+        {% if grant.status == 'active' %}bg-moss-100 text-moss-700
+        {% elif grant.status == 'suspended' %}bg-gold-100 text-gold-700
+        {% else %}bg-primary-100 text-primary-700{% endif %}">
         {{ grant.get_status_display }}
       </span>
     </div>
@@ -64,33 +64,33 @@
     {% if grant.type == 'download' %}
     {% if grant.payload.download_url %}
     <a href="{% url 'dashboard:gated_download' grant.pk %}"
-      class="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+      class="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-800 font-semibold">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
       Download
     </a>
     {% else %}
-    <p class="text-xs text-gray-400">Download link not available yet.</p>
+    <p class="text-xs text-ink-400">Download link not available yet.</p>
     {% endif %}
 
     {% elif grant.type == 'access_link' %}
     {% if grant.payload.access_url %}
     <a href="{{ grant.payload.access_url }}" target="_blank"
-      class="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+      class="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-800 font-semibold">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
       Open Access
     </a>
     {% else %}
-    <p class="text-xs text-gray-400">Access link not available yet.</p>
+    <p class="text-xs text-ink-400">Access link not available yet.</p>
     {% endif %}
 
     {% elif grant.type == 'credentials' or grant.type == 'api_key' %}
     {% if grant.payload.username %}
-    <div class="bg-gray-50 rounded border border-gray-200 flex items-center gap-2 px-3 py-2 mb-2">
-      <span class="text-xs text-gray-500 shrink-0">Username</span>
-      <code class="flex-1 font-mono text-sm text-gray-800">{{ grant.payload.username }}</code>
+    <div class="bg-cream rounded-lg border border-ink-100 flex items-center gap-2 px-3 py-2 mb-2">
+      <span class="text-xs text-ink-500 shrink-0">Username</span>
+      <code class="flex-1 font-mono text-sm text-ink-800">{{ grant.payload.username }}</code>
       <button
         onclick="navigator.clipboard.writeText('{{ grant.payload.username }}').then(() => this.textContent='Copied!')"
-        class="text-xs text-indigo-600 hover:text-indigo-800 font-medium shrink-0">Copy</button>
+        class="text-xs text-primary-600 hover:text-primary-800 font-semibold shrink-0">Copy</button>
     </div>
     {% endif %}
 
@@ -100,38 +100,38 @@
         hx-post="{% url 'dashboard:reveal_secret' grant.pk %}"
         hx-target="#secret-container-{{ grant.pk }}"
         hx-swap="outerHTML"
-        class="text-xs text-amber-700 hover:text-amber-900 font-medium border border-amber-300 bg-amber-50 px-3 py-1.5 rounded-lg transition-colors">
+        class="text-xs text-gold-700 hover:text-gold-800 font-semibold border border-gold-300 bg-gold-50 px-3 py-1.5 rounded-xl transition-colors">
         Reveal {{ grant.type|title }} Secret
       </button>
       {% else %}
-      <p class="text-xs text-gray-400">Grant is {{ grant.get_status_display|lower }} — secret not accessible.</p>
+      <p class="text-xs text-ink-400">Grant is {{ grant.get_status_display|lower }} — secret not accessible.</p>
       {% endif %}
     </div>
 
     {% elif grant.type == 'course' %}
     {% if grant.status == 'active' %}
     <a href="{% url 'dashboard:course_player' grant.payload.product_id %}"
-       class="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+       class="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-800 font-semibold">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       Open Course
     </a>
     {% else %}
-    <p class="text-xs text-gray-400">Course access is {{ grant.get_status_display|lower }}.</p>
+    <p class="text-xs text-ink-400">Course access is {{ grant.get_status_display|lower }}.</p>
     {% endif %}
 
     {% else %}
-    <p class="text-xs text-gray-400 italic">{{ grant.get_type_display }} — contact support for access details.</p>
+    <p class="text-xs text-ink-400 italic">{{ grant.get_type_display }} — contact support for access details.</p>
     {% endif %}
 
     {% if grant.deliverable.instructions %}
-    <div class="mt-3 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
-      <p class="text-xs font-medium text-blue-700 mb-0.5">Setup instructions</p>
-      <p class="text-xs text-blue-800 whitespace-pre-line">{{ grant.deliverable.instructions }}</p>
+    <div class="mt-3 bg-ink-50 border border-ink-100 rounded-xl px-3 py-2">
+      <p class="text-xs font-semibold text-ink-700 mb-0.5">Setup instructions</p>
+      <p class="text-xs text-ink-800 whitespace-pre-line">{{ grant.deliverable.instructions }}</p>
     </div>
     {% endif %}
 
     {% if grant.valid_until %}
-    <p class="text-xs text-gray-400 mt-2">Valid until {{ grant.valid_until|date:"d M Y" }}</p>
+    <p class="text-xs text-ink-400 mt-2">Valid until {{ grant.valid_until|date:"d M Y" }}</p>
     {% endif %}
   </div>
   {% endfor %}
@@ -139,9 +139,9 @@
 {% endif %}
 
 {% if not licenses and not other_grants %}
-<div class="bg-white rounded-lg border border-gray-200 px-5 py-12 text-center text-gray-400">
+<div class="bg-white rounded-2xl border border-ink-100 px-5 py-12 text-center text-ink-400">
   <p class="text-sm">No products yet.</p>
-  <a href="/" class="mt-2 inline-block text-sm text-indigo-500 hover:underline">Browse store</a>
+  <a href="/" class="mt-2 inline-block text-sm text-primary-500 hover:underline">Browse store</a>
 </div>
 {% endif %}
 {% endblock %}

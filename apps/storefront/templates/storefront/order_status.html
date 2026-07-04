@@ -8,152 +8,152 @@
   {% if order.status == "paid" %}
   <!-- Success state -->
   <div class="text-center mb-6">
-    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-      <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+    <div class="w-16 h-16 bg-moss-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-moss-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
     </div>
-    <h1 class="text-2xl font-bold text-green-800">Payment complete!</h1>
-    <p class="text-gray-500 text-sm mt-1">Your access has been activated immediately.</p>
+    <h1 class="text-2xl font-extrabold text-moss-800 tracking-tight">Payment complete!</h1>
+    <p class="text-ink-500 text-sm mt-1">Your access has been activated immediately.</p>
   </div>
 
   <!-- Receipt card -->
-  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden mb-5">
-    <div class="bg-gray-50 px-5 py-3 border-b border-gray-200 flex items-center justify-between">
-      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Receipt</p>
-      <p class="text-xs text-gray-400 font-mono">{{ order.public_id }}</p>
+  <div class="landing-card overflow-hidden mb-5">
+    <div class="bg-cream px-5 py-3 border-b border-ink-100 flex items-center justify-between">
+      <p class="text-xs font-bold text-ink-500 uppercase tracking-wide">Receipt</p>
+      <p class="text-xs text-ink-400 font-mono">{{ order.public_id }}</p>
     </div>
     <div class="px-5 py-4 space-y-3">
       <div class="flex justify-between text-sm">
-        <span class="text-gray-500">Product</span>
-        <span class="font-medium text-gray-900">{{ order.plan.product.name }}</span>
+        <span class="text-ink-500">Product</span>
+        <span class="font-semibold text-ink-900">{{ order.plan.product.name }}</span>
       </div>
       <div class="flex justify-between text-sm">
-        <span class="text-gray-500">Plan</span>
-        <span class="font-medium text-gray-900">{{ order.plan.name }}</span>
+        <span class="text-ink-500">Plan</span>
+        <span class="font-semibold text-ink-900">{{ order.plan.name }}</span>
       </div>
       {% if order.plan.interval != 'none' %}
       <div class="flex justify-between text-sm">
-        <span class="text-gray-500">Billing</span>
-        <span class="font-medium text-gray-900">{{ order.plan.get_interval_display }}</span>
+        <span class="text-ink-500">Billing</span>
+        <span class="font-semibold text-ink-900">{{ order.plan.get_interval_display }}</span>
       </div>
       {% endif %}
       {% if order.discount %}
       <div class="flex justify-between text-sm">
-        <span class="text-gray-500">Original price</span>
-        <span class="text-gray-500 line-through">{{ order.plan.price|rupiah }}</span>
+        <span class="text-ink-500">Original price</span>
+        <span class="text-ink-500 line-through">{{ order.plan.price|rupiah }}</span>
       </div>
       <div class="flex justify-between text-sm">
-        <span class="text-gray-500">Coupon discount</span>
-        <span class="text-green-600 font-medium">-{{ order.discount|rupiah }}</span>
+        <span class="text-ink-500">Coupon discount</span>
+        <span class="text-moss-600 font-semibold">-{{ order.discount|rupiah }}</span>
       </div>
       {% endif %}
-      <div class="flex justify-between text-sm pt-2 border-t border-gray-100">
-        <span class="font-semibold text-gray-800">Amount paid</span>
-        <span class="font-bold text-gray-900">{{ order.amount|rupiah }}</span>
+      <div class="flex justify-between text-sm pt-2 border-t border-ink-100">
+        <span class="font-bold text-ink-800">Amount paid</span>
+        <span class="font-extrabold text-ink-900">{{ order.amount|rupiah }}</span>
       </div>
       <div class="flex justify-between text-sm">
-        <span class="text-gray-500">Date</span>
-        <span class="text-gray-700">{{ order.created_at|date:"d M Y, H:i" }}</span>
+        <span class="text-ink-500">Date</span>
+        <span class="text-ink-700">{{ order.created_at|date:"d M Y, H:i" }}</span>
       </div>
       <div class="flex justify-between text-sm">
-        <span class="text-gray-500">Status</span>
-        <span class="text-green-600 font-semibold">{{ order.get_status_display }}</span>
+        <span class="text-ink-500">Status</span>
+        <span class="text-moss-600 font-bold">{{ order.get_status_display }}</span>
       </div>
     </div>
   </div>
 
-  <p class="text-gray-500 text-sm text-center mb-5">
+  <p class="text-ink-500 text-sm text-center mb-5">
     Access your license key and all active products in <strong>My Products</strong>.
   </p>
 
   <div class="flex flex-col gap-3">
     <a href="{% url 'dashboard:products' %}"
-       class="block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors">
+       class="block text-center bg-primary-500 hover:bg-primary-600 text-white font-bold px-6 py-3 rounded-full transition-colors">
       View my products &rarr;
     </a>
-    <a href="/" class="block text-center text-sm text-gray-400 hover:text-gray-600">
-      Back to store
+    <a href="{% url 'storefront:page' %}" class="block text-center text-sm text-ink-400 hover:text-ink-600">
+      Back to marketplace
     </a>
   </div>
 
   <!-- Review form — only if no review yet -->
   {% if not order.review %}
-  <div class="bg-white rounded-xl border border-gray-200 p-5 mt-5">
-    <h2 class="font-semibold text-gray-800 mb-1">Leave a review</h2>
-    <p class="text-xs text-gray-400 mb-4">Help others discover this product.</p>
+  <div class="landing-card p-5 mt-5">
+    <h2 class="font-bold text-ink-800 mb-1">Leave a review</h2>
+    <p class="text-xs text-ink-400 mb-4">Help others discover this product.</p>
     <form method="post" action="{% url 'dashboard:review_submit' order.public_id %}">
       {% csrf_token %}
       <div class="mb-3">
-        <label class="block text-xs font-medium text-gray-600 mb-1">Rating</label>
+        <label class="block text-xs font-semibold text-ink-600 mb-1">Rating</label>
         <div class="flex gap-2">
           {% for i in "12345" %}
           <label class="cursor-pointer">
             <input type="radio" name="rating" value="{{ forloop.counter }}" class="sr-only" required>
-            <span class="text-2xl text-gray-300 hover:text-amber-400 peer-checked:text-amber-400 select-none">&#9733;</span>
+            <span class="text-2xl text-ink-200 hover:text-gold-500 peer-checked:text-gold-500 select-none">&#9733;</span>
           </label>
           {% endfor %}
         </div>
       </div>
       <div class="mb-3">
-        <label class="block text-xs font-medium text-gray-600 mb-1">Comment (optional)</label>
+        <label class="block text-xs font-semibold text-ink-600 mb-1">Comment (optional)</label>
         <textarea name="text" rows="3" placeholder="Tell others what you think..."
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
+          class="w-full border border-ink-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"></textarea>
       </div>
-      <button type="submit" class="btn-primary text-sm">Submit review</button>
+      <button type="submit" class="landing-btn-primary text-sm !px-5 !py-2.5">Submit review</button>
     </form>
   </div>
   {% else %}
-  <div class="bg-gray-50 rounded-xl border border-gray-100 p-4 mt-5 text-center">
-    <p class="text-xs text-gray-400">You reviewed this product — thank you!</p>
+  <div class="bg-cream rounded-2xl border border-ink-100 p-4 mt-5 text-center">
+    <p class="text-xs text-ink-400">You reviewed this product — thank you!</p>
   </div>
   {% endif %}
 
   {% elif order.status == "refunded" %}
   <!-- Refunded state -->
   <div class="text-center mb-6">
-    <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-      <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+    <div class="w-16 h-16 bg-ink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-ink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
     </div>
-    <h1 class="text-xl font-bold text-purple-800">Order Refunded</h1>
-    <p class="text-gray-500 text-sm mt-1">{{ order.amount|rupiah }} has been returned to your wallet.</p>
+    <h1 class="text-xl font-extrabold text-ink-800 tracking-tight">Order Refunded</h1>
+    <p class="text-ink-500 text-sm mt-1">{{ order.amount|rupiah }} has been returned to your wallet.</p>
   </div>
-  <a href="{% url 'dashboard:wallet' %}" class="block text-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors">
+  <a href="{% url 'dashboard:wallet' %}" class="block text-center bg-primary-500 hover:bg-primary-600 text-white font-bold px-6 py-3 rounded-full transition-colors">
     View wallet balance
   </a>
 
   {% else %}
   <!-- Pending state -->
   <div class="text-center mb-6">
-    <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-      <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <div class="w-16 h-16 bg-gold-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-gold-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
     </div>
-    <h1 class="text-xl font-bold text-amber-800">Payment pending</h1>
-    <p class="text-gray-500 text-sm mt-1">Order <span class="font-mono text-xs">{{ order.public_id }}</span></p>
+    <h1 class="text-xl font-extrabold text-gold-800 tracking-tight">Payment pending</h1>
+    <p class="text-ink-500 text-sm mt-1">Order <span class="font-mono text-xs">{{ order.public_id }}</span></p>
   </div>
 
-  <div class="bg-white rounded-xl border border-gray-200 p-5 mb-5">
+  <div class="landing-card p-5 mb-5">
     <div class="flex justify-between text-sm mb-3">
-      <span class="text-gray-500">Product</span>
-      <span class="font-medium">{{ order.plan.product.name }} &middot; {{ order.plan.name }}</span>
+      <span class="text-ink-500">Product</span>
+      <span class="font-semibold text-ink-900">{{ order.plan.product.name }} &middot; {{ order.plan.name }}</span>
     </div>
     <div class="flex justify-between text-sm">
-      <span class="text-gray-500">Amount</span>
-      <span class="font-semibold text-amber-700">{{ order.amount|rupiah }}</span>
+      <span class="text-ink-500">Amount</span>
+      <span class="font-bold text-gold-700">{{ order.amount|rupiah }}</span>
     </div>
   </div>
 
-  <p class="text-gray-500 text-sm text-center mb-2">
+  <p class="text-ink-500 text-sm text-center mb-2">
     Your order will be fulfilled automatically once payment is confirmed.
   </p>
-  <p class="text-gray-400 text-xs text-center mb-5">
+  <p class="text-ink-400 text-xs text-center mb-5">
     Usually takes a few seconds. You'll receive confirmation via WhatsApp.
   </p>
 
   <div class="flex flex-col gap-3 items-center">
     <button onclick="location.reload()"
-       class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold px-6 py-3 rounded-xl transition-colors">
+       class="w-full bg-gold-500 hover:bg-gold-600 text-ink-900 font-bold px-6 py-3 rounded-full transition-colors cursor-pointer">
       Check payment status
     </button>
-    <a href="{% url 'dashboard:support' %}" class="text-sm text-gray-400 hover:underline">
+    <a href="{% url 'dashboard:support' %}" class="text-sm text-ink-400 hover:underline">
       Contact support
     </a>
   </div>

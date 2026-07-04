@@ -17,7 +17,7 @@
 
 ## Project Structure (planned)
 ```
-estalatree/
+berlanggan/
 ├── manage.py
 ├── pyproject.toml            # deps + tooling config
 ├── docker-compose.yml        # postgres + redis (dev)

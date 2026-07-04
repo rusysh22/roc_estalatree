@@ -1,0 +1,30 @@
+<section id="sellers" class="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-24 scroll-mt-20">
+  <div class="max-w-xl mb-10" data-reveal>
+    <p class="landing-section-eyebrow">Featured sellers</p>
+    <h2 class="mt-2 text-2xl sm:text-4xl font-extrabold tracking-tight text-ink-900">Creators already building on Berlanggan</h2>
+  </div>
+
+  {% if featured_sellers %}
+  <div class="flex gap-5 overflow-x-auto pb-4 -mx-5 px-5 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4">
+    {% for seller in featured_sellers %}
+    <a href="{{ seller.store_url }}" data-reveal data-reveal-delay="{{ forloop.counter0 }}00"
+       class="landing-card shrink-0 w-64 sm:w-auto p-6 text-center hover:-translate-y-1 transition-transform">
+      {% if seller.logo_url %}
+      <img src="{{ seller.logo_url }}" alt="{{ seller.name }}" class="w-16 h-16 rounded-full mx-auto object-cover ring-4 ring-primary-50">
+      {% else %}
+      <div class="w-16 h-16 rounded-full mx-auto bg-gradient-to-br from-primary-400 to-moss-500 flex items-center justify-center">
+        <span class="text-xl font-extrabold text-white">{{ seller.name|slice:":1"|upper }}</span>
+      </div>
+      {% endif %}
+      <p class="mt-4 font-bold text-ink-900 truncate">{{ seller.name }}</p>
+      <p class="text-xs text-ink-400 font-medium mt-0.5">{{ seller.product_count }} product{{ seller.product_count|pluralize }}</p>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="landing-card p-12 text-center">
+    <p class="text-ink-400 text-sm">No sellers are live yet — your storefront could be first.</p>
+    <a href="{% url 'seller:apply' %}" class="landing-btn-primary mt-5 !px-5 !py-2.5 text-sm">Apply to sell</a>
+  </div>
+  {% endif %}
+</section>

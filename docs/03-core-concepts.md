@@ -1,6 +1,6 @@
 # 03 — Core Concepts (The Spine)
 
-These two subsystems are Estalatree's backbone. Every other module depends on them.
+These two subsystems are Berlanggan's backbone. Every other module depends on them.
 
 ---
 

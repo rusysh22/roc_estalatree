@@ -14,9 +14,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: estalatree_test
-          POSTGRES_USER: estalatree
-          POSTGRES_PASSWORD: estalatree
+          POSTGRES_DB: berlanggan_test
+          POSTGRES_USER: berlanggan
+          POSTGRES_PASSWORD: berlanggan
         ports: ["5432:5432"]
         options: >-
           --health-cmd pg_isready
@@ -35,7 +35,7 @@ jobs:
 
     env:
       DJANGO_SECRET_KEY: ci-secret-key-not-real
-      DATABASE_URL: postgres://estalatree:estalatree@localhost:5432/estalatree_test
+      DATABASE_URL: postgres://berlanggan:berlanggan@localhost:5432/berlanggan_test
       REDIS_URL: redis://localhost:6379/0
       CELERY_BROKER_URL: redis://localhost:6379/0
       DJANGO_SETTINGS_MODULE: config.settings.dev

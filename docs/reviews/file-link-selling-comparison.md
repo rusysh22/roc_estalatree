@@ -1,10 +1,10 @@
-# Selling Digital Files & Links (download / GDrive / URL) — Estalatree vs Lynk.id
+# Selling Digital Files & Links (download / GDrive / URL) — Berlanggan vs Lynk.id
 
 **Date:** 2026-06-20 · **Reviewer:** assistant (review-only).
-**Question:** can Estalatree sell a downloadable file or a GDrive/Dropbox/any-URL link "like lynk.id", and how does it compare in detail?
+**Question:** can Berlanggan sell a downloadable file or a GDrive/Dropbox/any-URL link "like lynk.id", and how does it compare in detail?
 
 ## Verdict
-**Conceptually yes — operationally not yet.** Estalatree already models file/link selling (`Deliverable` types `download` + `access_link`, URL in config), but: (1) **two bugs make the link never reach the buyer**, (2) there is **no file hosting** (link-only), (3) the **store card has no image** and (4) the **purchase email omits the link**. Against lynk.id's polished, hosted, gated download flow, this is a ▲▲▲ gap today — but most of it is small fixes, not architecture.
+**Conceptually yes — operationally not yet.** Berlanggan already models file/link selling (`Deliverable` types `download` + `access_link`, URL in config), but: (1) **two bugs make the link never reach the buyer**, (2) there is **no file hosting** (link-only), (3) the **store card has no image** and (4) the **purchase email omits the link**. Against lynk.id's polished, hosted, gated download flow, this is a ▲▲▲ gap today — but most of it is small fixes, not architecture.
 
 ---
 
@@ -26,7 +26,7 @@
 
 ## End-to-end flow comparison
 
-| Stage | Lynk.id | Estalatree (now) |
+| Stage | Lynk.id | Berlanggan (now) |
 |-------|---------|------------------|
 | **Seller: create product** | Title, **rich description**, **cover image + gallery**, price options (fixed / **pay-what-you-want** / free / min) | Product (name, text description, **no image**), Plan (fixed price / free), Deliverable `download`/`access_link` |
 | **Seller: provide the file** | **Upload & host on platform** (size limits) **or** paste external link | **External URL only** (paste GDrive/Dropbox/any link) — no upload/hosting |
@@ -40,7 +40,7 @@
 
 ## Capability comparison (file/link selling specifically)
 
-| Capability | Lynk.id | Estalatree | Gap |
+| Capability | Lynk.id | Berlanggan | Gap |
 |---|---|---|---|
 | Native file upload + hosting | Yes | No (link-only) | ▲▲▲ |
 | External link (GDrive/etc.) | Yes | Yes | — |
@@ -76,4 +76,4 @@
 ---
 
 ## Bottom line
-Estalatree *can* sell GDrive-style file/link products today — the model is right — but it is **not delivering them** because of two small bugs, and it **looks plainer and protects the file less** than lynk.id (no image, no gating, link-only, no email link). Fix BUG-1/BUG-2 first (file/link selling is broken until then), add a product cover image, then layer gated delivery + PWYW to reach lynk.id's standard. None of this needs architectural change — the provisioning layer already supports it.
+Berlanggan *can* sell GDrive-style file/link products today — the model is right — but it is **not delivering them** because of two small bugs, and it **looks plainer and protects the file less** than lynk.id (no image, no gating, link-only, no email link). Fix BUG-1/BUG-2 first (file/link selling is broken until then), add a product cover image, then layer gated delivery + PWYW to reach lynk.id's standard. None of this needs architectural change — the provisioning layer already supports it.

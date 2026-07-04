@@ -20,8 +20,8 @@ In `activate`, `if not license.seats_available` (count check) and `Installation.
 - **Action:** wrap the seat check + install create in `transaction.atomic()` + `select_for_update()` on the License row, and re-check the active seat count inside the lock.
 
 ### H2. Endpoints are `auth=None` — no product `secret`
-[07-api.md](../07-api.md) and CONVENTIONS specify product auth = `license_key` + `secret` (`X-Estalatree-Secret` header). All three endpoints are open; the license key (shown/copied by users, leakable) is the only credential. Anyone who knows a license key + a fingerprint can `deactivate` a victim's seat (griefing); abuse surface rests on the key alone.
-- **Action:** either implement the `X-Estalatree-Secret` product secret per spec, **or** consciously decide "the license key is the sole credential" (Keygen/Cryptlex style) and update [07-api.md](../07-api.md). Do not silently diverge from the spec.
+[07-api.md](../07-api.md) and CONVENTIONS specify product auth = `license_key` + `secret` (`X-Berlanggan-Secret` header). All three endpoints are open; the license key (shown/copied by users, leakable) is the only credential. Anyone who knows a license key + a fingerprint can `deactivate` a victim's seat (griefing); abuse surface rests on the key alone.
+- **Action:** either implement the `X-Berlanggan-Secret` product secret per spec, **or** consciously decide "the license key is the sole credential" (Keygen/Cryptlex style) and update [07-api.md](../07-api.md). Do not silently diverge from the spec.
 
 ---
 

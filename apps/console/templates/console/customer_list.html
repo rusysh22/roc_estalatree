@@ -4,39 +4,39 @@
 
 {% block content %}
 <div class="flex items-center justify-between mb-6">
-  <h1 class="text-2xl font-bold">Customers</h1>
+  <h1 class="text-2xl font-extrabold text-ink-900 tracking-tight">Customers</h1>
   <form method="get" class="flex gap-2">
     <input type="text" name="q" value="{{ q }}" placeholder="Search by emailâ€¦"
-           class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700">Search</button>
-    {% if q %}<a href="{% url 'console:customer_list' %}" class="px-4 py-2 text-sm text-gray-600 hover:underline">Clear</a>{% endif %}
+           class="border border-ink-300 rounded-xl px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-primary-500">
+    <button type="submit" class="bg-primary-500 text-white px-4 py-2 rounded-full text-sm hover:bg-primary-600">Search</button>
+    {% if q %}<a href="{% url 'console:customer_list' %}" class="px-4 py-2 text-sm text-ink-600 hover:underline">Clear</a>{% endif %}
   </form>
 </div>
 
 {% if customers %}
-<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+<div class="bg-white rounded-2xl border border-ink-100 overflow-hidden">
   <div class="overflow-x-auto">
   <table class="w-full min-w-[600px] text-sm">
-    <thead class="bg-gray-50 border-b border-gray-200">
+    <thead class="bg-ink-50 border-b border-ink-200">
       <tr>
-        <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Email</th>
-        <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">WA</th>
-        <th class="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Balance</th>
-        <th class="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Joined</th>
+        <th class="text-left px-4 py-3 text-xs font-bold text-ink-500 uppercase">Email</th>
+        <th class="text-left px-4 py-3 text-xs font-bold text-ink-500 uppercase">WA</th>
+        <th class="text-right px-4 py-3 text-xs font-bold text-ink-500 uppercase">Balance</th>
+        <th class="text-left px-4 py-3 text-xs font-bold text-ink-500 uppercase">Joined</th>
         <th class="px-4 py-3"></th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-gray-100">
+    <tbody class="divide-y divide-ink-100">
       {% for customer in customers %}
-      <tr class="hover:bg-gray-50">
+      <tr class="hover:bg-ink-50">
         <td class="px-4 py-3 font-medium">{{ customer.user.email }}</td>
-        <td class="px-4 py-3 text-gray-500">{{ customer.wa_number|default:"&mdash;" }}</td>
+        <td class="px-4 py-3 text-ink-500">{{ customer.wa_number|default:"&mdash;" }}</td>
         <td class="px-4 py-3 text-right font-mono">
           {% if customer.wallet %}{{ customer.wallet.balance|rupiah }}{% else %}&mdash;{% endif %}
         </td>
-        <td class="px-4 py-3 text-gray-400">{{ customer.created_at|date:"d M Y" }}</td>
+        <td class="px-4 py-3 text-ink-400">{{ customer.created_at|date:"d M Y" }}</td>
         <td class="px-4 py-3 text-right">
-          <a href="{% url 'console:customer_360' customer.pk %}" class="text-indigo-600 hover:underline text-xs">View 360&deg;</a>
+          <a href="{% url 'console:customer_360' customer.pk %}" class="text-primary-600 hover:underline text-xs">View 360&deg;</a>
         </td>
       </tr>
       {% endfor %}
@@ -45,7 +45,7 @@
   </div>
 </div>
 {% else %}
-<div class="bg-white rounded-lg border border-gray-200 px-5 py-8 text-center text-gray-400 text-sm">
+<div class="bg-white rounded-2xl border border-ink-100 px-5 py-8 text-center text-ink-400 text-sm">
   No customers found{% if q %} for "{{ q }}"{% endif %}.
 </div>
 {% endif %}

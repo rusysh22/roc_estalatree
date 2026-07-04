@@ -1,60 +1,62 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% load static money %}
-{% block title %}{% block page_title %}Console{% endblock %} &mdash; Estalatree Admin{% endblock %}
-{% block body_class %}bg-gray-100 text-gray-900 min-h-screen{% endblock %}
+{% block title %}{% block page_title %}Console{% endblock %} &mdash; Berlanggan Admin{% endblock %}
+{% block body_class %}bg-cream text-ink-900 min-h-screen{% endblock %}
 {% block head_extra %}
   <script src="{% static 'js/htmx.min.js' %}" defer></script>
 {% endblock %}
-{% block body_attrs %}hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'{% endblock %}
+{% block body_attrs %}hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' style="font-family: var(--font-sans);"{% endblock %}
 
 {% block body %}
 {% user_surfaces as surfaces %}
 
 <!-- Mobile toggle -->
-<input type="checkbox" id="console-nav-toggle" class="hidden peer/consolenav">
+<input type="checkbox" id="console-nav-toggle" class="sr-only peer/consolenav">
 
-<nav class="bg-gray-900 text-white sticky top-0 z-10">
+<nav class="bg-ink-900 text-white sticky top-0 z-10">
   <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
 
     <!-- Left: hamburger + brand -->
     <div class="flex items-center gap-3">
-      <label for="console-nav-toggle" class="md:hidden cursor-pointer p-1.5 rounded text-gray-400 hover:text-white hover:bg-gray-700">
+      <label for="console-nav-toggle" class="md:hidden cursor-pointer p-1.5 rounded-lg text-ink-300 hover:text-white hover:bg-white/10">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
         </svg>
       </label>
-      <a href="{% url 'console:cockpit' %}" class="font-bold text-indigo-400 text-sm whitespace-nowrap">Estalatree Console</a>
+      <a href="{% url 'console:cockpit' %}" class="flex items-center gap-2 font-extrabold text-primary-400 text-sm whitespace-nowrap">
+        <img src="{% static 'images/brand/logo-mark.png' %}" alt="" class="w-6 h-6 object-contain">
+        Berlanggan Console
+      </a>
     </div>
 
     <!-- Desktop nav links -->
     <div class="hidden md:flex items-center gap-5 text-sm">
-      {% if request.resolver_match.url_name == 'cockpit' %}<a href="{% url 'console:cockpit' %}" class="text-white font-medium">Cockpit</a>{% else %}<a href="{% url 'console:cockpit' %}" class="text-gray-300 hover:text-white">Cockpit</a>{% endif %}
-      {% if 'customer' in request.resolver_match.url_name %}<a href="{% url 'console:customer_list' %}" class="text-white font-medium">Customers</a>{% else %}<a href="{% url 'console:customer_list' %}" class="text-gray-300 hover:text-white">Customers</a>{% endif %}
-      {% if request.resolver_match.url_name == 'audit_log' %}<a href="{% url 'console:audit_log' %}" class="text-white font-medium">Audit Log</a>{% else %}<a href="{% url 'console:audit_log' %}" class="text-gray-300 hover:text-white">Audit Log</a>{% endif %}
+      {% if request.resolver_match.url_name == 'cockpit' %}<a href="{% url 'console:cockpit' %}" class="text-white font-semibold">Cockpit</a>{% else %}<a href="{% url 'console:cockpit' %}" class="text-ink-300 hover:text-white transition-colors">Cockpit</a>{% endif %}
+      {% if 'customer' in request.resolver_match.url_name %}<a href="{% url 'console:customer_list' %}" class="text-white font-semibold">Customers</a>{% else %}<a href="{% url 'console:customer_list' %}" class="text-ink-300 hover:text-white transition-colors">Customers</a>{% endif %}
+      {% if request.resolver_match.url_name == 'audit_log' %}<a href="{% url 'console:audit_log' %}" class="text-white font-semibold">Audit Log</a>{% else %}<a href="{% url 'console:audit_log' %}" class="text-ink-300 hover:text-white transition-colors">Audit Log</a>{% endif %}
       {% if user.is_superuser %}
-      <a href="{% url 'console:settings' %}" class="text-gray-300 hover:text-white">Settings</a>
-      <a href="{% url 'console:setup' %}" class="text-gray-300 hover:text-white">Setup</a>
+      <a href="{% url 'console:settings' %}" class="text-ink-300 hover:text-white transition-colors">Settings</a>
+      <a href="{% url 'console:setup' %}" class="text-ink-300 hover:text-white transition-colors">Setup</a>
       {% endif %}
-      <a href="/admin/" class="text-gray-300 hover:text-white">Django Admin</a>
+      <a href="/admin/" class="text-ink-300 hover:text-white transition-colors">Django Admin</a>
     </div>
 
     <!-- Right: surface switcher -->
     <div class="flex items-center gap-3 text-xs">
-      {% if surfaces.dashboard %}<a href="{% url 'dashboard:home' %}" class="text-indigo-400 hover:text-indigo-300 hidden sm:inline">Dashboard</a>{% endif %}
-      {% if surfaces.seller %}<a href="{% url 'seller:home' %}" class="text-indigo-400 hover:text-indigo-300 hidden sm:inline">Seller</a>{% endif %}
-      <span class="text-gray-500 hidden md:inline truncate max-w-40">{{ user.email }}</span>
+      {% if surfaces.dashboard %}<a href="{% url 'dashboard:home' %}" class="text-primary-400 hover:text-primary-300 hidden sm:inline">Dashboard</a>{% endif %}
+      {% if surfaces.seller %}<a href="{% url 'seller:home' %}" class="text-primary-400 hover:text-primary-300 hidden sm:inline">Seller</a>{% endif %}
+      <span class="text-ink-400 hidden md:inline truncate max-w-40">{{ user.email }}</span>
     </div>
   </div>
 </nav>
 
 <!-- Mobile drawer -->
-<div class="md:hidden fixed inset-0 z-40 pointer-events-none peer-checked/consolenav:pointer-events-auto">
-  <label for="console-nav-toggle"
-    class="absolute inset-0 bg-black/50 opacity-0 peer-checked/consolenav:opacity-100 transition-opacity duration-200 cursor-pointer"></label>
-  <div class="absolute top-0 left-0 w-64 bottom-0 bg-gray-900 text-white -translate-x-full peer-checked/consolenav:translate-x-0 transition-transform duration-200 flex flex-col z-50">
-    <div class="flex items-center justify-between px-4 h-14 border-b border-gray-700">
-      <span class="font-bold text-indigo-400 text-sm">Console</span>
-      <label for="console-nav-toggle" class="cursor-pointer p-1.5 rounded text-gray-400 hover:text-white">
+<label for="console-nav-toggle"
+  class="md:hidden fixed inset-0 z-40 bg-ink-900/60 opacity-0 pointer-events-none peer-checked/consolenav:opacity-100 peer-checked/consolenav:pointer-events-auto transition-opacity duration-200 cursor-pointer"></label>
+<div class="md:hidden fixed top-0 left-0 w-64 bottom-0 bg-ink-900 text-white -translate-x-full pointer-events-none peer-checked/consolenav:translate-x-0 peer-checked/consolenav:pointer-events-auto transition-transform duration-200 flex flex-col z-50">
+    <div class="flex items-center justify-between px-4 h-14 border-b border-white/10">
+      <span class="font-extrabold text-primary-400 text-sm">Console</span>
+      <label for="console-nav-toggle" class="cursor-pointer p-1.5 rounded-lg text-ink-300 hover:text-white">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
@@ -62,40 +64,39 @@
     </div>
     <div class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
       <label for="console-nav-toggle" class="block">
-        <a href="{% url 'console:cockpit' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">Cockpit</a>
+        <a href="{% url 'console:cockpit' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink-300 hover:bg-white/10 hover:text-white">Cockpit</a>
       </label>
       <label for="console-nav-toggle" class="block">
-        <a href="{% url 'console:customer_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">Customers</a>
+        <a href="{% url 'console:customer_list' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink-300 hover:bg-white/10 hover:text-white">Customers</a>
       </label>
       <label for="console-nav-toggle" class="block">
-        <a href="{% url 'console:audit_log' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">Audit Log</a>
+        <a href="{% url 'console:audit_log' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink-300 hover:bg-white/10 hover:text-white">Audit Log</a>
       </label>
       {% if user.is_superuser %}
       <label for="console-nav-toggle" class="block">
-        <a href="{% url 'console:settings' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">Settings</a>
+        <a href="{% url 'console:settings' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink-300 hover:bg-white/10 hover:text-white">Settings</a>
       </label>
       <label for="console-nav-toggle" class="block">
-        <a href="{% url 'console:setup' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">Setup</a>
+        <a href="{% url 'console:setup' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink-300 hover:bg-white/10 hover:text-white">Setup</a>
       </label>
       {% endif %}
       <label for="console-nav-toggle" class="block">
-        <a href="/admin/" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">Django Admin</a>
+        <a href="/admin/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-ink-300 hover:bg-white/10 hover:text-white">Django Admin</a>
       </label>
-      <div class="border-t border-gray-700 pt-2 mt-2">
-        {% if surfaces.dashboard %}<a href="{% url 'dashboard:home' %}" class="block px-3 py-2.5 rounded-lg text-indigo-400 hover:bg-gray-700">Dashboard</a>{% endif %}
-        {% if surfaces.seller %}<a href="{% url 'seller:home' %}" class="block px-3 py-2.5 rounded-lg text-indigo-400 hover:bg-gray-700">Seller</a>{% endif %}
-        <p class="px-3 py-2 text-xs text-gray-500 truncate">{{ user.email }}</p>
+      <div class="border-t border-white/10 pt-2 mt-2">
+        {% if surfaces.dashboard %}<a href="{% url 'dashboard:home' %}" class="block px-3 py-2.5 rounded-xl text-primary-400 hover:bg-white/10">Dashboard</a>{% endif %}
+        {% if surfaces.seller %}<a href="{% url 'seller:home' %}" class="block px-3 py-2.5 rounded-xl text-primary-400 hover:bg-white/10">Seller</a>{% endif %}
+        <p class="px-3 py-2 text-xs text-ink-400 truncate">{{ user.email }}</p>
       </div>
     </div>
-  </div>
 </div>
 
 {% if messages %}
 <div class="max-w-7xl mx-auto px-4 mt-4 space-y-2">
   {% for message in messages %}
-  <div class="px-4 py-2 rounded text-sm
-    {% if message.tags == 'error' %}bg-red-100 text-red-800 border border-red-200
-    {% else %}bg-green-100 text-green-800 border border-green-200{% endif %}">
+  <div class="px-4 py-2 rounded-xl text-sm border
+    {% if message.tags == 'error' %}bg-primary-50 text-primary-700 border-primary-200
+    {% else %}bg-moss-50 text-moss-700 border-moss-200{% endif %}">
     {{ message }}
   </div>
   {% endfor %}

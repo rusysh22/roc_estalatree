@@ -1,8 +1,8 @@
 """Tests for Phase 9 — Public Storefront.
 
 Coverage:
-  1. Store page: 200 when published, 404 for unknown slug
-  2. Empty store page renders gracefully (no StorePage)
+  1. Marketplace landing page (/): 200, shows trending products/sellers
+  2. Individual seller store page (/<slug>/): 200 when published, 404 for unknown slug
   3. Product detail: 200 for public product, 404 for draft
   4. Checkout GET: 200 when logged in; 302 to login when anon
   5. Checkout POST: balance sufficient → PAID order → redirect to order_status
@@ -20,6 +20,7 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
+from apps.accounts.models import SellerProfile
 from apps.billing.models import Order
 from apps.catalog.models import Plan, Product
 from apps.crm.models import Lead
@@ -40,7 +41,7 @@ from tests.factories import (
 def store_page(db):
     page = StorePage.objects.create(
         slug="main",
-        title="Estalatree Store",
+        title="Berlanggan Store",
         description="Our products",
         is_published=True,
     )
@@ -96,26 +97,45 @@ def funded_authed_client(funded_customer):
     return c
 
 
-# ── 1+2. Store page ───────────────────────────────────────────────────────────
+# ── Landing page (marketplace home) ────────────────────────────────────────────
 
 @pytest.mark.django_db
-def test_store_page_returns_200_when_published(store_page):
+def test_landing_page_returns_200():
     resp = Client().get(reverse("storefront:page"))
     assert resp.status_code == 200
-    assert b"Estalatree Store" in resp.content
+    assert b"Berlanggan" in resp.content
+
+
+@pytest.mark.django_db
+def test_landing_page_shows_trending_product(customer):
+    seller = SellerProfile.objects.create(
+        name="Acme Creator", slug="acme-creator", is_active=True, is_approved=True,
+    )
+    product = ProductFactory(
+        visibility=Product.Visibility.PUBLIC, name="Landing Trend Product", seller=seller,
+    )
+    plan = PlanFactory(product=product, price=75_000, is_active=True)
+    Order.objects.create(customer=customer, plan=plan, amount=plan.price, status=Order.Status.PAID)
+
+    resp = Client().get(reverse("storefront:page"))
+    assert resp.status_code == 200
+    assert b"Landing Trend Product" in resp.content
+    assert b"Acme Creator" in resp.content
+
+
+# ── 1+2. Store page (individual seller, /<slug>/) ─────────────────────────────
+
+@pytest.mark.django_db
+def test_store_page_slug_returns_200_when_published(store_page):
+    resp = Client().get(reverse("storefront:store_page", args=[store_page.slug]))
+    assert resp.status_code == 200
+    assert b"Berlanggan Store" in resp.content
 
 
 @pytest.mark.django_db
 def test_store_page_404_for_unknown_slug():
     resp = Client().get("/no-such-slug/")
     assert resp.status_code == 404
-
-
-@pytest.mark.django_db
-def test_store_page_no_store_page_renders_gracefully():
-    resp = Client().get(reverse("storefront:page"))
-    assert resp.status_code == 200
-    assert b"coming soon" in resp.content
 
 
 # ── 3. Product detail ─────────────────────────────────────────────────────────

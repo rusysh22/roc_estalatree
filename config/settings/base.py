@@ -91,7 +91,7 @@ ASGI_APPLICATION = "config.asgi.application"
 
 # ── Database ──────────────────────────────────────────────────────────────────
 DATABASES = {
-    "default": env.db("DATABASE_URL", default="postgres://estalatree:estalatree@localhost:5432/estalatree")
+    "default": env.db("DATABASE_URL", default="postgres://berlanggan:berlanggan@localhost:5432/berlanggan")
 }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
@@ -161,10 +161,16 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # ── Email ─────────────────────────────────────────────────────────────────────
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@estalatree.com")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@berlanggan.com")
 EMAIL_BACKEND = env(
     "EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
 )
+EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
 
 # ── Duitku ────────────────────────────────────────────────────────────────────
 DUITKU_MERCHANT_CODE = env("DUITKU_MERCHANT_CODE", default="")
@@ -213,6 +219,6 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": "INFO"},
     "loggers": {
         "django": {"handlers": ["console"], "level": "INFO", "propagate": False},
-        "estalatree": {"handlers": ["console"], "level": "DEBUG", "propagate": False},
+        "berlanggan": {"handlers": ["console"], "level": "DEBUG", "propagate": False},
     },
 }
