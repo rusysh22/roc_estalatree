@@ -1,12 +1,12 @@
-# 22 — Feature Catalog (Lynk.id PRO → Estalatree, all-access)
+# 22 — Feature Catalog (Lynk.id PRO → Berlanggan, all-access)
 
-> **Principle:** Estalatree is single-merchant — **you are the owner, so there is no "Upgrade to PRO" for yourself.** Every Lynk.id PRO capability is treated as **baseline / all-access** (no paywall, no caps). They are scheduled across product stages by *effort*, not by tier.
+> **Principle:** Berlanggan is single-merchant — **you are the owner, so there is no "Upgrade to PRO" for yourself.** Every Lynk.id PRO capability is treated as **baseline / all-access** (no paywall, no caps). They are scheduled across product stages by *effort*, not by tier.
 >
 > Tiering returns only in the **multi-seller** future (Stage 3): these same capabilities become *Seller* subscription perks, and the marketplace economics (transaction/withdrawal fees) switch on. None of that applies to the owner.
 
 ## Link-in-bio
 
-| Lynk.id PRO | Estalatree | Stage | Surface/app |
+| Lynk.id PRO | Berlanggan | Stage | Surface/app |
 |-------------|------------|-------|-------------|
 | Unlimited links | Unlimited blocks/links (**no caps**) | MVP | storefront |
 | Analytics | Built-in views/clicks analytics | Stage 1 | storefront + console |
@@ -18,7 +18,7 @@
 
 ## Store-in-bio (commerce + content)
 
-| Lynk.id PRO | Estalatree | Stage | Surface/app |
+| Lynk.id PRO | Berlanggan | Stage | Surface/app |
 |-------------|------------|-------|-------------|
 | E-course video (480 min) | Course product/block + video hosting (**no minute cap**) | Stage 2 | catalog + storefront |
 | Questionnaire (20 Gb) | Form/questionnaire block + storage (**no GB cap**) | Stage 2 | storefront |
@@ -30,7 +30,7 @@
 
 > Not applicable to the single-merchant owner. Listed so the model is ready.
 
-| Lynk.id PRO | Estalatree | Stage |
+| Lynk.id PRO | Berlanggan | Stage |
 |-------------|------------|-------|
 | Transaction fee (3%) | Platform commission per sale (config in `Setting`) | Stage 3 |
 | Withdrawal fee (FREE/Rp5k) | Seller payout fee | Stage 3 |

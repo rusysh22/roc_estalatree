@@ -13,13 +13,16 @@ import uuid
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
+from django.db.models.functions import Coalesce
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
+from apps.accounts.models import SellerProfile
 from apps.billing.models import Order, TopUp
-from apps.catalog.models import Plan, Product
+from apps.catalog.models import Plan, Product, ProductReview
 from apps.core.models import Setting
 from apps.storefront.models import Block, StorePage
 
@@ -95,11 +98,70 @@ def _record_affiliate_commission(request, order) -> None:
         logger.exception("Failed to record affiliate commission for order %s", order.pk)
 
 
+# ── Marketplace landing page ─────────────────────────────────────────────────
+
+def landing(request):
+    """Public marketplace home — platform-wide discovery, not a specific seller.
+
+    Trending products, featured sellers, and testimonials are drawn from
+    across the whole marketplace (only PUBLIC products from active+approved
+    sellers). Individual seller pages live at /<slug>/ (see `page` below).
+    """
+    trending_products = (
+        Product.objects.filter(
+            visibility=Product.Visibility.PUBLIC,
+            seller__is_active=True,
+            seller__is_approved=True,
+        )
+        .select_related("seller")
+        .prefetch_related(Prefetch(
+            "plans", queryset=Plan.objects.filter(is_active=True).order_by("price")
+        ))
+        .annotate(paid_order_count=Count(
+            "plans__orders",
+            filter=Q(plans__orders__status=Order.Status.PAID),
+            distinct=True,
+        ))
+        .order_by("-paid_order_count", "-created_at")[:8]
+    )
+
+    seller_product_count_sq = (
+        Product.objects.filter(seller_id=OuterRef("pk"), visibility=Product.Visibility.PUBLIC)
+        .order_by()
+        .values("seller_id")
+        .annotate(cnt=Count("id"))
+        .values("cnt")
+    )
+    featured_sellers = (
+        SellerProfile.objects.filter(is_active=True, is_approved=True)
+        .annotate(product_count=Coalesce(Subquery(seller_product_count_sq), 0))
+        .filter(product_count__gt=0)
+        .order_by("-product_count", "-created_at")[:8]
+    )
+
+    testimonials = (
+        ProductReview.objects.filter(
+            is_published=True,
+            rating__gte=4,
+            product__visibility=Product.Visibility.PUBLIC,
+        )
+        .select_related("product", "order__customer__user")
+        .order_by("-created_at")[:6]
+    )
+
+    _emit_event(request, "page_view")
+    return render(request, "storefront/landing.html", {
+        "trending_products": trending_products,
+        "featured_sellers": featured_sellers,
+        "testimonials": testimonials,
+    })
+
+
 # ── Store page ────────────────────────────────────────────────────────────────
 
 @xframe_options_sameorigin
-def page(request, slug=None):
-    """Public store page — the link-in-bio home.
+def page(request, slug):
+    """Public store page — a single seller's link-in-bio page at /<slug>/.
 
     Supports ?preview=1 to bypass is_published check when the authenticated
     user is the owner of the store (seller dashboard preview iframe).
@@ -107,21 +169,18 @@ def page(request, slug=None):
     is_preview = request.GET.get("preview") == "1"
     qs = StorePage.objects.select_related("seller")
 
-    if slug:
-        if is_preview and request.user.is_authenticated:
-            store_page = get_object_or_404(qs, slug=slug)
-            # Only the store owner may preview an unpublished store
-            if not store_page.is_published:
-                is_owner = (
-                    store_page.seller is not None
-                    and store_page.seller.user_id == request.user.pk
-                )
-                if not is_owner:
-                    raise Http404
-        else:
-            store_page = get_object_or_404(qs, slug=slug, is_published=True)
+    if is_preview and request.user.is_authenticated:
+        store_page = get_object_or_404(qs, slug=slug)
+        # Only the store owner may preview an unpublished store
+        if not store_page.is_published:
+            is_owner = (
+                store_page.seller is not None
+                and store_page.seller.user_id == request.user.pk
+            )
+            if not is_owner:
+                raise Http404
     else:
-        store_page = qs.filter(is_published=True).first()
+        store_page = get_object_or_404(qs, slug=slug, is_published=True)
 
     blocks = []
     sold_counts = {}
@@ -252,28 +311,57 @@ def checkout_plan(request, plan_pk):
             except Exception:
                 pass
 
+        # Duration multiplier (recurring plans only)
+        duration_multiplier = 1
+        duration_discount_pct = 0
+        duration_discount_amount = 0
+        if plan.interval != 'none':
+            try:
+                duration_multiplier = max(1, int(request.GET.get("duration", 1)))
+            except (ValueError, TypeError):
+                duration_multiplier = 1
+            duration_discount_pct = int(plan.duration_discounts.get(str(duration_multiplier), 0))
+
         # Coupon preview (GET ?coupon_code=XXX)
         from apps.billing.models import Coupon
         discount = 0
         coupon_obj = None
         coupon_error = None
         coupon_code_get = request.GET.get("coupon_code", "").strip().upper()
+
+        # Base price after duration multiplier + duration discount
+        base_price = plan.price
+        if plan.interval != 'none' and duration_multiplier > 1:
+            subtotal = base_price * duration_multiplier
+            duration_discount_amount = subtotal * duration_discount_pct // 100
+            base_price = subtotal - duration_discount_amount
+        else:
+            duration_discount_amount = 0
+
         if coupon_code_get:
             try:
                 coupon_obj = Coupon.objects.get(code=coupon_code_get)
                 valid, reason = coupon_obj.is_valid_for(plan)
                 if valid:
-                    discount = coupon_obj.compute_discount(plan.price)
+                    discount = coupon_obj.compute_discount(base_price)
                 else:
                     coupon_error = reason
                     coupon_obj = None
             except Coupon.DoesNotExist:
                 coupon_error = "Coupon code not found."
 
-        base_price = plan.price
         effective_price = max(0, base_price - discount)
         shortfall = max(0, effective_price - wallet_balance)
         balance_after = wallet_balance - effective_price if shortfall == 0 else 0
+
+        master_direct_pay = Setting.get("DIRECT_PAY_ENABLED", "false").strip().lower() == "true"
+        direct_pay_active = master_direct_pay and plan.direct_pay
+
+        # Direct pay always charges the full amount via gateway; top-up-and-buy
+        # only charges the shortfall. Payment methods are only needed when
+        # some amount will actually be charged through the gateway.
+        charge_amount = effective_price if direct_pay_active else shortfall
+        payment_methods = _payment_methods(charge_amount) if charge_amount > 0 else []
 
         _emit_event(request, "checkout_start", product=product, plan=plan)
         return render(request, "storefront/checkout.html", {
@@ -289,7 +377,11 @@ def checkout_plan(request, plan_pk):
             "discount": discount,
             "effective_price": effective_price,
             "questions": questions,
-            "payment_methods": _payment_methods(shortfall) if shortfall > 0 else [],
+            "payment_methods": payment_methods,
+            "duration_multiplier": duration_multiplier,
+            "duration_discount_pct": duration_discount_pct,
+            "duration_discount_amount": duration_discount_amount,
+            "direct_pay_active": direct_pay_active,
         })
 
     # POST — run checkout
@@ -304,6 +396,14 @@ def checkout_plan(request, plan_pk):
     checkout_token = request.POST.get("checkout_token") or request.session.get(_SESSION_KEY, uuid.uuid4().hex)
     checkout_key = f"ck:{request.user.pk}:{plan.pk}:{checkout_token}"
     return_url = request.build_absolute_uri("/orders/pending/")
+
+    # Duration multiplier
+    duration_multiplier = 1
+    if plan.interval != 'none':
+        try:
+            duration_multiplier = max(1, int(request.POST.get("duration", 1)))
+        except (ValueError, TypeError):
+            duration_multiplier = 1
 
     # PWYW price override
     price_override = None
@@ -356,6 +456,7 @@ def checkout_plan(request, plan_pk):
             checkout_key=checkout_key,
             coupon=coupon,
             price_override=price_override,
+            duration_multiplier=duration_multiplier,
             custom_fields=custom_fields,
             callback_url=_callback_url(request),
             return_url=return_url,

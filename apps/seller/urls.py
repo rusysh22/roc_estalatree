@@ -39,4 +39,10 @@ urlpatterns = [
     path("earnings/payout/", views.payout_request, name="payout_request"),
     path("affiliates/", views.affiliates, name="affiliates"),
     path("affiliates/<int:link_pk>/toggle/", views.affiliate_toggle, name="affiliate_toggle"),
+    path("subscriptions/", views.subscriptions, name="subscriptions"),
+    path("subscriptions/<int:pk>/", views.subscription_detail, name="subscription_detail"),
+    path("subscriptions/<int:sub_pk>/cancel/", views.subscription_cancel, name="subscription_cancel"),
+    path("subscriptions/<int:sub_pk>/toggle-renew/", views.subscription_toggle_renew, name="subscription_toggle_renew"),
+    path("subscriptions/<int:sub_pk>/toggle-suspend/", views.subscription_toggle_suspend, name="subscription_toggle_suspend"),
+    path("orders/<int:pk>/", views.order_detail, name="order_detail"),
 ]

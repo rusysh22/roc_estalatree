@@ -3,7 +3,7 @@
 > Binding rules for the whole codebase, so any agent/session stays consistent. If existing code conflicts, follow this doc and clean the code up.
 
 ## Language (system standard)
-- **English is the default language of Estalatree** — code, documentation, and base UI strings.
+- **English is the default language of Berlanggan** — code, documentation, and base UI strings.
 - User-facing text is authored in English; **Indonesian (and other locales) via Django i18n / gettext** when localization is added (growth stage). No hardcoded non-English strings.
 - Identifiers, models, fields, functions, comments: **English**.
 - Domain vocabulary & status values: [GLOSSARY.md](GLOSSARY.md).

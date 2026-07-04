@@ -1,4 +1,4 @@
-# Final Review — Estalatree (Phases 0–11)
+# Final Review — Berlanggan (Phases 0–11)
 
 **Date:** 2026-06-19 · **Reviewer:** assistant (review-only; no code changed)
 **Scope:** end-to-end pass of the whole build through `18ba812` (Phase 11).

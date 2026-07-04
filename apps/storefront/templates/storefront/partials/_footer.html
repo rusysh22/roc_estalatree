@@ -1,0 +1,93 @@
+{% load static %}
+<footer class="bg-ink-900 text-cream/70 pt-14 pb-8">
+  <div class="max-w-7xl mx-auto px-5 sm:px-8">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-8">
+      <div class="col-span-2 sm:col-span-1">
+        <div class="flex items-center gap-2">
+          <img src="{% static 'images/brand/logo-mark.png' %}" alt="" class="w-8 h-8 object-contain">
+          <span class="font-extrabold text-cream">Berlanggan</span>
+        </div>
+        <p class="mt-3 text-sm leading-relaxed max-w-[220px]">A marketplace for creators and sellers — instant delivery, secure checkout.</p>
+      </div>
+
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wide text-cream/40">Marketplace</p>
+        <ul class="mt-3 space-y-2 text-sm">
+          <li><a href="{% url 'storefront:page' %}#trending" class="hover:text-cream transition-colors">Explore products</a></li>
+          <li><a href="{% url 'storefront:page' %}#sellers" class="hover:text-cream transition-colors">Featured sellers</a></li>
+          <li><a href="{% url 'seller:apply' %}" class="hover:text-cream transition-colors">Start selling</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wide text-cream/40">Account</p>
+        <ul class="mt-3 space-y-2 text-sm">
+          <li><a href="{% url 'account_login' %}" class="hover:text-cream transition-colors">Sign in</a></li>
+          <li><a href="{% url 'account_signup' %}" class="hover:text-cream transition-colors">Create account</a></li>
+          <li><a href="{% url 'storefront:topup' %}" class="hover:text-cream transition-colors">Top up wallet</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wide text-cream/40">Legal</p>
+        <ul class="mt-3 space-y-2 text-sm">
+          <li><a href="{% url 'storefront:terms' %}" class="hover:text-cream transition-colors">Terms of service</a></li>
+          <li><a href="{% url 'storefront:privacy' %}" class="hover:text-cream transition-colors">Privacy policy</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="mt-12 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs text-cream/40">
+      <p>&copy; {% now "Y" %} Berlanggan. All rights reserved.</p>
+      <p class="flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 text-moss-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+        Secure checkout on every order
+      </p>
+    </div>
+  </div>
+</footer>
+
+<!-- Cookie consent banner -->
+<div id="cookie-banner"
+     class="hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-ink-100 shadow-lg">
+  <div class="max-w-7xl mx-auto px-5 sm:px-8 py-4 flex flex-wrap items-center justify-between gap-3">
+    <p class="text-sm text-ink-600 flex-1 min-w-0">
+      We use cookies to keep you signed in and to understand how our site is used.
+      See our <a href="{% url 'storefront:privacy' %}" class="text-primary-600 hover:underline">Privacy Policy</a> for details.
+    </p>
+    <div class="flex items-center gap-2 shrink-0">
+      <button onclick="cookieDecline()"
+              class="text-xs text-ink-400 hover:text-ink-600 px-3 py-1.5 rounded-lg
+                     border border-ink-200 hover:border-ink-300 transition-colors">
+        Decline
+      </button>
+      <button onclick="cookieAccept()"
+              class="text-xs font-medium text-white bg-primary-500 hover:bg-primary-600
+                     px-4 py-1.5 rounded-lg transition-colors">
+        Accept All
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var consent = localStorage.getItem('cookie_consent');
+  if (!consent) {
+    document.getElementById('cookie-banner').classList.remove('hidden');
+  }
+})();
+
+function cookieAccept() {
+  localStorage.setItem('cookie_consent', 'accepted');
+  document.getElementById('cookie-banner').classList.add('hidden');
+  // Fire deferred seller analytics (GA/Meta Pixel) if loaded on this page
+  if (typeof window._deferredGtag === 'function') window._deferredGtag();
+  if (typeof window._deferredFbq === 'function') window._deferredFbq();
+}
+
+function cookieDecline() {
+  localStorage.setItem('cookie_consent', 'declined');
+  document.getElementById('cookie-banner').classList.add('hidden');
+}
+</script>

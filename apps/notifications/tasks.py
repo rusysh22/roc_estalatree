@@ -44,7 +44,7 @@ def deliver_email(self, to_email: str, subject: str, body: str):
         send_mail(
             subject=subject,
             message=body,
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@estalatree.com"),
+            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@berlanggan.com"),
             recipient_list=[to_email],
             fail_silently=False,
         )

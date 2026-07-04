@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load static %}
+{% block page_title %}Berlanggan — Sell anything, get paid instantly{% endblock %}
+
+{% block head_extra %}
+<meta name="description" content="Berlanggan is a marketplace where creators and sellers sell digital products, subscriptions, and access — with instant delivery and secure checkout.">
+<noscript><style>[data-reveal] { opacity: 1 !important; }</style></noscript>
+{% endblock %}
+
+{% block body_class %}bg-cream text-ink-900 min-h-screen{% endblock %}
+{% block body_attrs %}style="font-family: var(--font-sans);"{% endblock %}
+
+{% block body %}
+{% include "storefront/partials/_nav.html" %}
+<main>
+  {% include "storefront/landing/_hero.html" %}
+  {% include "storefront/landing/_trust_ticker.html" %}
+  {% include "storefront/landing/_trending.html" %}
+  {% include "storefront/landing/_how_it_works.html" %}
+  {% include "storefront/landing/_featured_sellers.html" %}
+  {% include "storefront/landing/_value_props.html" %}
+  {% include "storefront/landing/_seller_cta.html" %}
+  {% include "storefront/landing/_testimonials.html" %}
+  {% include "storefront/landing/_faq.html" %}
+</main>
+{% include "storefront/partials/_footer.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/site.js' %}" defer></script>
+{% endblock %}

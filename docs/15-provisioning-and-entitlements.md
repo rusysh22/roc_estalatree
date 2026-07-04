@@ -1,6 +1,6 @@
 # 15 — Provisioning & Entitlements (Generalized Fulfillment)
 
-> The single most important architectural generalization: **Estalatree does not just sell license keys.** What a customer buys is an **Entitlement** that is fulfilled by a pluggable **Provisioner**, producing a **Grant**. A license key is just one kind of Grant. This is what lets us add new product capabilities later without rewriting the core.
+> The single most important architectural generalization: **Berlanggan does not just sell license keys.** What a customer buys is an **Entitlement** that is fulfilled by a pluggable **Provisioner**, producing a **Grant**. A license key is just one kind of Grant. This is what lets us add new product capabilities later without rewriting the core.
 
 ## 15.1 The model
 

@@ -1,17 +1,17 @@
-# Lynk.id Spec → Estalatree Adaptation Notes
+# Lynk.id Spec → Berlanggan Adaptation Notes
 
 **Date:** 2026-06-20 · **Author:** assistant (review of user's Lynk.id feature spec).
-**Purpose:** map the user's Lynk.id feature spec onto Estalatree — what we **have**, **adapt**, **add**, or deliberately **differ** — given Estalatree's distinct model (prepaid buyer wallet + token licensing + single-merchant, multi-seller-ready). Read Section A first: a 1:1 feature copy would fight our architecture in four places.
+**Purpose:** map the user's Lynk.id feature spec onto Berlanggan — what we **have**, **adapt**, **add**, or deliberately **differ** — given Berlanggan's distinct model (prepaid buyer wallet + token licensing + single-merchant, multi-seller-ready). Read Section A first: a 1:1 feature copy would fight our architecture in four places.
 
 ---
 
 ## A. Key reconciliation principles (paradigm deltas — read first)
 
-1. **"Wallet" means opposite things.** Lynk's wallet = **seller earnings** (withdraw to bank). Estalatree's wallet = **buyer prepaid balance**. Lynk's Module 8 (Earnings/Payout/Withdrawal) has **no single-merchant analog** — the owner keeps 100%, money lands in your own gateway/bank, not a per-seller payout. **Payout only becomes real in the multi-seller stage** (then a seller earnings ledger + withdrawal is needed). Do **not** build seller payout for single-merchant.
+1. **"Wallet" means opposite things.** Lynk's wallet = **seller earnings** (withdraw to bank). Berlanggan's wallet = **buyer prepaid balance**. Lynk's Module 8 (Earnings/Payout/Withdrawal) has **no single-merchant analog** — the owner keeps 100%, money lands in your own gateway/bank, not a per-seller payout. **Payout only becomes real in the multi-seller stage** (then a seller earnings ledger + withdrawal is needed). Do **not** build seller payout for single-merchant.
 
-2. **Direct-pay vs wallet checkout.** Lynk = pay-per-item directly. Estalatree = top-up-and-buy from balance. Our model is superior for recurring/licensing but heavier for casual buyers. **Decision needed:** keep wallet-first, or add an optional **direct-pay path** (one Duitku invoice per item) for simple one-off products to match Lynk's ease. (Today the checkout even disables Buy until balance covers it — most-friction variant.)
+2. **Direct-pay vs wallet checkout.** Lynk = pay-per-item directly. Berlanggan = top-up-and-buy from balance. Our model is superior for recurring/licensing but heavier for casual buyers. **Decision needed:** keep wallet-first, or add an optional **direct-pay path** (one Duitku invoice per item) for simple one-off products to match Lynk's ease. (Today the checkout even disables Buy until balance covers it — most-friction variant.)
 
-3. **Accounts+licensing vs email-OTP access.** Lynk lets buyers access via **email + OTP** (no full account). Estalatree requires accounts (needed for license/seat/device management). Keep accounts for licensed products, but consider a **lightweight email-link access** for pure file/link products to reduce friction.
+3. **Accounts+licensing vs email-OTP access.** Lynk lets buyers access via **email + OTP** (no full account). Berlanggan requires accounts (needed for license/seat/device management). Keep accounts for licensed products, but consider a **lightweight email-link access** for pure file/link products to reduce friction.
 
 4. **No owner tiering (ADR-018).** Lynk's Module 13 (Free vs PRO, 5%/3% fee, watermark, storage caps) **does not apply to the owner** — all features are baseline for you. Free/PRO tiers + transaction fees only re-appear as **seller plans in the multi-seller stage**.
 
@@ -23,7 +23,7 @@
 
 Legend: **HAVE** · **ADAPT** (exists, extend to our model) · **ADD** (new) · **DIFFER** (intentionally not as Lynk).
 
-| Lynk module | Estalatree now | Action | Note |
+| Lynk module | Berlanggan now | Action | Note |
 |---|---|---|---|
 | **1. Auth & Account** | allauth email+Google, email-verify gate, password reset | HAVE | Multi-admin = our Operator Console + RBAC (ADR-017). "Verified-before-monetize" KYC gate → single-merchant: the owner's Duitku setup checklist; multi-seller: `SellerProfile.is_approved` (have, manual). |
 | **2. Page builder** | `StorePage` + `Block`; seller store editor (add/remove product+link) | ADAPT | Add: **drag-drop reorder**, per-block **image/title/layout**, **release_time** (scheduling), enable/disable. Block model already has `config JSON` — extend, don't rebuild. |
@@ -64,7 +64,7 @@ Map onto `Product` / `Plan` / a new `ProductExtras` and `Order`:
 
 Their richer block/product types slot into our `Deliverable` + `Provisioner` pattern — **this is exactly what the extensibility design is for**:
 
-| Lynk type | Estalatree approach | Effort |
+| Lynk type | Berlanggan approach | Effort |
 |---|---|---|
 | Course / e-course | New `Deliverable.type = course` + a **course player** (modules/lessons/video, progress) + provisioner that grants access | High (player UI) |
 | Event / ticketing | New `ticket` deliverable + QR code + check-in scan | High |
@@ -72,11 +72,11 @@ Their richer block/product types slot into our `Deliverable` + `Provisioner` pat
 | Media kit | A `Block`/page type (rate card, stats) | Low |
 | Membership / community | Reuse our **Subscription** model + a `community` access grant | Medium |
 | Chat / video call (1:1) | Booking/slot + external meeting link grant | Medium (defer) |
-| Physical product | **DIFFER** — needs shipping/address/stock/logistics; off Estalatree's digital/license positioning. Defer or skip. |
+| Physical product | **DIFFER** — needs shipping/address/stock/logistics; off Berlanggan's digital/license positioning. Defer or skip. |
 
 ---
 
-## E. Estalatree-adapted roadmap (their Fase 1–3 reconciled with our state)
+## E. Berlanggan-adapted roadmap (their Fase 1–3 reconciled with our state)
 
 - **Already done** (vs their Fase 1): auth+verify, page builder (link/product), checkout, **gated auto-delivery**, orders, statistics (basic), licensing (our extra). **No payout** (by design).
 - **Next (their Fase 2 mapped):** rich digital-product fields (§C: PWYW, sale price, stock, custom questions, add-ons, reviews), **appearance/theme editor + live preview**, **file upload hosting** + verify email delivery, course/e-course (new deliverable + player), custom post-purchase message, member-area polish.
@@ -86,7 +86,7 @@ Their richer block/product types slot into our `Deliverable` + `Provisioner` pat
 
 ## F. Differentiation (lean into our strengths, don't just copy Lynk)
 1. **Funnel analytics** (view→click→checkout→paid + conversion) — Lynk lacks it; their own note flags it.
-2. **Token licensing + seat/device management** — Lynk has none; this is the reason Estalatree exists.
+2. **Token licensing + seat/device management** — Lynk has none; this is the reason Berlanggan exists.
 3. **Gated/expiring per-buyer downloads + reveal-once secrets** — already stronger than Lynk's raw links.
 4. **Prepaid recurring via balance** — solves Indonesia's no-auto-debit problem Lynk can't.
 5. **Owner keeps 100%** (no 5%/3% platform fee) — a positioning advantage to state plainly.
@@ -94,4 +94,4 @@ Their richer block/product types slot into our `Deliverable` + `Provisioner` pat
 ---
 
 ## Bottom line
-Their spec is a solid parity map, and ~70% of it is **extend-not-rebuild** because our Block + Provisioning models already encode the same polymorphism. Four things must **not** be copied 1:1: seller payout, Free/PRO owner tiering, direct-pay-only checkout, and physical products — each conflicts with Estalatree's model or positioning. Prioritize the **rich digital-product fields**, the **appearance/theme editor + live preview**, **file hosting + email delivery**, and **funnel analytics** — these close the felt gap with Lynk fastest while playing to our architecture.
+Their spec is a solid parity map, and ~70% of it is **extend-not-rebuild** because our Block + Provisioning models already encode the same polymorphism. Four things must **not** be copied 1:1: seller payout, Free/PRO owner tiering, direct-pay-only checkout, and physical products — each conflicts with Berlanggan's model or positioning. Prioritize the **rich digital-product fields**, the **appearance/theme editor + live preview**, **file hosting + email delivery**, and **funnel analytics** — these close the felt gap with Lynk fastest while playing to our architecture.

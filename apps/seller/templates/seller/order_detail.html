@@ -1,0 +1,256 @@
+{% extends "seller/base.html" %}
+{% load money %}
+{% block page_title %}Order #{{ order.pk }}{% endblock %}
+{% block topbar_title %}Order #{{ order.pk }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-5">
+
+  <!-- Back link -->
+  <a href="{% url 'seller:orders' %}"
+     class="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors">
+    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to Orders
+  </a>
+
+  <!-- Page header -->
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-3 flex-wrap">
+        <h1 class="text-xl font-bold text-gray-900">Order #{{ order.pk }}</h1>
+        {% if order.invoice_number %}
+        <span class="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+          INV-{{ order.invoice_number|stringformat:"05d" }}
+        </span>
+        {% endif %}
+        <!-- Status badge -->
+        {% if order.status == 'paid' %}
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+          <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Paid
+        </span>
+        {% elif order.status == 'pending' %}
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Pending
+        </span>
+        {% elif order.status == 'refunded' %}
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>Refunded
+        </span>
+        {% else %}
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+          <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>{{ order.get_status_display }}
+        </span>
+        {% endif %}
+      </div>
+      <p class="text-sm text-gray-400 mt-1">{{ order.created_at|date:"d F Y, H:i" }}</p>
+    </div>
+  </div>
+
+  <!-- Two-column layout -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+    <!-- ── LEFT: Customer + Price breakdown + Custom fields ────────── -->
+    <div class="lg:col-span-2 space-y-5">
+
+      <!-- Customer card -->
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-4">Customer</p>
+        <div class="flex items-start justify-between gap-4">
+          <div class="space-y-1">
+            <p class="font-semibold text-gray-900">{{ order.customer.user.email }}</p>
+            {% if order.customer.wa_number %}
+            <p class="text-sm text-gray-500">
+              <svg class="w-3.5 h-3.5 inline-block text-green-500 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 16.794c-.244.687-.889 1.254-1.613 1.499-.724.245-4.097.103-5.895-1.26-2.474-1.862-4.118-4.86-4.242-5.049-.124-.188-1.008-1.345-.978-2.534.03-1.189.665-1.762 1.006-2.048.341-.286.716-.357.935-.353.218.003.461.001.664.012.203.011.52-.077.81.619.294.713.994 2.464 1.082 2.641.087.177.144.384.03.609-.115.225-.172.365-.344.562-.172.197-.361.44-.515.592-.154.152-.315.317-.136.622.178.305.792 1.308 1.703 2.119 1.17 1.051 2.154 1.377 2.46 1.528.307.151.486.126.665-.076.178-.201.765-.893 1.025-1.2.26-.305.407-.274.686-.148.28.127 1.773.836 2.075.987.303.152.504.227.578.353.074.127.067.736-.177 1.424z"/>
+              </svg>
+              {{ order.customer.wa_number }}
+            </p>
+            {% endif %}
+            {% if order.custom_fields %}
+            <p class="text-xs text-gray-400 pt-1">{{ order.custom_fields|length }} intake answer{{ order.custom_fields|length|pluralize }}</p>
+            {% endif %}
+          </div>
+          {% if wallet_balance is not None %}
+          <div class="text-right shrink-0">
+            <p class="text-xs text-gray-400">Current wallet</p>
+            <p class="text-sm font-semibold text-indigo-600">{{ wallet_balance|rupiah }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Price breakdown card -->
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-4">Price Breakdown</p>
+
+        <!-- Product + Plan header -->
+        <div class="mb-4 pb-4 border-b border-gray-100">
+          <p class="font-semibold text-gray-900">{{ order.plan.product.name }}</p>
+          <p class="text-sm text-gray-500 mt-0.5">
+            {{ order.plan.name }}
+            {% if order.plan.interval != 'none' %}&middot; {{ order.plan.get_interval_display }}{% endif %}
+          </p>
+        </div>
+
+        <!-- Line items -->
+        <div class="space-y-2.5">
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-600">Base price</span>
+            <span class="text-gray-900 font-medium">{{ order.plan.price|rupiah }}</span>
+          </div>
+
+          {% if dm > 1 %}
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-600">× {{ dm }} {{ order.plan.get_interval_display }}s (subtotal)</span>
+            <span class="text-gray-900 font-medium">{{ subtotal|rupiah }}</span>
+          </div>
+          {% endif %}
+
+          {% if duration_discount_amount %}
+          <div class="flex justify-between text-sm">
+            <span class="text-green-700">Duration discount ({{ duration_discount_pct }}%)</span>
+            <span class="text-green-700 font-medium">&minus;{{ duration_discount_amount|rupiah }}</span>
+          </div>
+          {% endif %}
+
+          {% if order.discount %}
+          <div class="flex justify-between text-sm">
+            <span class="text-green-700">
+              Coupon
+              {% if order.coupon %}<span class="font-mono font-semibold">{{ order.coupon.code }}</span>{% endif %}
+            </span>
+            <span class="text-green-700 font-medium">&minus;{{ order.discount|rupiah }}</span>
+          </div>
+          {% endif %}
+
+          <!-- Divider -->
+          <div class="border-t border-gray-200 pt-2.5 mt-1">
+            <div class="flex justify-between">
+              <span class="font-semibold text-gray-900">Total charged</span>
+              <span class="font-bold text-gray-900 text-base">{{ order.amount|rupiah }}</span>
+            </div>
+            {% if order.status == 'paid' %}
+            <p class="text-xs text-gray-400 mt-1">Paid via wallet debit</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom intake fields (if any) -->
+      {% if order.custom_fields %}
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-4">Customer Responses</p>
+        <dl class="space-y-3">
+          {% for key, value in order.custom_fields.items %}
+          <div>
+            <dt class="text-xs font-medium text-gray-500">{{ key }}</dt>
+            <dd class="text-sm text-gray-900 mt-0.5">{{ value|default:"—" }}</dd>
+          </div>
+          {% endfor %}
+        </dl>
+      </div>
+      {% endif %}
+
+    </div><!-- /LEFT -->
+
+    <!-- ── RIGHT: Order metadata + Linked subscription ─────────────── -->
+    <div class="space-y-5">
+
+      <!-- Order metadata card -->
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-4">Order Details</p>
+        <dl class="space-y-3">
+          <div>
+            <dt class="text-xs text-gray-400">Order ID</dt>
+            <dd class="text-sm font-mono text-gray-700 mt-0.5">{{ order.public_id }}</dd>
+          </div>
+          {% if order.invoice_number %}
+          <div>
+            <dt class="text-xs text-gray-400">Invoice</dt>
+            <dd class="text-sm font-mono text-gray-700 mt-0.5">INV-{{ order.invoice_number|stringformat:"05d" }}</dd>
+          </div>
+          {% endif %}
+          <div>
+            <dt class="text-xs text-gray-400">Created</dt>
+            <dd class="text-sm text-gray-700 mt-0.5">{{ order.created_at|date:"d M Y, H:i" }}</dd>
+          </div>
+          {% if order.updated_at != order.created_at %}
+          <div>
+            <dt class="text-xs text-gray-400">Last updated</dt>
+            <dd class="text-sm text-gray-700 mt-0.5">{{ order.updated_at|date:"d M Y, H:i" }}</dd>
+          </div>
+          {% endif %}
+          {% if dm > 1 %}
+          <div>
+            <dt class="text-xs text-gray-400">Duration</dt>
+            <dd class="text-sm text-gray-700 mt-0.5">{{ dm }}× {{ order.plan.get_interval_display }}</dd>
+          </div>
+          {% endif %}
+          <div>
+            <dt class="text-xs text-gray-400">Idempotency key</dt>
+            <dd class="text-xs font-mono text-gray-400 mt-0.5 break-all">{{ order.idempotency_key|truncatechars:32 }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Linked Subscription card -->
+      {% if order.subscription %}
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-4">Linked Subscription</p>
+
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-sm font-semibold text-gray-900">#{{ order.subscription.pk }}</span>
+          {% if order.subscription.status == 'active' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Active
+          </span>
+          {% elif order.subscription.status == 'grace' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Grace
+          </span>
+          {% elif order.subscription.status == 'cancelled' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">
+            <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>Cancelled
+          </span>
+          {% else %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>{{ order.subscription.get_status_display }}
+          </span>
+          {% endif %}
+        </div>
+
+        <dl class="space-y-2 mb-4">
+          <div class="flex justify-between">
+            <dt class="text-xs text-gray-400">Expires</dt>
+            <dd class="text-xs text-gray-700">{{ order.subscription.current_period_end|date:"d M Y" }}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-xs text-gray-400">Auto-renew</dt>
+            <dd class="text-xs {% if order.subscription.auto_renew %}text-green-600 font-medium{% else %}text-gray-400{% endif %}">
+              {% if order.subscription.auto_renew %}Enabled{% else %}Disabled{% endif %}
+            </dd>
+          </div>
+        </dl>
+
+        <a href="{% url 'seller:subscription_detail' pk=order.subscription.pk %}"
+           class="flex items-center justify-center gap-1.5 w-full text-xs font-medium text-indigo-600
+                  border border-indigo-200 rounded-lg px-3 py-2 hover:bg-indigo-50 transition-colors">
+          View Subscription →
+        </a>
+      </div>
+      {% elif order.plan.interval != 'none' and order.status == 'paid' %}
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-2">Linked Subscription</p>
+        <p class="text-xs text-gray-400">No subscription linked to this order.</p>
+      </div>
+      {% endif %}
+
+    </div><!-- /RIGHT -->
+
+  </div>
+
+</div>
+{% endblock %}

@@ -1,15 +1,15 @@
-﻿{% extends "storefront/base.html" %}
+{% extends "storefront/base.html" %}
 {% load money %}
 {% block page_title %}Top up{% endblock %}
 
 {% block content %}
 <div class="max-w-md mx-auto">
-  <h1 class="text-2xl font-bold mb-2">Top up balance</h1>
-  <p class="text-gray-500 text-sm mb-6">
-    Current balance: <strong class="text-gray-800">{{ wallet.balance|rupiah }}</strong>
+  <h1 class="text-2xl font-extrabold text-ink-900 mb-2 tracking-tight">Top up balance</h1>
+  <p class="text-ink-500 text-sm mb-6">
+    Current balance: <strong class="text-ink-800">{{ wallet.balance|rupiah }}</strong>
   </p>
 
-  <div class="bg-white rounded-xl border border-gray-200 p-6">
+  <div class="landing-card p-6">
     <form method="post" action="{% url 'storefront:topup' %}">
       {% csrf_token %}
 
@@ -18,14 +18,14 @@
         {% for amt in quick_amounts %}
         <button type="button"
                 onclick="document.getElementById('amount-input').value='{{ amt.value }}'"
-                class="border border-gray-200 hover:border-indigo-400 rounded-lg py-2 text-sm font-medium text-gray-700 hover:text-indigo-600 transition">
+                class="border border-ink-200 hover:border-primary-400 rounded-xl py-2 text-sm font-semibold text-ink-700 hover:text-primary-600 transition cursor-pointer">
           {{ amt.label }}
         </button>
         {% endfor %}
       </div>
 
       <div class="mb-5">
-        <label for="amount-input" class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="amount-input" class="block text-sm font-semibold text-ink-700 mb-1">
           Amount (Rp)
         </label>
         <input
@@ -38,8 +38,8 @@
           placeholder="Enter amount"
           value="{% if prefill_amount %}{{ prefill_amount }}{% endif %}"
           required
-          class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-        <p class="text-xs text-gray-400 mt-1">Min {{ min_topup|rupiah }} &middot; Max {{ max_topup|rupiah }}</p>
+          class="w-full px-3 py-2.5 border border-ink-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
+        <p class="text-xs text-ink-400 mt-1">Min {{ min_topup|rupiah }} &middot; Max {{ max_topup|rupiah }}</p>
       </div>
 
       <div class="mb-5">
@@ -59,15 +59,14 @@
       </div>
 
       <button type="submit"
-              class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl">
+              class="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 rounded-full cursor-pointer transition-colors">
         Proceed to payment
       </button>
     </form>
   </div>
 
-  <p class="text-center text-xs text-gray-400 mt-4">
+  <p class="text-center text-xs text-ink-400 mt-4">
     Secure payment via Duitku. Your balance is credited instantly after payment.
   </p>
 </div>
 {% endblock %}
-

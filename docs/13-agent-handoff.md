@@ -1,6 +1,6 @@
 # 13 — Agent Handoff Guide
 
-> For **any AI agent / developer** continuing the Estalatree implementation (e.g. when a previous session ran out of tokens). Goal: continue **without losing context** and without breaking the standards.
+> For **any AI agent / developer** continuing the Berlanggan implementation (e.g. when a previous session ran out of tokens). Goal: continue **without losing context** and without breaking the standards.
 
 ## First steps on entry (mandatory, in order)
 1. Read [README.md](README.md) → the document map.

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static money %}
-{% block title %}{% block page_title %}Seller{% endblock %} &mdash; Estalatree{% endblock %}
+{% block title %}{% block page_title %}Seller{% endblock %} &mdash; Berlanggan{% endblock %}
 {% block head_extra %}
   <script src="{% static 'js/htmx.min.js' %}" defer></script>
 {% endblock %}
@@ -28,7 +28,7 @@
     <div class="px-5 py-5 border-b border-indigo-800 flex items-center justify-between">
       <a href="{% url 'seller:home' %}" class="flex items-center gap-2">
         <div class="w-7 h-7 bg-indigo-400 rounded-lg flex items-center justify-center text-xs font-bold">E</div>
-        <span class="font-bold text-sm text-white">Estalatree</span>
+        <span class="font-bold text-sm text-white">Berlanggan</span>
       </a>
       <!-- Close button (mobile) -->
       <label for="sidebar-toggle" class="md:hidden cursor-pointer text-indigo-300 hover:text-white p-1">
@@ -49,6 +49,7 @@
       {% url 'seller:home' as url_home %}
       {% url 'seller:products' as url_products %}
       {% url 'seller:orders' as url_orders %}
+      {% url 'seller:subscriptions' as url_subscriptions %}
       {% url 'seller:store' as url_store %}
       {% url 'seller:vouchers' as url_vouchers %}
       {% url 'seller:broadcast' as url_broadcast %}
@@ -74,6 +75,10 @@
         <a href="{{ url_orders }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {% if request.resolver_match.url_name == 'orders' %}bg-indigo-700 text-white{% else %}text-indigo-200 hover:bg-indigo-800 hover:text-white{% endif %}">
           <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
           Orders
+        </a>
+        <a href="{{ url_subscriptions }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {% if 'subscription' in request.resolver_match.url_name %}bg-indigo-700 text-white{% else %}text-indigo-200 hover:bg-indigo-800 hover:text-white{% endif %}">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Subscriptions
         </a>
       </div>
 

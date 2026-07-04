@@ -1,6 +1,6 @@
 # 07 — Activation API (Django Ninja)
 
-Base path: `/v1`. Format: JSON. Product auth: `license_key` + `secret` (header `X-Estalatree-Secret`). Rate limited. Responses are signed.
+Base path: `/v1`. Format: JSON. Product auth: `license_key` + `secret` (header `X-Berlanggan-Secret`). Rate limited. Responses are signed.
 
 > Internal endpoints (top-up, checkout, dashboard) use Django sessions/HTMX and are **not** documented here; this section covers only the API that OSS products call.
 

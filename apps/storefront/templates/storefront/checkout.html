@@ -3,238 +3,398 @@
 {% block page_title %}Checkout — {{ plan.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-lg mx-auto">
+<div class="max-w-5xl mx-auto">
 
   <!-- Back link -->
   <a href="{% url 'storefront:product' product.slug %}"
-    class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-6">
+     class="inline-flex items-center gap-1 text-xs text-ink-400 hover:text-ink-600 mb-6">
     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
     Back to {{ product.name }}
   </a>
 
-  <h1 class="text-2xl font-bold text-gray-900 mb-1">Checkout</h1>
-  <p class="text-sm text-gray-500 mb-6">Review and confirm your order</p>
+  <!-- Two-column grid: left=form config, right=summary+CTA -->
+  <div class="lg:grid lg:grid-cols-12 lg:gap-10 lg:items-start">
 
-  <!-- Order summary card -->
-  <div class="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-    <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Order Summary</p>
+    <!-- ── LEFT COLUMN: configuration ──────────────────────────────── -->
+    <div class="lg:col-span-7 space-y-4">
 
-    <div class="flex items-start justify-between">
-      <div>
-        <p class="font-semibold text-gray-900">{{ product.name }}</p>
-        <p class="text-sm text-gray-500">
-          {{ plan.name }}
-          {% if plan.interval != 'none' %}&middot; {{ plan.get_interval_display }}{% endif %}
+      <!-- Heading (mobile only — desktop heading lives in right column) -->
+      <div class="lg:hidden mb-2">
+        <h1 class="text-2xl font-extrabold text-ink-900 mb-1 tracking-tight">Checkout</h1>
+        <p class="text-sm text-ink-500">Review and confirm your order</p>
+      </div>
+
+      <!-- Duration selector (recurring plans with duration_discounts only) -->
+      {% if plan.interval != 'none' and plan.duration_discounts %}
+      <div class="bg-white rounded-2xl border border-ink-100 p-5">
+        <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-4">Duration</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="duration-selector">
+
+          <!-- Base: 1 interval (no badge → spacer span keeps consistent card height) -->
+          <label class="cursor-pointer">
+            <input type="radio" name="duration_choice" value="1" form="checkout-form"
+                   class="sr-only peer" {% if duration_multiplier == 1 %}checked{% endif %}>
+            <div class="border-2 border-ink-100 rounded-xl p-3 text-center
+                        peer-checked:border-primary-500 peer-checked:bg-primary-50
+                        hover:bg-cream transition-all">
+              <span class="inline-block h-[18px] mb-1"></span>
+              <p class="text-sm font-bold text-ink-900">1 {{ plan.get_interval_display }}</p>
+              <p class="text-xs text-ink-500 mt-0.5">{{ plan.price|rupiah }}</p>
+            </div>
+          </label>
+
+          {% for mult, disc in plan.duration_discounts.items %}
+          <label class="cursor-pointer">
+            <input type="radio" name="duration_choice" value="{{ mult }}" form="checkout-form"
+                   class="sr-only peer"
+                   {% if duration_multiplier == mult|add:"0" %}checked{% endif %}>
+            <div class="border-2 border-ink-100 rounded-xl p-3 text-center
+                        peer-checked:border-primary-500 peer-checked:bg-primary-50
+                        hover:bg-cream transition-all">
+              {% if disc %}
+              <span class="inline-block bg-moss-500 text-white text-[9px] font-bold
+                           px-1.5 py-0.5 rounded-full whitespace-nowrap mb-1">
+                -{{ disc }}%
+              </span>
+              {% else %}
+              <span class="inline-block h-[18px] mb-1"></span>
+              {% endif %}
+              <p class="text-sm font-bold text-ink-900">{{ mult }} {{ plan.get_interval_display }}s</p>
+              <p class="text-xs text-ink-500 mt-0.5 dur-calc"
+                 data-base="{{ plan.price }}" data-mult="{{ mult }}" data-disc="{{ disc }}"></p>
+            </div>
+          </label>
+          {% endfor %}
+
+        </div>
+        <input type="hidden" name="duration" id="duration-hidden"
+               value="{{ duration_multiplier }}" form="checkout-form">
+      </div>
+      {% else %}
+      <input type="hidden" name="duration" value="1" form="checkout-form">
+      {% endif %}
+
+      <!-- Coupon code section -->
+      <div class="bg-white rounded-2xl border border-ink-100 p-5">
+        <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-3">
+          Voucher / Coupon (Optional)
         </p>
-        {% if plan.seat_limit > 1 %}
-        <p class="text-xs text-gray-400 mt-0.5">{{ plan.seat_limit }} seat(s)</p>
+        <form method="get" action="" class="flex gap-2">
+          <input type="hidden" name="checkout_token" value="{{ checkout_token }}">
+          {% if duration_multiplier > 1 %}
+          <input type="hidden" name="duration" value="{{ duration_multiplier }}">
+          {% endif %}
+          <input
+            type="text"
+            name="coupon_code"
+            value="{{ coupon_code }}"
+            placeholder="DEMO20"
+            class="flex-1 border border-ink-200 rounded-xl px-3 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400
+                   uppercase placeholder:normal-case">
+          <button type="submit"
+            class="text-sm font-semibold text-primary-600 border border-primary-300 rounded-xl px-3 py-2
+                   hover:bg-primary-50 transition-colors whitespace-nowrap cursor-pointer">
+            Apply
+          </button>
+        </form>
+        {% if coupon %}
+        <p class="text-xs text-moss-700 mt-2 font-semibold flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+          </svg>
+          Coupon applied — saving {{ discount|rupiah }}
+        </p>
+        {% elif coupon_error %}
+        <p class="text-xs text-primary-600 mt-2">{{ coupon_error }}</p>
         {% endif %}
       </div>
-      <p class="font-semibold text-gray-900">{{ plan.price|rupiah }}</p>
-    </div>
 
-    {% if discount %}
-    <div class="mt-3 pt-3 border-t border-dashed border-gray-200 space-y-1.5">
-      <div class="flex items-center justify-between text-sm">
-        <span class="text-gray-500">Subtotal</span>
-        <span class="text-gray-500">{{ plan.price|rupiah }}</span>
+      <!-- Wallet balance / Direct pay notice -->
+      {% if direct_pay_active %}
+      <!-- Direct pay mode: show notice instead of wallet UI -->
+      <div class="bg-primary-50 border border-primary-200 rounded-2xl p-4 flex items-start gap-3">
+        <svg class="w-4 h-4 text-primary-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+        </svg>
+        <div>
+          <p class="text-xs font-bold text-primary-800">Direct Payment</p>
+          <p class="text-xs text-primary-700 mt-0.5">
+            You'll be redirected to a secure payment page to complete this order.
+            Your wallet balance will not be used.
+          </p>
+        </div>
       </div>
-      <div class="flex items-center justify-between text-sm">
-        <span class="text-green-700 font-medium">Coupon {{ coupon.code }}</span>
-        <span class="text-green-700 font-medium">-{{ discount|rupiah }}</span>
-      </div>
-      <div class="flex items-center justify-between font-bold text-gray-900 pt-1 border-t border-gray-200">
-        <span>Total</span>
-        <span>{{ effective_price|rupiah }}</span>
-      </div>
-    </div>
-    {% endif %}
-  </div>
-
-  <!-- Coupon code section -->
-  <div class="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-    <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Voucher / Coupon (Optional)</p>
-
-    <form method="get" action="" class="flex gap-2">
-      <input type="hidden" name="checkout_token" value="{{ checkout_token }}">
-      <input
-        type="text"
-        name="coupon_code"
-        value="{{ coupon_code }}"
-        placeholder="DEMO20"
-        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 uppercase placeholder:normal-case">
-      <button type="submit"
-        class="text-sm text-indigo-600 border border-indigo-300 rounded-lg px-3 py-2 hover:bg-indigo-50 transition-colors whitespace-nowrap">
-        Apply
-      </button>
-    </form>
-
-    {% if coupon %}
-    <p class="text-xs text-green-700 mt-2 font-medium flex items-center gap-1">
-      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-      Coupon applied — saving {{ discount|rupiah }}
-    </p>
-    {% elif coupon_error %}
-    <p class="text-xs text-red-500 mt-2">{{ coupon_error }}</p>
-    {% endif %}
-  </div>
-
-  <!-- Wallet balance card (Only for recurring plans) -->
-  {% if plan.interval != 'none' %}
-  <div class="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-0.5">Wallet Balance</p>
-        <p class="text-xl font-bold {% if shortfall > 0 %}text-red-600{% else %}text-indigo-600{% endif %}">
-          {{ wallet_balance|rupiah }}
-        </p>
-      </div>
-      {% if shortfall == 0 %}
-      <div class="text-right">
-        <p class="text-xs text-gray-400">Balance after</p>
-        <p class="text-sm font-semibold text-gray-700">{{ balance_after|rupiah }}</p>
-      </div>
-      {% else %}
-      <a href="{% url 'storefront:topup' %}"
-        class="text-sm bg-amber-500 hover:bg-amber-600 text-white font-medium px-4 py-2 rounded-lg transition-colors">
-        Top up
-      </a>
-      {% endif %}
-    </div>
-
-    {% if shortfall > 0 %}
-    <div class="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-      <p class="text-xs text-amber-800">
-        You need {{ shortfall|rupiah }} more. Clicking the button below will open a payment page for that amount — your order completes automatically once paid.
-      </p>
-    </div>
-    {% endif %}
-  </div>
-  {% endif %}
-
-  <!-- Payment method (only when a TopUp is needed) -->
-  {% if shortfall > 0 %}
-  <div class="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-    <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Payment Method</p>
-    {% if payment_methods %}
-    <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
-      {% for pm in payment_methods %}
-      <label class="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 text-sm cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-        <input type="radio" name="payment_method" value="{{ pm.code }}" form="checkout-form" {% if forloop.first %}checked{% endif %} class="accent-indigo-600" required>
-        <span class="truncate">{{ pm.name }}</span>
-      </label>
-      {% endfor %}
-    </div>
-    {% else %}
-    <p class="text-xs text-red-500">No payment methods available right now. Please try again later.</p>
-    {% endif %}
-  </div>
-  {% endif %}
-
-  <!-- PWYW price input -->
-  {% if plan.pwyw %}
-  <div class="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-    <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Set Your Price</p>
-    <div class="flex items-center gap-2">
-      <span class="text-sm font-medium text-gray-600">Rp</span>
-      <input type="number" name="pwyw_price" id="pwyw_price" form="checkout-form"
-        min="{{ plan.min_price }}" value="{{ plan.price }}"
-        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-    </div>
-    {% if plan.min_price > 0 %}
-    <p class="text-xs text-gray-400 mt-1">Minimum: {{ plan.min_price|rupiah }}</p>
-    {% endif %}
-  </div>
-  {% endif %}
-
-  <!-- Custom intake questions -->
-  {% if questions %}
-  <div class="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-    <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Additional Information</p>
-    <div class="space-y-3" id="checkout-questions">
-      {% for q in questions %}
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">
-          {{ q.label }}{% if q.required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}
-        </label>
-        <input type="{{ q.field_type }}" name="q_{{ q.pk }}" form="checkout-form"
-          {% if q.required %}required{% endif %}
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- Main checkout form -->
-  <form method="post" id="checkout-form">
-    {% csrf_token %}
-    <input type="hidden" name="checkout_token" value="{{ checkout_token }}">
-    {% if coupon %}<input type="hidden" name="coupon_code" value="{{ coupon.code }}">{% endif %}
-
-    {% if not user.is_authenticated %}
-    <div class="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-      <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Your Email</p>
-      <div>
-        <label for="guest_email" class="block text-xs font-medium text-gray-600 mb-1">
-          Where should we send your receipt/access? <span class="text-red-400 ml-0.5">*</span>
-        </label>
-        <input type="email" name="guest_email" id="guest_email" required
-          placeholder="you@example.com"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400">
-      </div>
-      <p class="text-xs text-gray-400 mt-2">
-        Already have an account? <a href="{% url 'account_login' %}?next={{ request.path }}" class="text-indigo-600 hover:underline">Log in</a>
-      </p>
-    </div>
-    {% endif %}
-
-    <button
-      type="submit"
-      class="w-full py-3.5 rounded-xl font-semibold text-sm transition-colors bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer">
-      {% if plan.interval == 'none' %}
-        {% if shortfall > 0 %}Pay {{ effective_price|rupiah }}{% else %}Confirm Order{% endif %}
-      {% else %}
+      {% elif plan.interval != 'none' %}
+      <!-- Top-up-and-buy: show wallet balance for recurring plans -->
+      <div class="bg-white rounded-2xl border border-ink-100 p-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-0.5">
+              Wallet Balance
+            </p>
+            <p class="text-xl font-extrabold {% if shortfall > 0 %}text-primary-600{% else %}text-moss-600{% endif %}">
+              {{ wallet_balance|rupiah }}
+            </p>
+          </div>
+          {% if shortfall == 0 %}
+          <div class="text-right">
+            <p class="text-xs text-ink-400">Balance after</p>
+            <p class="text-sm font-bold text-ink-700">{{ balance_after|rupiah }}</p>
+          </div>
+          {% else %}
+          <a href="{% url 'storefront:topup' %}"
+             class="text-sm bg-gold-500 hover:bg-gold-600 text-ink-900 font-bold
+                    px-4 py-2 rounded-xl transition-colors">
+            Top up
+          </a>
+          {% endif %}
+        </div>
         {% if shortfall > 0 %}
-          Top-up &amp; Pay {{ effective_price|rupiah }}
-        {% else %}
-          Confirm &amp; Pay {{ effective_price|rupiah }}
+        <div class="mt-3 bg-gold-50 border border-gold-300 rounded-xl px-3 py-2">
+          <p class="text-xs text-gold-800">
+            You need {{ shortfall|rupiah }} more. Clicking the button below will open a payment
+            page for that amount — your order completes automatically once paid.
+          </p>
+        </div>
         {% endif %}
+      </div>
       {% endif %}
-    </button>
 
-    <!-- Trust strip -->
-    <div class="flex items-center justify-center gap-5 mt-4 text-xs text-gray-400">
-      <span class="flex items-center gap-1">
-        <svg class="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-        Secure
-      </span>
-      <span class="flex items-center gap-1">
-        <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-        Instant delivery
-      </span>
-      <span class="flex items-center gap-1">
-        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-        {% if plan.interval == 'none' %}Payment Gateway{% else %}Wallet payment{% endif %}
-      </span>
-    </div>
-  </form>
+      <!-- Payment method (only when an amount will be charged via gateway) -->
+      {% if direct_pay_active or shortfall > 0 %}
+      <div class="bg-white rounded-2xl border border-ink-100 p-5">
+        <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-3">Payment Method</p>
+        {% if payment_methods %}
+        <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
+          {% for pm in payment_methods %}
+          <label class="flex items-center gap-2 border-2 border-ink-100 rounded-xl px-3 py-2 text-sm cursor-pointer
+                        has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50">
+            <input type="radio" name="payment_method" value="{{ pm.code }}" form="checkout-form"
+              {% if forloop.first %}checked{% endif %} class="accent-primary-600" required>
+            <span class="truncate">{{ pm.name }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-xs text-primary-600">No payment methods available right now. Please try again later.</p>
+        {% endif %}
+      </div>
+      {% endif %}
 
-  <!-- Payment methods -->
-  <div class="mt-5 pt-5 border-t border-gray-100">
-    <p class="text-xs text-center text-gray-400 mb-3">Accepted payment methods</p>
-    <div class="flex flex-wrap justify-center gap-2">
-      <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-500 bg-gray-50">Virtual Account</span>
-      <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-500 bg-gray-50">QRIS</span>
-      <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-500 bg-gray-50">GoPay</span>
-      <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-500 bg-gray-50">OVO</span>
-      <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-500 bg-gray-50">Dana</span>
-      <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-500 bg-gray-50">ShopeePay</span>
-      <span class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-500 bg-gray-50">Alfamart</span>
-    </div>
+      <!-- PWYW price input -->
+      {% if plan.pwyw %}
+      <div class="bg-white rounded-2xl border border-ink-100 p-5">
+        <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-3">Set Your Price</p>
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-semibold text-ink-600">Rp</span>
+          <input type="number" name="pwyw_price" id="pwyw_price" form="checkout-form"
+            min="{{ plan.min_price }}" value="{{ plan.price }}"
+            class="flex-1 border border-ink-200 rounded-xl px-3 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-primary-200">
+        </div>
+        {% if plan.min_price > 0 %}
+        <p class="text-xs text-ink-400 mt-1">Minimum: {{ plan.min_price|rupiah }}</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Custom intake questions -->
+      {% if questions %}
+      <div class="bg-white rounded-2xl border border-ink-100 p-5">
+        <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-3">
+          Additional Information
+        </p>
+        <div class="space-y-3">
+          {% for q in questions %}
+          <div>
+            <label class="block text-xs font-semibold text-ink-600 mb-1">
+              {{ q.label }}{% if q.required %}<span class="text-primary-500 ml-0.5">*</span>{% endif %}
+            </label>
+            <input type="{{ q.field_type }}" name="q_{{ q.pk }}" form="checkout-form"
+              {% if q.required %}required{% endif %}
+              class="w-full border border-ink-200 rounded-xl px-3 py-2 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-primary-200">
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div><!-- /LEFT COLUMN -->
+
+    <!-- ── RIGHT COLUMN: order summary + CTA ───────────────────────── -->
+    <div class="lg:col-span-5 mt-6 lg:mt-0">
+
+      <!-- Heading (desktop only) -->
+      <div class="hidden lg:block mb-5">
+        <h1 class="text-2xl font-extrabold text-ink-900 mb-1 tracking-tight">Checkout</h1>
+        <p class="text-sm text-ink-500">Review and confirm your order</p>
+      </div>
+
+      <div class="lg:sticky lg:top-24 space-y-4">
+
+        <!-- Order summary card -->
+        <div class="landing-card p-5" id="order-summary">
+          <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-3">Order Summary</p>
+
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="font-bold text-ink-900 truncate">{{ product.name }}</p>
+              <p class="text-sm text-ink-500 mt-0.5">
+                {{ plan.name }}
+                {% if plan.interval != 'none' %}&middot; {{ plan.get_interval_display }}{% endif %}
+                {% if duration_multiplier > 1 %}&middot; {{ duration_multiplier }}&times;{% endif %}
+              </p>
+              {% if plan.seat_limit > 1 %}
+              <p class="text-xs text-ink-400 mt-0.5">{{ plan.seat_limit }} seat(s)</p>
+              {% endif %}
+            </div>
+            <p class="font-bold text-ink-900 shrink-0">{{ effective_price|rupiah }}</p>
+          </div>
+
+          {% if duration_discount_amount or discount %}
+          <div class="mt-3 pt-3 border-t border-dashed border-ink-200 space-y-1.5">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-ink-500">Subtotal</span>
+              <span class="text-ink-500">
+                {{ plan.price|rupiah }}{% if duration_multiplier > 1 %} &times; {{ duration_multiplier }}{% endif %}
+              </span>
+            </div>
+            {% if duration_discount_amount %}
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-moss-700 font-semibold">Duration discount ({{ duration_discount_pct }}%)</span>
+              <span class="text-moss-700 font-semibold">&minus;{{ duration_discount_amount|rupiah }}</span>
+            </div>
+            {% endif %}
+            {% if discount %}
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-moss-700 font-semibold">Coupon {{ coupon.code }}</span>
+              <span class="text-moss-700 font-semibold">&minus;{{ discount|rupiah }}</span>
+            </div>
+            {% endif %}
+            <div class="flex items-center justify-between font-bold text-ink-900 pt-1 border-t border-ink-200">
+              <span>Total</span>
+              <span>{{ effective_price|rupiah }}</span>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Main checkout form -->
+        <form method="post" id="checkout-form" class="space-y-4">
+          {% csrf_token %}
+          <input type="hidden" name="checkout_token" value="{{ checkout_token }}">
+          {% if coupon %}<input type="hidden" name="coupon_code" value="{{ coupon.code }}">{% endif %}
+
+          <!-- Guest email -->
+          {% if not user.is_authenticated %}
+          <div class="bg-white rounded-2xl border border-ink-100 p-5">
+            <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-3">Your Email</p>
+            <label for="guest_email" class="block text-xs font-semibold text-ink-600 mb-1">
+              Where should we send your receipt/access?
+              <span class="text-primary-500 ml-0.5">*</span>
+            </label>
+            <input type="email" name="guest_email" id="guest_email" required
+              placeholder="you@example.com"
+              class="w-full border border-ink-200 rounded-xl px-3 py-2 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400">
+            <p class="text-xs text-ink-400 mt-2">
+              Already have an account?
+              <a href="{% url 'account_login' %}?next={{ request.path }}"
+                 class="text-primary-600 font-semibold hover:underline">Log in</a>
+            </p>
+          </div>
+          {% endif %}
+
+          <button
+            type="submit"
+            data-magnetic
+            class="w-full py-3.5 rounded-full font-bold text-sm transition-colors
+                   bg-primary-500 hover:bg-primary-600 text-white cursor-pointer">
+            {% if direct_pay_active %}
+              Pay {{ effective_price|rupiah }} →
+            {% elif plan.interval == 'none' %}
+              {% if shortfall > 0 %}Pay {{ effective_price|rupiah }}{% else %}Confirm Order{% endif %}
+            {% else %}
+              {% if shortfall > 0 %}
+                Top-up &amp; Pay {{ shortfall|rupiah }}
+              {% else %}
+                Confirm &amp; Pay {{ effective_price|rupiah }}
+              {% endif %}
+            {% endif %}
+          </button>
+
+          <!-- Trust strip -->
+          <div class="flex items-center justify-center gap-5 text-xs text-ink-400">
+            <span class="flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-moss-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              Secure
+            </span>
+            <span class="flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+              Instant delivery
+            </span>
+            <span class="flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-gold-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+              </svg>
+              {% if plan.interval == 'none' %}Payment Gateway{% else %}Wallet payment{% endif %}
+            </span>
+          </div>
+        </form>
+
+        <!-- Payment methods -->
+        <div class="pt-3 border-t border-ink-100">
+          <p class="text-xs text-center text-ink-400 mb-2">Accepted payment methods</p>
+          <div class="flex flex-wrap justify-center gap-1.5">
+            <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">Virtual Account</span>
+            <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">QRIS</span>
+            <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">GoPay</span>
+            <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">OVO</span>
+            <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">Dana</span>
+            <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">ShopeePay</span>
+            <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">Alfamart</span>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /RIGHT COLUMN -->
+
   </div>
-
 </div>
+
+{% if plan.duration_discounts %}
+<script>
+(function () {
+  function rupiah(n) {
+    return 'Rp' + n.toLocaleString('id-ID');
+  }
+  document.querySelectorAll('.dur-calc').forEach(function (el) {
+    var base = parseInt(el.dataset.base, 10);
+    var mult = parseInt(el.dataset.mult, 10);
+    var disc = parseInt(el.dataset.disc || '0', 10);
+    var subtotal = base * mult;
+    var amount = subtotal - Math.floor(subtotal * disc / 100);
+    el.textContent = rupiah(amount);
+  });
+  document.querySelectorAll('[name="duration_choice"]').forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      var url = new URL(window.location.href);
+      url.searchParams.set('duration', this.value);
+      var coupon = document.querySelector('[name="coupon_code"]');
+      if (coupon && coupon.value) url.searchParams.set('coupon_code', coupon.value);
+      window.location.href = url.toString();
+    });
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

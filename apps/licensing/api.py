@@ -2,7 +2,7 @@
 
 Thin HTTP layer; all business logic lives in licensing/services.py.
 
-Auth (H2): ProductSecretAuth checks X-Estalatree-Secret header against
+Auth (H2): ProductSecretAuth checks X-Berlanggan-Secret header against
 ACTIVATION_API_SECRET Setting. If the Setting is not configured, all requests
 pass (dev convenience). Set ACTIVATION_API_SECRET via Admin to enable auth.
 
@@ -19,7 +19,7 @@ from apps.licensing import services
 
 
 class ProductSecretAuth(APIKeyHeader):
-    """Optional product secret via X-Estalatree-Secret header.
+    """Optional product secret via X-Berlanggan-Secret header.
 
     H2: if ACTIVATION_API_SECRET Setting is set, all three endpoints require the
     header value to match. If not set (default), all requests pass — suitable for
@@ -29,7 +29,7 @@ class ProductSecretAuth(APIKeyHeader):
     Set ACTIVATION_API_SECRET via the Admin Setting to enable auth.
     """
 
-    param_name = "X-Estalatree-Secret"
+    param_name = "X-Berlanggan-Secret"
 
     def authenticate(self, request, key):
         required = Setting.get("ACTIVATION_API_SECRET", "")

@@ -6,7 +6,7 @@ from apps.storefront import views
 app_name = "storefront"
 
 urlpatterns = [
-    path("", views.page, name="page"),
+    path("", views.landing, name="page"),
     path("p/<slug:slug>/", views.product_detail, name="product"),
     path("checkout/<int:plan_pk>/", views.checkout_plan, name="checkout"),
     path("orders/<public_id>/", views.order_status, name="order_status"),

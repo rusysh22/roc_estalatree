@@ -427,7 +427,7 @@ def test_api_requires_secret_when_configured(client, active_license):
             "/v1/activate",
             data=payload,
             content_type="application/json",
-            headers={"X-Estalatree-Secret": "wrong"},
+            headers={"X-Berlanggan-Secret": "wrong"},
         )
         assert response.status_code == 401
 
@@ -436,7 +436,7 @@ def test_api_requires_secret_when_configured(client, active_license):
             "/v1/activate",
             data=payload,
             content_type="application/json",
-            headers={"X-Estalatree-Secret": "super-secret-123"},
+            headers={"X-Berlanggan-Secret": "super-secret-123"},
         )
         assert response.status_code == 200
         assert response.json()["status"] == "active"

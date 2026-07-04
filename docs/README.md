@@ -1,4 +1,4 @@
-# Estalatree — Product & Technical Documentation
+# Berlanggan — Product & Technical Documentation
 
 A digital-product selling platform (lynk.id-style) whose differentiator is **token-based licensing & activation** for open-source products, powered by a **Sumopod-style prepaid balance (top-up)** system.
 
@@ -37,7 +37,7 @@ A digital-product selling platform (lynk.id-style) whose differentiator is **tok
 | 19 | [19-extensibility.md](19-extensibility.md) | How to add features/patches cleanly |
 | 20 | [20-ui-information-architecture.md](20-ui-information-architecture.md) | UI/IA — 3 surfaces, hybrid admin, link-in-bio storefront |
 | 21 | [21-user-journeys.md](21-user-journeys.md) | **A–Z connected journeys per persona** + friction-reducers |
-| 22 | [22-feature-catalog.md](22-feature-catalog.md) | Lynk.id PRO features → Estalatree all-access (no owner tiering) |
+| 22 | [22-feature-catalog.md](22-feature-catalog.md) | Lynk.id PRO features → Berlanggan all-access (no owner tiering) |
 | 23 | [23-configuration.md](23-configuration.md) | Config management — 3 tiers (.env vs DB Setting vs per-record) |
 | 24 | [24-deployment.md](24-deployment.md) | **Docker + nginx + Let's Encrypt** production deployment (berlanggan.web.id) |
 

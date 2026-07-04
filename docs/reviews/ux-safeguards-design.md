@@ -1,7 +1,7 @@
-# UX, Flow & Safeguards Design — Estalatree
+# UX, Flow & Safeguards Design — Berlanggan
 
 **Date:** 2026-06-20 · **Author:** assistant (review/design).
-**Goal:** make Estalatree's distinctive model (prepaid saldo + token licensing + recurring-via-balance + multi-surface) **easy to understand and hard to get wrong**. Grounded in Nielsen's heuristics: *visibility of status, error prevention, recognition over recall, user control/undo, consistency, help users recover*.
+**Goal:** make Berlanggan's distinctive model (prepaid saldo + token licensing + recurring-via-balance + multi-surface) **easy to understand and hard to get wrong**. Grounded in Nielsen's heuristics: *visibility of status, error prevention, recognition over recall, user control/undo, consistency, help users recover*.
 
 > This is the design foundation. We will fold in the user's deeper Lynk.id analysis to refine specifics (page-builder, card patterns, checkout copy).
 
@@ -11,11 +11,11 @@
 
 | Confusion | Why it happens | Design answer |
 |---|---|---|
-| **"Why a balance? Where's my money?"** | Coming from pay-per-item stores; saldo is an extra concept | Always-visible balance (header, done). Checkout uses **one action** "Pay Rp X" (top-up-and-buy behind the scenes). Show **"Balance after: Rp Y"** before confirm. First-time inline explainer: *"Estalatree uses a balance so renewals and repeat buys are 1-tap."* |
+| **"Why a balance? Where's my money?"** | Coming from pay-per-item stores; saldo is an extra concept | Always-visible balance (header, done). Checkout uses **one action** "Pay Rp X" (top-up-and-buy behind the scenes). Show **"Balance after: Rp Y"** before confirm. First-time inline explainer: *"Berlanggan uses a balance so renewals and repeat buys are 1-tap."* |
 | **"I bought it but it doesn't work"** | License/token/activation/seat are technical | Post-purchase **Activate** card front-and-center: copy-key + 3-step guide + download/link. Plain words: **"device"** not "installation fingerprint". Seat shown as **2/3 devices** with "remove a device to free a slot". |
 | **"Will I be charged? When?"** | Auto-deduct recurring is invisible | **Renewal forecast**: "Next: Rp X on 20 Jul · balance covers ~3 renewals". Reminders with **one-tap Top-up**. Grace **banner + countdown**. Auto-renew toggle states the consequence. **Never silent suspension.** |
 | **"Which dashboard am I in?"** | One account can be customer+seller+operator | **Surface switcher** + distinct surface identity (label/accent per surface). One consistent shell. |
-| *(+)* **"I want a cash refund"** | Refund-to-wallet is non-obvious | State **"Refunds go to your Estalatree balance (store credit)"** before purchase and on the refund form. (Ties to ToS / closed-loop ADR.) |
+| *(+)* **"I want a cash refund"** | Refund-to-wallet is non-obvious | State **"Refunds go to your Berlanggan balance (store credit)"** before purchase and on the refund form. (Ties to ToS / closed-loop ADR.) |
 
 ---
 
@@ -105,4 +105,4 @@ MOVE DEVICE
 Fold in: page-builder/appearance patterns, product-card layout (image/price/CTA/social-proof), checkout copy & payment-method presentation, library/"My Purchase" patterns, and any onboarding/empty-state patterns worth adapting — mapped onto the principles above.
 
 ## Bottom line
-Estalatree's hard part is conceptual, not technical: saldo + license + recurring are powerful but unfamiliar. Win clarity with **status-first homes, one-action checkout, plain language, always-visible balance/forecast**, and win trust with **error-prevention + confirm-on-irreversible + visible pending/recovery states**. The engine already enforces correctness; this layer makes it *feel* safe and obvious.
+Berlanggan's hard part is conceptual, not technical: saldo + license + recurring are powerful but unfamiliar. Win clarity with **status-first homes, one-action checkout, plain language, always-visible balance/forecast**, and win trust with **error-prevention + confirm-on-irreversible + visible pending/recovery states**. The engine already enforces correctness; this layer makes it *feel* safe and obvious.

@@ -9,7 +9,7 @@ Setting keys (via Setting model; zero-downtime change via Admin):
   GLOBAL_GRACE_EXTENSION_DAYS   int, default 0  — superadmin panic: extend all grace globally
   MAINTENANCE_MODE              "true"/"false", default false
                                 — if true, validate always returns active (no brick during outage)
-  ACTIVATION_API_SECRET         str, default "" — if set, X-Estalatree-Secret must match
+  ACTIVATION_API_SECRET         str, default "" — if set, X-Berlanggan-Secret must match
 
 Rate limiting: atomic cache.incr (LocMemCache dev / Redis prod).
   Activate/deactivate per key:  10 requests / 60 s
@@ -27,7 +27,7 @@ from apps.core.models import Setting
 
 logger = logging.getLogger(__name__)
 
-_TOKEN_SALT = "estalatree-activation-v1"
+_TOKEN_SALT = "berlanggan-activation-v1"
 _RATE_WINDOW = 60  # seconds
 _RATE_LIMIT_ACTIVATE = 10   # per license key per window (activate/deactivate)
 _RATE_LIMIT_VALIDATE = 60   # per license key per window (heartbeats)

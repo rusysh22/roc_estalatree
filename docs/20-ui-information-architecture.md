@@ -1,6 +1,6 @@
 # 20 — UI & Information Architecture
 
-> Estalatree has **three distinct surfaces**. This doc defines navigation, the admin-UI approach, and the link-in-bio storefront model. Reference point: the Lynk.id creator dashboard (mapping at the end).
+> Berlanggan has **three distinct surfaces**. This doc defines navigation, the admin-UI approach, and the link-in-bio storefront model. Reference point: the Lynk.id creator dashboard (mapping at the end).
 
 ## 20.1 The four surfaces (separate URLs)
 
@@ -56,7 +56,7 @@
 
 ## 20.4 Public Storefront — link-in-bio model
 
-**Decision:** Lynk.id-style **shareable store page** (e.g. `estalatree.id/<slug>`), composed of **Blocks**, with an **Appearance/theme**.
+**Decision:** Lynk.id-style **shareable store page** (e.g. `berlanggan.id/<slug>`), composed of **Blocks**, with an **Appearance/theme**.
 
 - **StorePage** — the public, shareable page (one per seller; single-merchant = one page now).
 - **Block** — an ordered content unit on the page. Types: `product`, `link`, `text/blog`, `course`, `media_kit`, `heading`. (Start with `product` + `link`; add others as needed.)
@@ -70,9 +70,9 @@
 
 ---
 
-## 20.5 Lynk.id → Estalatree mapping (reference)
+## 20.5 Lynk.id → Berlanggan mapping (reference)
 
-| Lynk.id | Estalatree | Action |
+| Lynk.id | Berlanggan | Action |
 |---|---|---|
 | Home (KPI + quick create) | Owner Cockpit Home | Adopt pattern, our metrics |
 | My Lynk (link-in-bio) | StorePage (Blocks) | Adapt |
@@ -85,7 +85,7 @@
 | Earnings / Payout / PayMe | Your revenue (not payout) | Re-frame; payout only when multi-seller |
 | Upgrade to PRO | — | Drop |
 | Add Link / Blog / Course / Media Kit | Block types | Scope per need; start with product + link |
-| *(none)* | Balance/Top-up, License Keys, Devices, Subscriptions, Activation health | **New — Estalatree core** |
+| *(none)* | Balance/Top-up, License Keys, Devices, Subscriptions, Activation health | **New — Berlanggan core** |
 
 ---
 

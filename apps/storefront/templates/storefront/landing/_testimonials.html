@@ -1,0 +1,30 @@
+{% if testimonials %}
+<section class="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
+  <div class="max-w-xl mb-10" data-reveal>
+    <p class="landing-section-eyebrow">Buyers say</p>
+    <h2 class="mt-2 text-2xl sm:text-4xl font-extrabold tracking-tight text-ink-900">Real reviews from real purchases</h2>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+    {% for review in testimonials %}
+    <div class="landing-card p-6" data-reveal data-reveal-delay="{{ forloop.counter0 }}00">
+      <div class="flex text-gold-500 text-sm">
+        {% for i in "12345" %}{% if forloop.counter <= review.rating %}&#9733;{% else %}<span class="text-ink-100">&#9733;</span>{% endif %}{% endfor %}
+      </div>
+      {% if review.text %}
+      <p class="mt-3 text-sm text-ink-600 leading-relaxed line-clamp-4">&ldquo;{{ review.text }}&rdquo;</p>
+      {% endif %}
+      <div class="mt-4 flex items-center gap-2.5 pt-4 border-t border-ink-900/5">
+        <div class="w-7 h-7 rounded-full bg-gradient-to-br from-primary-400 to-moss-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
+          {{ review.order.customer.user.email|slice:":1"|upper }}
+        </div>
+        <div class="min-w-0">
+          <p class="text-xs font-semibold text-ink-700 truncate">{{ review.order.customer.user.email|truncatechars:22 }}</p>
+          <p class="text-xs text-ink-400 truncate">bought {{ review.product.name|truncatechars:28 }}</p>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}

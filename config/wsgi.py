@@ -1,4 +1,4 @@
-"""WSGI config for estalatree."""
+"""WSGI config for berlanggan."""
 import os
 
 from django.core.wsgi import get_wsgi_application

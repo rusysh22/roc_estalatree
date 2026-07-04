@@ -83,12 +83,12 @@ def _assign_invoice_number(order: Order) -> None:
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
-def _create_subscription(customer, plan: Plan, order: Order) -> Subscription:
+def _create_subscription(customer, plan: Plan, order: Order, *, duration_multiplier: int = 1) -> Subscription:
     """Create and return a Subscription for a recurring plan."""
     if plan.interval == Plan.Interval.MONTHLY:
-        period_end = timezone.now() + relativedelta(months=1)
-    elif plan.interval == Plan.Interval.YEARLY:  # LOW: explicit branch
-        period_end = timezone.now() + relativedelta(years=1)
+        period_end = timezone.now() + relativedelta(months=duration_multiplier)
+    elif plan.interval == Plan.Interval.YEARLY:
+        period_end = timezone.now() + relativedelta(years=duration_multiplier)
     else:
         raise ValueError(f"Cannot create subscription for interval {plan.interval!r}")
     return Subscription.objects.create(
@@ -159,7 +159,10 @@ def complete_pending_order(order: Order) -> list[Grant]:
 
             subscription = None
             if locked.plan.interval != Plan.Interval.NONE:
-                subscription = _create_subscription(locked.customer, locked.plan, locked)
+                subscription = _create_subscription(
+                    locked.customer, locked.plan, locked,
+                    duration_multiplier=locked.duration_multiplier,
+                )
                 locked.subscription = subscription
 
             locked.save(update_fields=["ledger_entry", "status", "subscription", "invoice_number", "updated_at"])
@@ -192,6 +195,7 @@ def checkout(
     *,
     coupon=None,
     price_override: int | None = None,
+    duration_multiplier: int = 1,
     custom_fields: dict | None = None,
     duitku_client=None,
     callback_url: str,
@@ -267,6 +271,13 @@ def checkout(
     else:
         base_price = plan.price
 
+    # ── Apply duration multiplier (recurring plans only) ──────────────────────
+    dm = max(1, int(duration_multiplier)) if plan.interval != Plan.Interval.NONE else 1
+    if dm > 1:
+        subtotal = base_price * dm
+        disc_pct = int(plan.duration_discounts.get(str(dm), 0))
+        base_price = subtotal - (subtotal * disc_pct // 100)
+
     # ── Apply coupon discount ─────────────────────────────────────────────────
     discount = 0
     if coupon is not None:
@@ -280,7 +291,13 @@ def checkout(
     wallet = customer.wallet
     wallet.refresh_from_db()
 
-    if wallet.balance >= effective_price:
+    # Direct pay: bypass wallet, always send buyer to payment gateway for full amount.
+    # Requires both the master DIRECT_PAY_ENABLED setting AND plan.direct_pay == True.
+    from apps.core.models import Setting as _Setting
+    _master_on = _Setting.get("DIRECT_PAY_ENABLED", "false").strip().lower() == "true"
+    use_direct_pay = _master_on and plan.direct_pay
+
+    if not use_direct_pay and wallet.balance >= effective_price:
         # Sufficient balance — debit and fulfill atomically (H1)
         with transaction.atomic():
             try:
@@ -293,6 +310,7 @@ def checkout(
                     status=Order.Status.PENDING,
                     idempotency_key=checkout_key,
                     custom_fields=custom_fields or {},
+                    duration_multiplier=dm,
                 )
             except IntegrityError:
                 order = Order.objects.get(idempotency_key=checkout_key)
@@ -325,7 +343,7 @@ def checkout(
             # M3: link Order ↔ Subscription; H2: pass subscription to provisioner
             subscription = None
             if plan.interval != Plan.Interval.NONE:
-                subscription = _create_subscription(customer, plan, order)
+                subscription = _create_subscription(customer, plan, order, duration_multiplier=dm)
                 order.subscription = subscription
 
             order.save(update_fields=["ledger_entry", "status", "subscription", "invoice_number", "updated_at"])
@@ -339,13 +357,15 @@ def checkout(
         return order, grants, None
 
     else:
-        # Insufficient balance — initiate TopUp for the delta, link to pending Order
+        # Insufficient balance (or direct pay) — initiate TopUp for the delta, link to pending Order
         if not payment_method:
             raise PaymentMethodRequiredError(
                 "A payment_method is required when the wallet balance is insufficient."
             )
 
-        delta = effective_price - wallet.balance
+        # Direct pay: full amount via gateway (wallet balance untouched).
+        # Top-up-and-buy: only the shortfall is charged; existing balance covers the rest.
+        delta = effective_price if use_direct_pay else (effective_price - wallet.balance)
 
         with transaction.atomic():
             try:
@@ -358,6 +378,7 @@ def checkout(
                     status=Order.Status.PENDING,
                     idempotency_key=checkout_key,
                     custom_fields=custom_fields or {},
+                    duration_multiplier=dm,
                 )
             except IntegrityError:
                 order = Order.objects.get(idempotency_key=checkout_key)

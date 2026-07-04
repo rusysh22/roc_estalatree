@@ -40,6 +40,7 @@ _SETTING_KEYS = [
     ("GLOBAL_GRACE_EXTENSION_DAYS", "Global grace extension during incidents (days, 0=off)", "0"),
     ("MAINTENANCE_MODE",            "Maintenance mode — always returns active (true/false)", "false"),
     ("RENEWAL_ADVANCE_HOURS",       "Hours before period_end to run renewal job", "3"),
+    ("DIRECT_PAY_ENABLED",          "Enable direct pay at checkout (true/false) — master switch; per-plan toggle also required", "false"),
     ("MIN_TOPUP",                   "Minimum top-up (Rp)",                        "10000"),
     ("MAX_TOPUP",                   "Maximum top-up (Rp)",                        "50000000"),
     ("TOPUP_BONUS_PERCENT",         "Top-up bonus percent (0 = disabled)",        "0"),

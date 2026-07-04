@@ -1,0 +1,187 @@
+{% extends "seller/base.html" %}
+{% load money %}
+{% block page_title %}Subscriptions{% endblock %}
+{% block topbar_title %}Subscriptions{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-5">
+
+  <!-- Header -->
+  <div>
+    <h1 class="text-xl font-bold text-gray-900">Subscriptions</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Monitor and manage active recurring subscriptions</p>
+  </div>
+
+  <!-- Stats cards -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <a href="?status=active"
+       class="bg-white rounded-xl border {% if status_filter == 'active' %}border-green-400 ring-1 ring-green-400{% else %}border-gray-200 hover:border-green-300{% endif %} p-4 transition-all">
+      <p class="text-xs text-gray-500 font-medium">Active</p>
+      <p class="text-2xl font-bold text-green-600 mt-1">{{ stats.active }}</p>
+    </a>
+    <a href="?status=grace"
+       class="bg-white rounded-xl border {% if status_filter == 'grace' %}border-amber-400 ring-1 ring-amber-400{% else %}border-gray-200 hover:border-amber-300{% endif %} p-4 transition-all">
+      <p class="text-xs text-gray-500 font-medium">Grace Period</p>
+      <p class="text-2xl font-bold text-amber-500 mt-1">{{ stats.grace }}</p>
+    </a>
+    <a href="?status=suspended"
+       class="bg-white rounded-xl border {% if status_filter == 'suspended' %}border-red-400 ring-1 ring-red-400{% else %}border-gray-200 hover:border-red-300{% endif %} p-4 transition-all">
+      <p class="text-xs text-gray-500 font-medium">Suspended</p>
+      <p class="text-2xl font-bold text-red-500 mt-1">{{ stats.suspended }}</p>
+    </a>
+    <a href="?status=cancelled"
+       class="bg-white rounded-xl border {% if status_filter == 'cancelled' %}border-gray-400 ring-1 ring-gray-400{% else %}border-gray-200 hover:border-gray-400{% endif %} p-4 transition-all">
+      <p class="text-xs text-gray-500 font-medium">Cancelled</p>
+      <p class="text-2xl font-bold text-gray-400 mt-1">{{ stats.cancelled }}</p>
+    </a>
+  </div>
+
+  <!-- Filter & search -->
+  <div class="bg-white rounded-xl border border-gray-200 p-4">
+    <form method="get" class="flex flex-wrap gap-3 items-center">
+      <div class="flex-1 min-w-48">
+        <input type="text" name="q" value="{{ search }}"
+               placeholder="Search by customer email, product or plan…"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400">
+      </div>
+      <select name="status"
+              class="border border-gray-300 rounded-lg px-3 py-2 text-sm
+                     focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
+        <option value="">All Statuses</option>
+        {% for val, label in status_choices %}
+        <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit"
+              class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg
+                     hover:bg-indigo-700 transition-colors">
+        Filter
+      </button>
+      {% if status_filter or search %}
+      <a href="{% url 'seller:subscriptions' %}"
+         class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+        Reset
+      </a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Table -->
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    {% if subscriptions %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-100 bg-gray-50">
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">#</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Customer</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Product · Plan</th>
+            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
+            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">Auto Renew</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Expires</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">Created</th>
+            <th class="px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+          {% for sub in subscriptions %}
+          <tr class="hover:bg-gray-50 transition-colors">
+
+            <td class="px-4 py-3 font-mono text-xs text-gray-400">#{{ sub.pk }}</td>
+
+            <td class="px-4 py-3">
+              <p class="text-xs font-medium text-gray-900">{{ sub.customer.user.email|truncatechars:28 }}</p>
+              {% if sub.customer.wa_number %}
+              <p class="text-xs text-gray-400 mt-0.5">{{ sub.customer.wa_number }}</p>
+              {% endif %}
+            </td>
+
+            <td class="px-4 py-3">
+              <p class="text-xs font-medium text-gray-800">{{ sub.plan.product.name }}</p>
+              <p class="text-xs text-gray-500 mt-0.5">{{ sub.plan.name }} &middot; {{ sub.plan.get_interval_display }}</p>
+            </td>
+
+            <td class="px-4 py-3 text-center">
+              {% if sub.status == 'active' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Active
+              </span>
+              {% elif sub.status == 'grace' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Grace
+              </span>
+              {% elif sub.status == 'suspended' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Suspended
+              </span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">
+                <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>Cancelled
+              </span>
+              {% endif %}
+            </td>
+
+            <td class="px-4 py-3 text-center">
+              {% if sub.auto_renew %}
+              <span class="text-xs font-medium text-green-600">Yes</span>
+              {% else %}
+              <span class="text-xs text-gray-400">No</span>
+              {% endif %}
+            </td>
+
+            <td class="px-4 py-3">
+              {% if sub.current_period_end < now %}
+              <p class="text-xs font-semibold text-red-500">{{ sub.current_period_end|date:"d M Y" }}</p>
+              <p class="text-xs text-red-400">Overdue</p>
+              {% else %}
+              <p class="text-xs text-gray-700">{{ sub.current_period_end|date:"d M Y" }}</p>
+              {% if sub.status == 'active' and sub.auto_renew %}
+              <p class="text-xs text-gray-400">Auto-renews</p>
+              {% endif %}
+              {% endif %}
+            </td>
+
+            <td class="px-4 py-3 text-xs text-gray-400">{{ sub.created_at|date:"d M Y" }}</td>
+
+            <td class="px-4 py-3 text-right">
+              <a href="{% url 'seller:subscription_detail' pk=sub.pk %}"
+                 class="text-xs text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap">
+                View →
+              </a>
+            </td>
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="px-4 py-3 border-t border-gray-100 bg-gray-50">
+      <p class="text-xs text-gray-400">
+        Showing {{ subscriptions|length }} subscription{{ subscriptions|length|pluralize }}
+        {% if status_filter %}with status <strong>{{ status_filter }}</strong>{% endif %}
+        {% if search %}matching "<strong>{{ search }}</strong>"{% endif %}
+      </p>
+    </div>
+    {% else %}
+    <div class="flex flex-col items-center justify-center py-20 text-center px-4">
+      <div class="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+        <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+      </div>
+      {% if status_filter or search %}
+      <p class="text-gray-500 font-medium text-sm">No subscriptions found</p>
+      <p class="text-gray-400 text-xs mt-1">Try adjusting your filters or search term</p>
+      <a href="{% url 'seller:subscriptions' %}" class="mt-4 text-sm text-indigo-600 hover:underline">Clear filters</a>
+      {% else %}
+      <p class="text-gray-500 font-medium text-sm">No subscriptions yet</p>
+      <p class="text-gray-400 text-xs mt-1">Subscriptions will appear here once customers subscribe to a recurring plan</p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

@@ -1,4 +1,4 @@
-# Deep Evaluation — Estalatree (post Phase 11)
+# Deep Evaluation — Berlanggan (post Phase 11)
 
 **Date:** 2026-06-19 · **Reviewer:** assistant (review-only; no code changed).
 **Why this exists:** the earlier [ui-and-menu-enhancement-spec.md](ui-and-menu-enhancement-spec.md) was scoped to the 6 customer menus + rupiah. It was **not** the full picture. This document is the superset: header/app-shell, end-to-end business flow (owner lens), PRD blueprint traceability, and consolidated best-practice recommendations.

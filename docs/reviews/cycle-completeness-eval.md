@@ -43,7 +43,7 @@
 ## Definition of Done — "one complete cycle" (proposed Phase 9.5: UI & Integration Hardening)
 
 **A. Unified UI shell**
-- Single `templates/base.html` (Tailwind + Heroicons + nav + Estalatree branding).
+- Single `templates/base.html` (Tailwind + Heroicons + nav + Berlanggan branding).
 - `storefront`/`dashboard`/`console` bases extend it.
 - Override allauth templates under `templates/account/` (`login.html`, `signup.html`, `password_reset*.html`, `email/*`) to extend the shell.
 
