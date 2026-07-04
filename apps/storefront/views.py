@@ -13,12 +13,17 @@ import uuid
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import redirect_to_login
+from django.core import signing
 from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
 from django.db.models.functions import Coalesce
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
+
+ORDER_RECEIPT_SALT = "order-receipt"
 
 from apps.accounts.models import SellerProfile
 from apps.billing.models import Order, TopUp
@@ -45,6 +50,18 @@ def _callback_url(request):
     return request.build_absolute_uri("/billing/webhook/duitku/")
 
 
+def build_order_receipt_token(order) -> str:
+    """Long-lived signed token proving ownership of an order without a login session.
+
+    Used on the confirmation email's "View order details" link — guest checkout
+    accounts have an unusable password (apps/storefront/views.py:checkout_plan) so
+    there's no reliable way for them to log back into the exact account later.
+    No max_age is set on verification, so this token never expires (a receipt link
+    should behave like a paid invoice PDF, not a security-sensitive action).
+    """
+    return signing.dumps({"public_id": order.public_id}, salt=ORDER_RECEIPT_SALT)
+
+
 def _payment_methods(amount: int):
     """Fetch Duitku payment methods for the given amount. Returns [] on gateway failure."""
     from apps.billing.duitku import DuitkuClient, DuitkuError
@@ -68,11 +85,34 @@ PAYMENT_METHOD_GROUPS = [
 ]
 
 
+# Popularity ranking within each group (lower = shown first), per docs/feedback item #7 —
+# based on real-world Indonesian usage (BCA/BNI/BRI VA, ShopeePay/LinkAja/NOBU QRIS, etc.).
+# Codes not listed here sort after all ranked ones, in Duitku's original API order.
+# NOTE: these are Duitku's documented codes as of this session — re-verify against a
+# live get_payment_methods() response if Duitku ever changes their code list, since
+# there's no automated way to detect a drifted mapping here.
+PAYMENT_METHOD_PRIORITY = {
+    # Bank transfer / VA
+    "BC": 0, "I1": 1, "BR": 2, "M2": 3, "VA": 4, "BT": 5, "B1": 6, "A1": 7, "NC": 8, "DN": 9,
+    # QRIS
+    "SP": 0, "LQ": 1, "NQ": 2, "GQ": 3, "AG": 4,
+    # E-wallet
+    "OV": 0, "DA": 1, "SA": 2, "LA": 3, "OL": 4, "SL": 5, "JP": 6,
+}
+
+
 def _group_payment_methods(methods):
-    """Group a flat list of PaymentMethod into [{key, label, methods}], empty groups omitted."""
+    """Group a flat list of PaymentMethod into [{key, label, methods}], empty groups omitted.
+
+    Methods within each group are sorted by real-world popularity (see
+    PAYMENT_METHOD_PRIORITY) — unranked codes keep their relative Duitku API order,
+    sorted after all ranked ones.
+    """
     buckets = {key: [] for key, _label in PAYMENT_METHOD_GROUPS}
     for pm in methods:
         buckets.setdefault(pm.method_type, buckets["other"]).append(pm)
+    for group_methods in buckets.values():
+        group_methods.sort(key=lambda pm: PAYMENT_METHOD_PRIORITY.get(pm.code.upper(), 999))
     return [
         {"key": key, "label": label, "methods": buckets[key]}
         for key, label in PAYMENT_METHOD_GROUPS
@@ -276,6 +316,12 @@ def checkout_plan(request, plan_pk):
         messages.error(request, "Product not available.")
         return redirect("storefront:page")
 
+    # Captured before the guest-signup block below flips this to True — an
+    # already-logged-in buyer's unverified email gets checked before any
+    # payment-gateway charge (see PaymentMethodRequiredError handling further
+    # down); a brand-new guest signup can't verify mid-checkout so is exempt.
+    was_already_authenticated = request.user.is_authenticated
+
     # Guest Checkout interception on POST
     if not request.user.is_authenticated and request.method == "POST":
         email = request.POST.get("guest_email", "").strip().lower()
@@ -476,6 +522,12 @@ def checkout_plan(request, plan_pk):
 
     payment_method = request.POST.get("payment_method", "").strip() or None
 
+    if payment_method and was_already_authenticated:
+        from allauth.account.models import EmailAddress
+        if not EmailAddress.objects.filter(user=request.user, verified=True).exists():
+            messages.error(request, "Please verify your email before paying via a payment method — this protects your order confirmation and license delivery.")
+            return redirect("account_email")
+
     try:
         order, grants, payment_url = checkout(
             customer=customer,
@@ -531,17 +583,43 @@ def order_pending(request):
     return redirect("storefront:page")
 
 
-@login_required
 def order_status(request, public_id):
-    customer, _ = _get_or_create_customer(request.user)
-    order = get_object_or_404(
-        Order.objects.select_related("plan__product"),
-        public_id=public_id,
-        customer=customer,
-    )
+    """Order receipt page — reachable either by an owner's login session, or by a
+    long-lived signed ?token= (see build_order_receipt_token) so the confirmation
+    email link works even when the visitor's guest session is long gone.
+    """
+    order = None
+    token = request.GET.get("token", "")
+    if token:
+        try:
+            data = signing.loads(token, salt=ORDER_RECEIPT_SALT)
+        except signing.BadSignature:
+            data = None
+        if data and data.get("public_id") == public_id:
+            order = get_object_or_404(
+                Order.objects.select_related("plan__product", "customer__user"),
+                public_id=public_id,
+            )
+
+    if order is None:
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path(), reverse("account_login"))
+        customer, _ = _get_or_create_customer(request.user)
+        order = get_object_or_404(
+            Order.objects.select_related("plan__product", "customer__user"),
+            public_id=public_id,
+            customer=customer,
+        )
+
+    grants = []
+    if order.status == Order.Status.PAID:
+        from apps.provisioning.models import Grant
+        grants = list(Grant.objects.filter(order=order))
+
     return render(request, "storefront/order_status.html", {
         "order": order,
-        "customer": customer,
+        "customer": order.customer,
+        "grants": grants,
     })
 
 
@@ -556,6 +634,11 @@ def topup(request):
     MAX_TOPUP = int(Setting.get("MAX_TOPUP", "50000000"))
 
     if request.method == "POST":
+        from allauth.account.models import EmailAddress
+        if not EmailAddress.objects.filter(user=request.user, verified=True).exists():
+            messages.error(request, "Please verify your email before topping up — this protects your balance and receipts.")
+            return redirect("account_email")
+
         try:
             amount = int(request.POST.get("amount", 0))
         except (ValueError, TypeError):

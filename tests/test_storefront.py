@@ -73,7 +73,10 @@ def contact_product(db):
 
 @pytest.fixture
 def customer(db):
-    return CustomerFactory()
+    from allauth.account.models import EmailAddress
+    c = CustomerFactory()
+    EmailAddress.objects.create(user=c.user, email=c.user.email, primary=True, verified=True)
+    return c
 
 
 @pytest.fixture
@@ -245,6 +248,55 @@ def test_order_status_paid_shows_success(funded_authed_client, funded_customer, 
     assert b"complete" in resp.content
 
 
+@pytest.mark.django_db
+def test_order_status_anonymous_without_token_redirects_to_login(funded_customer, public_product):
+    plan = public_product.plans.first()
+    order = Order.objects.create(
+        customer=funded_customer, plan=plan, amount=plan.price, status=Order.Status.PAID,
+        idempotency_key="ck:test:receipt:noauth",
+    )
+    resp = Client().get(reverse("storefront:order_status", args=[order.public_id]))
+    assert resp.status_code == 302
+    assert "login" in resp["Location"]
+
+
+@pytest.mark.django_db
+def test_order_status_anonymous_with_valid_token_shows_receipt(funded_customer, public_product):
+    from apps.storefront.views import build_order_receipt_token
+
+    plan = public_product.plans.first()
+    order = Order.objects.create(
+        customer=funded_customer, plan=plan, amount=plan.price, status=Order.Status.PAID,
+        idempotency_key="ck:test:receipt:token",
+    )
+    token = build_order_receipt_token(order)
+    url = reverse("storefront:order_status", args=[order.public_id])
+    resp = Client().get(f"{url}?token={token}")
+    assert resp.status_code == 200
+    assert b"complete" in resp.content
+
+
+@pytest.mark.django_db
+def test_order_status_token_for_different_order_is_rejected(funded_customer, public_product):
+    from apps.storefront.views import build_order_receipt_token
+
+    plan = public_product.plans.first()
+    order_a = Order.objects.create(
+        customer=funded_customer, plan=plan, amount=plan.price, status=Order.Status.PAID,
+        idempotency_key="ck:test:receipt:a",
+    )
+    order_b = Order.objects.create(
+        customer=funded_customer, plan=plan, amount=plan.price, status=Order.Status.PAID,
+        idempotency_key="ck:test:receipt:b",
+    )
+    token_for_a = build_order_receipt_token(order_a)
+    url_for_b = reverse("storefront:order_status", args=[order_b.public_id])
+    resp = Client().get(f"{url_for_b}?token={token_for_a}")
+    # Token doesn't match this public_id, falls through to the login-required path
+    assert resp.status_code == 302
+    assert "login" in resp["Location"]
+
+
 # ── 8. Top-up GET ─────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
@@ -277,6 +329,48 @@ def test_topup_post_invalid_amount_rerenders(authed_client):
     resp = authed_client.post(reverse("storefront:topup"), {"amount": "0"})
     assert resp.status_code == 200
     assert b"minimum" in resp.content.lower()
+
+
+@pytest.mark.django_db
+def test_topup_post_unverified_email_blocked():
+    unverified_customer = CustomerFactory()
+    client = Client()
+    client.force_login(unverified_customer.user)
+    resp = client.post(reverse("storefront:topup"), {"amount": "100000", "payment_method": "VC"})
+    assert resp.status_code == 302
+    assert resp["Location"] == reverse("account_email")
+
+
+@pytest.mark.django_db
+def test_checkout_post_unverified_email_blocked_when_payment_needed(public_product):
+    """An already-logged-in (not fresh guest) buyer with an unverified email is
+    blocked from a gateway-backed checkout (docs/feedback, item #4)."""
+    unverified_customer = CustomerFactory()
+    client = Client()
+    client.force_login(unverified_customer.user)
+    plan = public_product.plans.first()
+    resp = client.post(reverse("storefront:checkout", args=[plan.pk]), {"payment_method": "VC"})
+    assert resp.status_code == 302
+    assert resp["Location"] == reverse("account_email")
+
+
+# ── Payment method grouping/ordering (docs/feedback item #7) ────────────────────
+
+def test_group_payment_methods_orders_by_popularity():
+    from apps.billing.duitku import PaymentMethod
+    from apps.storefront.views import _group_payment_methods
+
+    methods = [
+        PaymentMethod(code="BT", name="PERMATA VA", image_url="", method_type="va", fee=0),
+        PaymentMethod(code="BC", name="BCA VA", image_url="", method_type="va", fee=0),
+        PaymentMethod(code="BR", name="BRI VA", image_url="", method_type="va", fee=0),
+        PaymentMethod(code="ZZ", name="UNKNOWN VA", image_url="", method_type="va", fee=0),
+        PaymentMethod(code="NQ", name="NOBU QRIS", image_url="", method_type="qris", fee=0),
+        PaymentMethod(code="SP", name="SHOPEEPAY QRIS", image_url="", method_type="qris", fee=0),
+    ]
+    groups = {g["key"]: [m.code for m in g["methods"]] for g in _group_payment_methods(methods)}
+    assert groups["va"] == ["BC", "BR", "BT", "ZZ"]
+    assert groups["qris"] == ["SP", "NQ"]
 
 
 # ── 10+11. Contact ────────────────────────────────────────────────────────────

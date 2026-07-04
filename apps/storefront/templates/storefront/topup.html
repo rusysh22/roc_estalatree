@@ -14,11 +14,10 @@
       {% csrf_token %}
 
       <!-- Quick amount buttons -->
-      <div class="grid grid-cols-3 gap-2 mb-4">
+      <div class="grid grid-cols-3 gap-2 mb-4" data-amount-chip-group>
         {% for amt in quick_amounts %}
-        <button type="button"
-                onclick="document.getElementById('amount-input').value='{{ amt.value }}'"
-                class="border border-ink-200 hover:border-primary-400 rounded-xl py-2 text-sm font-semibold text-ink-700 hover:text-primary-600 transition cursor-pointer">
+        <button type="button" data-amount-chip data-amount="{{ amt.value }}"
+                class="border-2 border-ink-200 hover:border-primary-400 rounded-xl py-2 text-sm font-semibold text-ink-700 hover:text-primary-600 transition cursor-pointer">
           {{ amt.label }}
         </button>
         {% endfor %}
@@ -38,7 +37,9 @@
           placeholder="Enter amount"
           value="{% if prefill_amount %}{{ prefill_amount }}{% endif %}"
           required
+          data-amount-input
           class="w-full px-3 py-2.5 border border-ink-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
+        <p class="text-sm font-semibold text-ink-700 mt-1.5" data-amount-preview></p>
         <p class="text-xs text-ink-400 mt-1">Min {{ min_topup|rupiah }} &middot; Max {{ max_topup|rupiah }}</p>
       </div>
 

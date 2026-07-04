@@ -61,6 +61,33 @@
     </div>
   </div>
 
+  {% if grants %}
+  <div class="landing-card p-5 mb-5">
+    <p class="text-xs font-bold text-ink-500 uppercase tracking-wide mb-3">Your access</p>
+    {% for grant in grants %}
+      {% if grant.type == "license_key" and grant.payload.license_key %}
+      <div class="flex items-center gap-2 bg-cream border-2 border-dashed border-ink-200 rounded-xl px-4 py-3 mb-2" data-copy-row>
+        <span class="font-mono font-bold text-sm text-ink-900 tracking-wide break-all flex-1" data-copy-value>{{ grant.payload.license_key }}</span>
+        <button type="button" data-copy-trigger data-copy-label="Copy" data-copy-done-label="Copied!"
+          class="shrink-0 text-xs font-bold text-primary-600 hover:text-primary-700 cursor-pointer">Copy</button>
+      </div>
+      {% elif grant.type == "download" and grant.payload.download_url %}
+      <a href="{{ grant.payload.download_url }}" target="_blank"
+         class="block text-center bg-primary-500 hover:bg-primary-600 text-white font-bold px-4 py-2.5 rounded-full mb-2 transition-colors">
+        Download your file
+      </a>
+      {% elif grant.type == "access_link" and grant.payload.access_url %}
+      <a href="{{ grant.payload.access_url }}" target="_blank"
+         class="block text-center bg-primary-500 hover:bg-primary-600 text-white font-bold px-4 py-2.5 rounded-full mb-2 transition-colors">
+        Open your access
+      </a>
+      {% elif grant.type == "credentials" or grant.type == "api_key" %}
+      <p class="text-sm text-ink-600 mb-2">Your credentials/API key are ready — view them securely in <strong>My Products</strong>.</p>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <p class="text-ink-500 text-sm text-center mb-5">
     Access your license key and all active products in <strong>My Products</strong>.
   </p>

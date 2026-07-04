@@ -265,6 +265,75 @@
     });
   }
 
+  function formatRupiah(n) {
+    return "Rp" + Math.max(0, Math.floor(n || 0)).toLocaleString("id-ID");
+  }
+
+  function initAmountFormatting() {
+    var input = document.querySelector("[data-amount-input]");
+    var preview = document.querySelector("[data-amount-preview]");
+    var chips = document.querySelectorAll("[data-amount-chip]");
+    if (!input) return;
+
+    function syncChips() {
+      var current = String(parseInt(input.value, 10) || "");
+      chips.forEach(function (chip) {
+        var match = chip.getAttribute("data-amount") === current;
+        chip.classList.toggle("border-primary-500", match);
+        chip.classList.toggle("bg-primary-50", match);
+        chip.classList.toggle("text-primary-700", match);
+      });
+    }
+
+    function updatePreview() {
+      if (preview) {
+        var val = parseInt(input.value, 10);
+        preview.textContent = val ? formatRupiah(val) : "";
+      }
+      syncChips();
+    }
+
+    input.addEventListener("input", updatePreview);
+    chips.forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        input.value = chip.getAttribute("data-amount");
+        updatePreview();
+      });
+    });
+    updatePreview();
+  }
+
+  function initCopyButtons() {
+    var buttons = document.querySelectorAll("[data-copy-trigger]");
+    buttons.forEach(function (btn) {
+      var row = btn.closest("[data-copy-row]");
+      var valueEl = row && row.querySelector("[data-copy-value]");
+      if (!valueEl) return;
+      var label = btn.getAttribute("data-copy-label") || "Copy";
+      var doneLabel = btn.getAttribute("data-copy-done-label") || "Copied!";
+      btn.addEventListener("click", function () {
+        var text = valueEl.textContent.trim();
+        var done = function () {
+          btn.textContent = doneLabel;
+          setTimeout(function () { btn.textContent = label; }, 1500);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, done);
+        } else {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand("copy"); } catch (err) { /* no-op */ }
+          document.body.removeChild(ta);
+          done();
+        }
+      });
+    });
+  }
+
   function safeInit(fn) {
     try {
       fn();
@@ -283,5 +352,7 @@
     safeInit(initPasswordToggle);
     safeInit(initPaymentMethodGroups);
     safeInit(initFaqAccordion);
+    safeInit(initCopyButtons);
+    safeInit(initAmountFormatting);
   });
 })();
