@@ -56,6 +56,27 @@ def user_surfaces(context):
     return surfaces
 
 
+@register.simple_tag(takes_context=True)
+def cart_item_count(context):
+    """Return the number of lines in the visitor's cart (session-bound for guests)."""
+    request = context.get("request")
+    if not request:
+        return 0
+    from apps.billing.models import Cart
+
+    try:
+        if request.user.is_authenticated:
+            cart = Cart.objects.filter(customer__user=request.user).first()
+        else:
+            session_key = request.session.session_key
+            if not session_key:
+                return 0
+            cart = Cart.objects.filter(session_key=session_key, customer__isnull=True).first()
+        return cart.items.count() if cart else 0
+    except Exception:
+        return 0
+
+
 @register.filter
 def dict_get(d, key):
     """Lookup d[key] in a template. Works for integer keys unlike dot notation."""

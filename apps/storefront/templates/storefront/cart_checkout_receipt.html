@@ -1,0 +1,60 @@
+{% extends "storefront/base.html" %}
+{% load money %}
+{% block page_title %}Order Confirmation{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+
+  {% if cart_checkout.status == "completed" %}
+  <div class="text-center mb-6">
+    <div class="w-16 h-16 bg-moss-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-moss-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+    </div>
+    <h1 class="text-2xl font-extrabold text-moss-800 tracking-tight">Payment complete!</h1>
+    <p class="text-ink-500 text-sm mt-1">All {{ orders|length }} item(s) have been activated.</p>
+  </div>
+  {% else %}
+  <div class="text-center mb-6">
+    <div class="w-16 h-16 bg-gold-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-gold-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <h1 class="text-xl font-extrabold text-gold-800 tracking-tight">Payment pending</h1>
+    <p class="text-ink-500 text-sm mt-1">Your items will activate automatically once payment is confirmed.</p>
+  </div>
+  {% endif %}
+
+  <div class="landing-card overflow-hidden mb-5">
+    <div class="bg-cream px-5 py-3 border-b border-ink-100">
+      <p class="text-xs font-bold text-ink-500 uppercase tracking-wide">Order {{ cart_checkout.public_id }}</p>
+    </div>
+    {% for order in orders %}
+    <div class="px-5 py-4 {% if not forloop.last %}border-b border-ink-100{% endif %}">
+      <div class="flex justify-between text-sm mb-1">
+        <span class="font-semibold text-ink-900">{{ order.plan.product.name }} &middot; {{ order.plan.name }}</span>
+        <span class="font-bold text-ink-900">{{ order.amount|rupiah }}</span>
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="text-xs text-ink-400 font-mono">{{ order.public_id }}</span>
+        <span class="text-xs font-bold {% if order.status == 'paid' %}text-moss-600{% else %}text-gold-700{% endif %}">{{ order.get_status_display }}</span>
+      </div>
+      {% for grant in order.grants.all %}
+        {% if grant.type == "license_key" and grant.payload.license_key %}
+        <div class="mt-2 bg-cream border-2 border-dashed border-ink-200 rounded-lg px-3 py-2 font-mono font-bold text-xs text-ink-900">
+          {{ grant.payload.license_key }}
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="flex flex-col gap-3">
+    <a href="{% url 'dashboard:products' %}" class="block text-center bg-primary-500 hover:bg-primary-600 text-white font-bold px-6 py-3 rounded-full transition-colors">
+      View my products &rarr;
+    </a>
+    <a href="{% url 'storefront:page' %}" class="block text-center text-sm text-ink-400 hover:text-ink-600">
+      Back to marketplace
+    </a>
+  </div>
+</div>
+{% endblock %}

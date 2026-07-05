@@ -1,5 +1,6 @@
 {% load static money %}
 {% wallet_balance as nav_balance %}
+{% cart_item_count as nav_cart_count %}
 <header class="sticky top-0 z-50 backdrop-blur bg-cream/85 border-b border-ink-900/5">
   <div class="max-w-7xl mx-auto px-5 sm:px-8 h-16 sm:h-20 flex items-center justify-between">
 
@@ -16,6 +17,12 @@
     </nav>
 
     <div class="hidden md:flex items-center gap-3">
+      <a href="{% url 'storefront:cart' %}" class="relative inline-flex items-center justify-center w-10 h-10 rounded-full border border-ink-100 text-ink-700 hover:border-primary-300 transition-colors" aria-label="Cart">
+        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        {% if nav_cart_count %}
+        <span class="absolute -top-1 -right-1 bg-primary-500 text-white text-[10px] font-bold rounded-full w-4.5 h-4.5 flex items-center justify-center">{{ nav_cart_count }}</span>
+        {% endif %}
+      </a>
       {% if user.is_authenticated %}
         <a href="{% url 'dashboard:wallet' %}"
            class="inline-flex items-center gap-1.5 bg-white border border-ink-100 text-ink-700 font-semibold px-3.5 py-2 rounded-full text-xs hover:border-primary-300 transition-colors">
@@ -40,6 +47,7 @@
     <a href="{% url 'storefront:page' %}#how-it-works" class="block text-sm font-semibold text-ink-700 py-1.5">How it works</a>
     <a href="{% url 'storefront:page' %}#sellers" class="block text-sm font-semibold text-ink-700 py-1.5">Sellers</a>
     <a href="{% url 'seller:apply' %}" class="block text-sm font-semibold text-ink-700 py-1.5">Start selling</a>
+    <a href="{% url 'storefront:cart' %}" class="block text-sm font-semibold text-ink-700 py-1.5">Cart{% if nav_cart_count %} ({{ nav_cart_count }}){% endif %}</a>
     <div class="pt-2 flex items-center gap-3">
       {% if user.is_authenticated %}
         <a href="{% url 'dashboard:wallet' %}" class="landing-chip">{{ nav_balance|rupiah }}</a>

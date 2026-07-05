@@ -3,31 +3,11 @@
 All notification sends are async — handlers dispatch tasks, tasks do the actual sending.
 Tasks retry on failure; individual send errors never crash the request path.
 """
-import base64
 import logging
-from functools import lru_cache
 
 from celery import shared_task
 
 logger = logging.getLogger(__name__)
-
-
-@lru_cache(maxsize=1)
-def _logo_data_uri() -> str:
-    """Base64 data: URI for the brand logo, inlined so email clients never need to
-    fetch an external image (avoids the "logo doesn't show up" bounce — some
-    clients block external images by default, and a missed collectstatic run
-    would break an external URL anyway). finders.find() looks at STATICFILES_DIRS
-    directly, so this works whether or not collectstatic has run.
-    """
-    from django.contrib.staticfiles import finders
-
-    path = finders.find("images/brand/logo-mark-email.png")
-    if not path:
-        return ""
-    with open(path, "rb") as f:
-        data = f.read()
-    return "data:image/png;base64," + base64.b64encode(data).decode("ascii")
 
 
 def _is_suppressed(to_email: str) -> bool:
@@ -86,40 +66,13 @@ def deliver_email(self, to_email: str, subject: str, body: str):
 
 
 def _site_url():
-    from django.conf import settings
-    return f"{settings.SITE_URL_SCHEME}://{settings.SITE_DOMAIN}"
+    from apps.core.branding import site_url
+    return site_url()
 
 
 def _base_email_context():
-    from django.conf import settings
-    return {
-        "site_name": settings.SITE_NAME,
-        "site_domain": settings.SITE_DOMAIN,
-        "site_url": _site_url(),
-        "logo_data_uri": _logo_data_uri(),
-    }
-
-
-def _render_invoice_pdf(order, base_context) -> bytes | None:
-    """Render the paid-invoice PDF for an order. Returns None (never raises) if
-    PDF generation fails — a missing attachment shouldn't block the email itself.
-    """
-    import io
-
-    from django.template.loader import render_to_string
-    from xhtml2pdf import pisa
-
-    try:
-        html = render_to_string("emails/invoice_pdf.html", {**base_context, "order": order})
-        buf = io.BytesIO()
-        result = pisa.CreatePDF(html, dest=buf)
-        if result.err:
-            logger.error("_render_invoice_pdf: xhtml2pdf reported errors for order %s", order.public_id)
-            return None
-        return buf.getvalue()
-    except Exception:
-        logger.exception("_render_invoice_pdf: failed for order %s", order.public_id)
-        return None
+    from apps.core.branding import base_branding_context
+    return base_branding_context()
 
 
 @shared_task(
@@ -165,7 +118,8 @@ def deliver_order_confirmation_email(self, to_email: str, order_id: int):
         )
         msg.attach_alternative(html_body, "text/html")
 
-        pdf_bytes = _render_invoice_pdf(order, context)
+        from apps.billing.invoice_service import render_invoice_pdf
+        pdf_bytes = render_invoice_pdf(order, grants)
         if pdf_bytes:
             msg.attach(f"invoice-{order.public_id}.pdf", pdf_bytes, "application/pdf")
 

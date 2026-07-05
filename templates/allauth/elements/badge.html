@@ -1,0 +1,11 @@
+{% load allauth %}
+{% with tags=attrs.tags|default_if_none:"" %}
+<strong {% if attrs.title %}title="{{ attrs.title }}"{% endif %}
+  class="inline-block text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ml-1.5
+    {% if 'success' in tags or 'verified' in tags %}bg-moss-100 text-moss-700
+    {% elif 'warning' in tags or 'unverified' in tags %}bg-gold-100 text-gold-800
+    {% else %}bg-ink-100 text-ink-600{% endif %}">
+    {% slot %}
+    {% endslot %}
+</strong>
+{% endwith %}

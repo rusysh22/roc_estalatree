@@ -1,0 +1,55 @@
+{% extends "storefront/base.html" %}
+{% load money %}
+{% block page_title %}Checkout{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+  <h1 class="text-2xl font-extrabold text-ink-900 mb-2 tracking-tight">Checkout</h1>
+  <p class="text-ink-500 text-sm mb-6">
+    Wallet balance: <strong class="text-ink-800">{{ wallet_balance|rupiah }}</strong>
+  </p>
+
+  <div class="landing-card overflow-hidden mb-5">
+    {% for line in lines %}
+    <div class="flex items-center justify-between px-5 py-3 {% if not forloop.last %}border-b border-ink-100{% endif %} text-sm">
+      <span class="text-ink-700">{{ line.item.plan.product.name }} &middot; {{ line.item.plan.name }}
+        {% if line.item.duration_multiplier > 1 %}(&times;{{ line.item.duration_multiplier }}){% endif %}</span>
+      <span class="font-semibold text-ink-900">{{ line.price|rupiah }}</span>
+    </div>
+    {% endfor %}
+    <div class="flex items-center justify-between px-5 py-3 bg-cream text-sm">
+      <span class="font-bold text-ink-800">Total</span>
+      <span class="font-extrabold text-ink-900">{{ total|rupiah }}</span>
+    </div>
+    {% if shortfall > 0 %}
+    <div class="flex items-center justify-between px-5 py-3 border-t border-ink-100 text-sm">
+      <span class="text-ink-500">From wallet</span>
+      <span class="text-ink-700">{{ wallet_balance|rupiah }}</span>
+    </div>
+    <div class="flex items-center justify-between px-5 py-3 text-sm">
+      <span class="font-bold text-gold-700">To pay now</span>
+      <span class="font-extrabold text-gold-700">{{ shortfall|rupiah }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <form method="post" action="{% url 'storefront:cart_checkout' %}">
+    {% csrf_token %}
+
+    {% if shortfall > 0 %}
+    <div class="landing-card p-5 mb-5">
+      <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-3">Payment Method</p>
+      {% include "storefront/partials/_payment_method_picker.html" %}
+    </div>
+    {% endif %}
+
+    <button type="submit" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 rounded-full cursor-pointer transition-colors">
+      {% if shortfall > 0 %}Pay {{ shortfall|rupiah }}{% else %}Complete purchase{% endif %}
+    </button>
+  </form>
+
+  <a href="{% url 'storefront:cart' %}" class="block text-center text-sm text-ink-400 hover:text-ink-600 mt-4">
+    Back to cart
+  </a>
+</div>
+{% endblock %}

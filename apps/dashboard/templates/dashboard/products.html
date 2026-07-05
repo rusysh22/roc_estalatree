@@ -33,9 +33,15 @@
     </div>
 
     <!-- Seat usage -->
-    <div class="text-xs text-ink-500 flex items-center gap-4">
+    <div class="text-xs text-ink-500 flex flex-wrap items-center gap-4">
       <span>Seats: {{ license.active_seat_count }}/{{ license.seat_limit }}</span>
       <a href="{% url 'dashboard:devices' %}" class="text-primary-500 hover:underline">Manage devices</a>
+      {% if license.subscription_id %}
+      <a href="{% url 'dashboard:subscriptions' %}" class="text-primary-500 hover:underline">Subscription</a>
+      {% endif %}
+      {% if license.grant.order_id and license.grant.order.status == "paid" %}
+      <a href="{% url 'dashboard:invoice_detail' license.grant.order.public_id %}" class="text-primary-500 hover:underline">Invoice</a>
+      {% endif %}
     </div>
   </div>
   {% endfor %}
@@ -132,6 +138,17 @@
 
     {% if grant.valid_until %}
     <p class="text-xs text-ink-400 mt-2">Valid until {{ grant.valid_until|date:"d M Y" }}</p>
+    {% endif %}
+
+    {% if grant.subscription_id or grant.order_id %}
+    <div class="text-xs text-ink-500 flex flex-wrap items-center gap-4 mt-3 pt-3 border-t border-ink-100">
+      {% if grant.subscription_id %}
+      <a href="{% url 'dashboard:subscriptions' %}" class="text-primary-500 hover:underline">Subscription</a>
+      {% endif %}
+      {% if grant.order_id and grant.order.status == "paid" %}
+      <a href="{% url 'dashboard:invoice_detail' grant.order.public_id %}" class="text-primary-500 hover:underline">Invoice</a>
+      {% endif %}
+    </div>
     {% endif %}
   </div>
   {% endfor %}

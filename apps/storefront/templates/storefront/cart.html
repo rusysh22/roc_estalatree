@@ -1,0 +1,65 @@
+{% extends "storefront/base.html" %}
+{% load money %}
+{% block page_title %}Your Cart{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <h1 class="text-2xl font-extrabold text-ink-900 mb-6 tracking-tight">Your cart</h1>
+
+  {% if not lines %}
+  <div class="landing-card p-8 text-center">
+    <p class="text-ink-500 text-sm mb-4">Your cart is empty.</p>
+    <a href="{% url 'storefront:page' %}" class="landing-btn-primary !px-5 !py-2.5 text-sm inline-block">Browse products</a>
+  </div>
+  {% else %}
+  <div class="landing-card overflow-hidden mb-5">
+    {% for line in lines %}
+    <div class="flex items-start gap-4 px-5 py-4 {% if not forloop.last %}border-b border-ink-100{% endif %}">
+      <div class="flex-1 min-w-0">
+        <p class="font-bold text-ink-900 text-sm">{{ line.item.plan.product.name }}</p>
+        <p class="text-xs text-ink-500">{{ line.item.plan.name }}
+          {% if line.item.plan.product.seller %}&middot; sold by {{ line.item.plan.product.seller.name }}{% endif %}</p>
+
+        {% if line.item.plan.interval != "none" and line.item.plan.duration_discounts %}
+        <form method="post" action="{% url 'storefront:cart_update' line.item.pk %}" class="mt-2">
+          {% csrf_token %}
+          <select name="duration" onchange="this.form.submit()" class="text-xs border border-ink-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-200">
+            <option value="1" {% if line.item.duration_multiplier == 1 %}selected{% endif %}>1 {{ line.item.plan.get_interval_display }}</option>
+            {% for mult, pct in line.item.plan.duration_discounts.items %}
+            <option value="{{ mult }}" {% if line.item.duration_multiplier|stringformat:"s" == mult %}selected{% endif %}>{{ mult }} {{ line.item.plan.get_interval_display }}s (-{{ pct }}%)</option>
+            {% endfor %}
+          </select>
+        </form>
+        {% endif %}
+
+        <form method="post" action="{% url 'storefront:cart_remove' line.item.pk %}" class="mt-2">
+          {% csrf_token %}
+          <button type="submit" class="text-xs text-primary-500 hover:text-primary-700 font-semibold cursor-pointer">Remove</button>
+        </form>
+      </div>
+      <div class="text-right shrink-0">
+        {% if line.discount %}
+        <p class="text-xs text-ink-400 line-through">{{ line.base_price|rupiah }}</p>
+        {% endif %}
+        <p class="font-bold text-ink-900 text-sm">{{ line.price|rupiah }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="landing-card p-5 mb-5">
+    <div class="flex justify-between items-center">
+      <span class="font-bold text-ink-800">Total</span>
+      <span class="font-extrabold text-xl text-ink-900">{{ total|rupiah }}</span>
+    </div>
+  </div>
+
+  <a href="{% url 'storefront:cart_checkout' %}" class="block text-center bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 rounded-full transition-colors">
+    Proceed to checkout
+  </a>
+  <a href="{% url 'storefront:page' %}" class="block text-center text-sm text-ink-400 hover:text-ink-600 mt-4">
+    Continue shopping
+  </a>
+  {% endif %}
+</div>
+{% endblock %}

@@ -83,10 +83,13 @@ def _apply_topup_success(topup: TopUp) -> bool:
 
     ADR-015: if the TopUp has a linked checkout_order, complete it after
     the TopUp transaction commits (separate atomic — debit from newly funded wallet).
+    Extended for carts: a TopUp funding a multi-item CartCheckout completes every
+    pending Order under it the same way.
 
     Returns True if credit was applied, False if TopUp was already PAID.
     """
     checkout_order = None
+    cart_checkout = None
     customer = None
     with transaction.atomic():
         locked = TopUp.objects.select_for_update().get(pk=topup.pk)
@@ -121,14 +124,20 @@ def _apply_topup_success(topup: TopUp) -> bool:
         from apps.core.events import emit
         emit("topup.paid", customer_id=locked.customer_id, amount=locked.amount, bonus=locked.bonus)
 
-        # Capture checkout_order reference before the atomic block exits
+        # Capture references before the atomic block exits
         if locked.checkout_order_id:
             checkout_order = locked.checkout_order
+        if locked.cart_checkout_id:
+            cart_checkout = locked.cart_checkout
 
     # ADR-015: complete the linked checkout order after TopUp credit commits
     if checkout_order is not None:
         from apps.billing.checkout import complete_pending_order
         complete_pending_order(checkout_order)
+
+    if cart_checkout is not None:
+        from apps.billing.cart_service import complete_cart_checkout
+        complete_cart_checkout(cart_checkout)
 
     # Phase 6: wallet funded — attempt renewal for any GRACE subscriptions
     if customer is not None:
