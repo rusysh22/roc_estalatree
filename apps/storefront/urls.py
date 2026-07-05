@@ -19,6 +19,7 @@ urlpatterns = [
     path("cart/checkout/", views.cart_checkout_view, name="cart_checkout"),
     path("cart/checkout/<public_id>/", views.cart_checkout_receipt, name="cart_checkout_receipt"),
     path("contact/<int:product_pk>/", views.contact, name="contact"),
+    path("search/", views.search, name="search"),
     path("terms/", views.terms, name="terms"),
     path("privacy/", views.privacy, name="privacy"),
     path("<slug:slug>/", views.page, name="store_page"),
