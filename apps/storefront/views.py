@@ -220,6 +220,39 @@ def landing(request):
     })
 
 
+def search(request):
+    """Marketplace-wide search by product name/description or seller name.
+
+    Only surfaces PUBLIC products from active+approved sellers — same
+    visibility rule as the landing page's trending/featured querysets.
+    """
+    query = request.GET.get("q", "").strip()
+    results = []
+    if query:
+        results = (
+            Product.objects.filter(
+                visibility=Product.Visibility.PUBLIC,
+                seller__is_active=True,
+                seller__is_approved=True,
+            )
+            .filter(
+                Q(name__icontains=query)
+                | Q(description__icontains=query)
+                | Q(seller__name__icontains=query)
+            )
+            .select_related("seller")
+            .prefetch_related(Prefetch(
+                "plans", queryset=Plan.objects.filter(is_active=True).order_by("price")
+            ))
+            .distinct()
+            .order_by("-created_at")
+        )
+    return render(request, "storefront/search_results.html", {
+        "query": query,
+        "results": results,
+    })
+
+
 # ── Store page ────────────────────────────────────────────────────────────────
 
 @xframe_options_sameorigin

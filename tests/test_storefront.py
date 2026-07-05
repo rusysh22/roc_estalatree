@@ -126,6 +126,57 @@ def test_landing_page_shows_trending_product(customer):
     assert b"Acme Creator" in resp.content
 
 
+# ── Search (docs: search bar for products/sellers) ──────────────────────────────
+
+@pytest.mark.django_db
+def test_search_no_query_shows_prompt():
+    resp = Client().get(reverse("storefront:search"))
+    assert resp.status_code == 200
+    assert b"get started" in resp.content.lower()
+
+
+@pytest.mark.django_db
+def test_search_matches_product_name():
+    seller = SellerProfile.objects.create(name="Acme Creator", slug="search-seller-a", is_active=True, is_approved=True)
+    product = ProductFactory(visibility=Product.Visibility.PUBLIC, name="Notion Template Pack", seller=seller)
+    PlanFactory(product=product, price=50_000, is_active=True)
+
+    resp = Client().get(reverse("storefront:search"), {"q": "Notion"})
+    assert resp.status_code == 200
+    assert b"Notion Template Pack" in resp.content
+
+
+@pytest.mark.django_db
+def test_search_matches_seller_name():
+    seller = SellerProfile.objects.create(name="Zephyr Studio", slug="search-seller-b", is_active=True, is_approved=True)
+    product = ProductFactory(visibility=Product.Visibility.PUBLIC, name="Unrelated Product Name", seller=seller)
+    PlanFactory(product=product, price=50_000, is_active=True)
+
+    resp = Client().get(reverse("storefront:search"), {"q": "Zephyr"})
+    assert resp.status_code == 200
+    assert b"Unrelated Product Name" in resp.content
+
+
+@pytest.mark.django_db
+def test_search_excludes_draft_and_unapproved_seller_products():
+    approved_seller = SellerProfile.objects.create(name="Approved Seller", slug="search-seller-c", is_active=True, is_approved=True)
+    unapproved_seller = SellerProfile.objects.create(name="Pending Seller", slug="search-seller-d", is_active=True, is_approved=False)
+    ProductFactory(visibility=Product.Visibility.DRAFT, name="Hidden Draft Widget", seller=approved_seller)
+    ProductFactory(visibility=Product.Visibility.PUBLIC, name="Widget From Pending Seller", seller=unapproved_seller)
+
+    resp = Client().get(reverse("storefront:search"), {"q": "Widget"})
+    assert resp.status_code == 200
+    assert b"Hidden Draft Widget" not in resp.content
+    assert b"Widget From Pending Seller" not in resp.content
+
+
+@pytest.mark.django_db
+def test_search_no_results_message():
+    resp = Client().get(reverse("storefront:search"), {"q": "zzz-nonexistent-zzz"})
+    assert resp.status_code == 200
+    assert b"No results" in resp.content
+
+
 # ── 1+2. Store page (individual seller, /<slug>/) ─────────────────────────────
 
 @pytest.mark.django_db
