@@ -3,60 +3,107 @@
 <head>
 <meta charset="UTF-8">
 <style>
-  @page { size: A4; margin: 2.2cm; }
-  body { font-family: Helvetica, Arial, sans-serif; color: #16130F; font-size: 10.5pt; }
-  .brand { font-size: 16pt; font-weight: bold; color: #16130F; }
-  .muted { color: #766C5D; font-size: 9pt; }
-  .paid-badge { color: #2F7A55; font-weight: bold; font-size: 11pt; text-transform: uppercase; }
-  table.meta { width: 100%; margin-top: 18px; }
-  table.meta td { padding: 2px 0; font-size: 9.5pt; }
-  table.items { width: 100%; margin-top: 24px; border-collapse: collapse; }
-  table.items th { text-align: left; border-bottom: 1.5px solid #16130F; padding: 6px 4px; font-size: 9pt; text-transform: uppercase; color: #766C5D; }
-  table.items td { padding: 8px 4px; border-bottom: 0.75px solid #E5DFD3; font-size: 10pt; }
-  table.items td.amount, table.items th.amount { text-align: right; }
-  table.total { width: 100%; margin-top: 10px; }
-  table.total td { padding: 4px; font-size: 10.5pt; }
-  table.total td.label { text-align: right; color: #766C5D; }
-  table.total td.value { text-align: right; width: 120px; font-weight: bold; }
-  .grand-total td { font-size: 13pt; font-weight: bold; border-top: 1.5px solid #16130F; padding-top: 8px; }
-  .footer { margin-top: 40px; font-size: 8.5pt; color: #999; text-align: center; }
+  @page { size: A4; margin: 2cm 2.2cm; }
+  body { font-family: Helvetica, Arial, sans-serif; color: #16130F; font-size: 10pt; }
+  .brand-name { font-size: 17pt; font-weight: bold; color: #16130F; vertical-align: middle; }
+  .muted { color: #766C5D; }
+  .label { font-size: 8pt; text-transform: uppercase; color: #A79C8B; }
+  .paid-badge { display: inline-block; background-color: #2F7A55; color: #FFFFFF; font-weight: bold; font-size: 9.5pt;
+                text-transform: uppercase; padding: 4px 14px; border-radius: 3px; }
+  .pending-badge { display: inline-block; background-color: #C99A2E; color: #FFFFFF; font-weight: bold; font-size: 9.5pt;
+                text-transform: uppercase; padding: 4px 14px; border-radius: 3px; }
+  hr.divider { border: none; border-top: 1px solid #E5DFD3; margin: 18px 0; }
+  table.panels { width: 100%; }
+  table.panels td { width: 50%; vertical-align: top; font-size: 9.5pt; padding-bottom: 4px; }
+  table.items { width: 100%; margin-top: 6px; border-collapse: collapse; }
+  table.items th { text-align: left; border-bottom: 1.5px solid #16130F; padding: 7px 4px; font-size: 8.5pt;
+                   text-transform: uppercase; color: #766C5D; }
+  table.items td { padding: 9px 4px; border-bottom: 0.75px solid #E5DFD3; font-size: 10pt; vertical-align: top; }
+  table.items td.amount, table.items th.amount { text-align: right; white-space: nowrap; }
+  table.items .item-name { font-weight: bold; }
+  table.items .item-meta { font-size: 8.5pt; color: #766C5D; margin-top: 2px; }
+  table.total { width: 100%; margin-top: 4px; }
+  table.total td { padding: 4px; font-size: 10pt; }
+  table.total td.label { text-align: right; color: #766C5D; width: 70%; }
+  table.total td.value { text-align: right; font-weight: bold; }
+  .grand-total td { font-size: 14pt; font-weight: bold; border-top: 1.5px solid #16130F; padding-top: 10px !important; }
+  .access-box { background-color: #FBF4EC; border: 1px solid #E5DFD3; border-radius: 4px; padding: 12px 16px; margin-top: 6px; }
+  .access-row { margin-bottom: 6px; font-size: 9.5pt; }
+  .license-code { font-family: Courier, monospace; font-weight: bold; font-size: 11pt; }
+  .footer { margin-top: 36px; padding-top: 14px; border-top: 1px solid #E5DFD3; font-size: 8pt; color: #A79C8B; text-align: center; }
+  h2.section { font-size: 9.5pt; text-transform: uppercase; color: #766C5D; margin: 20px 0 8px 0; }
 </style>
 </head>
 <body>
+
+  <!-- Header: logo + brand, invoice status/number -->
   <table style="width:100%;">
     <tr>
-      <td class="brand">{{ site_name }}</td>
-      <td style="text-align:right;">
-        <div class="paid-badge">Paid in full</div>
-        <div class="muted">Invoice {% if order.invoice_number %}INV-{{ order.invoice_number|stringformat:"06d" }}{% else %}{{ order.public_id }}{% endif %}</div>
+      <td style="width:60%;">
+        {% if logo_data_uri %}<img src="{{ logo_data_uri }}" width="34" height="34" style="vertical-align:middle; margin-right:8px;">{% endif %}
+        <span class="brand-name">{{ site_name }}</span>
+      </td>
+      <td style="text-align:right; width:40%;">
+        {% if order.status == "paid" %}
+        <span class="paid-badge">Paid in full</span>
+        {% else %}
+        <span class="pending-badge">{{ order.get_status_display }}</span>
+        {% endif %}
+        <div class="muted" style="margin-top:6px; font-size:9.5pt;">
+          Invoice {% if order.invoice_number %}INV-{{ order.invoice_number|stringformat:"06d" }}{% else %}{{ order.public_id }}{% endif %}
+        </div>
       </td>
     </tr>
   </table>
 
-  <table class="meta">
+  <hr class="divider">
+
+  <!-- Billed to / Sold by / Dates -->
+  <table class="panels">
     <tr>
-      <td><span class="muted">Billed to</span><br>{{ order.customer.user.email }}</td>
-      <td style="text-align:right;"><span class="muted">Date issued</span><br>{{ order.created_at|date:"d F Y" }}</td>
+      <td>
+        <div class="label">Billed to</div>
+        {{ order.customer.user.email }}
+      </td>
+      <td>
+        <div class="label">Sold by</div>
+        {% if order.plan.product.seller %}{{ order.plan.product.seller.name }}{% else %}{{ site_name }} Marketplace{% endif %}
+      </td>
     </tr>
     <tr>
-      <td><span class="muted">Order ID</span><br>{{ order.public_id }}</td>
-      <td style="text-align:right;"><span class="muted">Payment status</span><br>{{ order.get_status_display }}</td>
+      <td style="padding-top:12px;">
+        <div class="label">Date issued</div>
+        {{ order.created_at|date:"d F Y, H:i" }} WIB
+      </td>
+      <td style="padding-top:12px;">
+        <div class="label">Order reference</div>
+        {{ order.public_id }}
+      </td>
     </tr>
   </table>
 
+  <!-- Line items -->
+  <h2 class="section">Order Summary</h2>
   <table class="items">
     <thead>
       <tr><th>Item</th><th class="amount">Amount</th></tr>
     </thead>
     <tbody>
       <tr>
-        <td>{{ order.plan.product.name }} &mdash; {{ order.plan.name }}</td>
-        <td class="amount">{{ order.plan.price|rupiah }}</td>
+        <td>
+          <div class="item-name">{{ order.plan.product.name }}</div>
+          <div class="item-meta">
+            {{ order.plan.name }}
+            {% if order.plan.interval != "none" %} &middot; {{ order.plan.get_interval_display }} plan{% endif %}
+            {% if order.duration_multiplier > 1 %} &middot; {{ order.duration_multiplier }}&times; billing periods prepaid{% endif %}
+          </div>
+        </td>
+        <td class="amount">{{ order.plan.price|rupiah }}{% if order.duration_multiplier > 1 %} &times; {{ order.duration_multiplier }}{% endif %}</td>
       </tr>
       {% if order.discount %}
       <tr>
-        <td>Coupon discount{% if order.coupon %} ({{ order.coupon.code }}){% endif %}</td>
-        <td class="amount">-{{ order.discount|rupiah }}</td>
+        <td>Coupon discount{% if order.coupon %} &mdash; code <strong>{{ order.coupon.code }}</strong>{% endif %}</td>
+        <td class="amount">&minus;{{ order.discount|rupiah }}</td>
       </tr>
       {% endif %}
     </tbody>
@@ -64,14 +111,33 @@
 
   <table class="total">
     <tr class="grand-total">
-      <td class="label">Total paid</td>
+      <td class="label">Total {% if order.status == "paid" %}paid{% else %}due{% endif %}</td>
       <td class="value">{{ order.amount|rupiah }}</td>
     </tr>
   </table>
 
+  <!-- Access & delivery -->
+  {% if grants %}
+  <h2 class="section">Access &amp; Delivery</h2>
+  <div class="access-box">
+    {% for grant in grants %}
+      {% if grant.type == "license_key" and grant.payload.license_key %}
+      <div class="access-row">License key: <span class="license-code">{{ grant.payload.license_key }}</span></div>
+      {% elif grant.type == "download" and grant.payload.download_url %}
+      <div class="access-row">Download: {{ grant.payload.download_url }}</div>
+      {% elif grant.type == "access_link" and grant.payload.access_url %}
+      <div class="access-row">Access link: {{ grant.payload.access_url }}</div>
+      {% elif grant.type == "credentials" or grant.type == "api_key" %}
+      <div class="access-row">Credentials/API key: available on your {{ site_name }} dashboard.</div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <div class="footer">
     {{ site_name }} &middot; {{ site_domain }}<br>
-    This invoice confirms payment in full for the order above.
+    This is a computer-generated invoice and is valid without a signature.<br>
+    Questions about this order? Contact support via your {{ site_name }} dashboard.
   </div>
 </body>
 </html>

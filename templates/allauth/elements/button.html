@@ -1,0 +1,23 @@
+{% load allauth %}
+{% comment %}
+Theme override of allauth's generic button element — see allauth's own
+allauth/elements/button.html for the untagged original. attrs.tags is a list
+of comma-separated hints the framework passes (e.g. "primary", "outline",
+"danger,delete") — we key styling off those instead of introducing new markup.
+{% endcomment %}
+{% with tags=attrs.tags|default_if_none:"" %}
+<{% if attrs.href %}a href="{{ attrs.href }}"{% else %}button{% endif %}
+{% if attrs.form %}form="{{ attrs.form }}"{% endif %}
+{% if attrs.id %}id="{{ attrs.id }}"{% endif %}
+{% if attrs.name %}name="{{ attrs.name }}"{% endif %}
+{% if attrs.value %}value="{{ attrs.value }}"{% endif %}
+{% if attrs.type %}type="{{ attrs.type }}"{% endif %}
+class="inline-flex items-center justify-center font-bold text-sm py-2.5 px-5 rounded-full transition-colors cursor-pointer
+  {% if 'danger' in tags or 'delete' in tags %}bg-white border-2 border-primary-200 text-primary-600 hover:bg-primary-50
+  {% elif 'outline' in tags or 'secondary' in tags or 'cancel' in tags or 'resend' in tags %}bg-white border-2 border-ink-200 text-ink-700 hover:border-ink-400
+  {% else %}bg-primary-500 hover:bg-primary-600 text-white{% endif %}"
+>
+{% slot %}
+{% endslot %}
+</{% if attrs.href %}a{% else %}button{% endif %}>
+{% endwith %}

@@ -1,0 +1,10 @@
+{% load allauth %}
+{% with tags=attrs.tags|default_if_none:"" %}
+<p class="px-4 py-3 rounded-xl text-sm border mb-4
+  {% if 'error' in tags or 'danger' in tags %}bg-primary-50 text-primary-700 border-primary-200
+  {% elif 'success' in tags %}bg-moss-50 text-moss-700 border-moss-200
+  {% else %}bg-white text-ink-600 border-ink-200{% endif %}">
+    {% slot message %}
+    {% endslot %}
+</p>
+{% endwith %}

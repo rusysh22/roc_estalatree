@@ -21,6 +21,12 @@
       </div>
       <div class="flex items-center gap-3">
         <span class="text-sm font-mono text-ink-700">{{ order.amount|rupiah }}</span>
+        <a href="{% url 'storefront:product' order.plan.product.slug %}"
+           class="text-xs text-ink-400 hover:text-primary-500">Product</a>
+        {% if order.subscription_id %}
+        <a href="{% url 'dashboard:subscriptions' %}"
+           class="text-xs text-ink-400 hover:text-primary-500">Subscription</a>
+        {% endif %}
         <a href="{% url 'dashboard:invoice_detail' order.public_id %}"
            class="text-xs text-primary-500 hover:text-primary-700">View</a>
         <a href="{% url 'dashboard:refund_request' order.public_id %}"

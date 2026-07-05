@@ -23,8 +23,6 @@ from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
-ORDER_RECEIPT_SALT = "order-receipt"
-
 from apps.accounts.models import SellerProfile
 from apps.billing.models import Order, TopUp
 from apps.catalog.models import Plan, Product, ProductReview
@@ -32,6 +30,8 @@ from apps.core.models import Setting
 from apps.storefront.models import Block, StorePage
 
 logger = logging.getLogger(__name__)
+
+ORDER_RECEIPT_SALT = "order-receipt"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -571,11 +571,13 @@ def order_pending(request):
     merchant_order_id = request.GET.get("merchantOrderId", "")
     topup_obj = (
         TopUp.objects.filter(public_id=merchant_order_id)
-        .select_related("checkout_order")
+        .select_related("checkout_order", "cart_checkout")
         .first()
     )
     if topup_obj and topup_obj.checkout_order:
         return redirect("storefront:order_status", public_id=topup_obj.checkout_order.public_id)
+    if topup_obj and topup_obj.cart_checkout_id:
+        return redirect("storefront:cart_checkout_receipt", public_id=topup_obj.cart_checkout.public_id)
     if topup_obj:
         messages.info(request, "Thanks! We're confirming your payment — your balance will update in a moment.")
         return redirect("dashboard:wallet")
@@ -741,4 +743,158 @@ def terms(request):
 
 def privacy(request):
     return render(request, "storefront/privacy.html")
+
+
+# ── Cart (docs/feedback item #12) ───────────────────────────────────────────────
+# v1 scope: a cart can hold plans from multiple sellers (checked out with one
+# combined payment — see apps.billing.cart_service). Anonymous visitors can add
+# to a session-bound cart; checkout itself requires login (matches top-up).
+# PWYW plans and plans with required intake questions are not addable to cart.
+
+def cart_view(request):
+    from apps.billing.cart_service import compute_cart_line, get_or_create_cart
+
+    cart = get_or_create_cart(request)
+    items = list(cart.items.select_related("plan__product__seller").all())
+    lines = []
+    for item in items:
+        price, discount, coupon_obj, base_price = compute_cart_line(item)
+        lines.append({"item": item, "price": price, "discount": discount, "coupon": coupon_obj, "base_price": base_price})
+    total = sum(line["price"] for line in lines)
+
+    return render(request, "storefront/cart.html", {
+        "lines": lines,
+        "total": total,
+    })
+
+
+@require_POST
+def cart_add(request, plan_pk):
+    from apps.billing.cart_service import CartError, add_to_cart, get_or_create_cart
+
+    plan = get_object_or_404(Plan, pk=plan_pk, is_active=True)
+    cart = get_or_create_cart(request)
+    try:
+        duration_multiplier = int(request.POST.get("duration", 1))
+    except (TypeError, ValueError):
+        duration_multiplier = 1
+
+    try:
+        add_to_cart(cart, plan, duration_multiplier=duration_multiplier)
+        messages.success(request, f"Added '{plan.product.name}' to your cart.")
+    except CartError as exc:
+        messages.error(request, str(exc))
+        return redirect("storefront:product", slug=plan.product.slug)
+
+    return redirect("storefront:cart")
+
+
+@require_POST
+def cart_remove(request, item_pk):
+    from apps.billing.cart_service import get_or_create_cart, remove_from_cart
+
+    cart = get_or_create_cart(request)
+    remove_from_cart(cart, item_pk)
+    messages.info(request, "Removed from cart.")
+    return redirect("storefront:cart")
+
+
+@require_POST
+def cart_update(request, item_pk):
+    from apps.billing.cart_service import get_or_create_cart, update_cart_item
+
+    cart = get_or_create_cart(request)
+    try:
+        duration_multiplier = int(request.POST.get("duration", 1))
+    except (TypeError, ValueError):
+        duration_multiplier = 1
+    update_cart_item(cart, item_pk, duration_multiplier=duration_multiplier)
+    return redirect("storefront:cart")
+
+
+@login_required
+def cart_checkout_view(request):
+    from apps.billing.cart_service import (
+        CartPaymentMethodRequiredError,
+        EmptyCartError,
+        checkout_cart,
+        compute_cart_line,
+        get_or_create_cart,
+    )
+
+    cart = get_or_create_cart(request)
+    items = list(cart.items.select_related("plan__product").all())
+    if not items:
+        messages.info(request, "Your cart is empty.")
+        return redirect("storefront:cart")
+
+    customer, _ = _get_or_create_customer(request.user)
+    wallet_balance = customer.wallet.balance
+
+    lines = []
+    total = 0
+    for item in items:
+        price, discount, coupon_obj, _base = compute_cart_line(item)
+        lines.append({"item": item, "price": price, "discount": discount, "coupon": coupon_obj})
+        total += price
+    shortfall = max(0, total - wallet_balance)
+
+    if request.method == "GET":
+        if shortfall > 0:
+            from allauth.account.models import EmailAddress
+            if not EmailAddress.objects.filter(user=request.user, verified=True).exists():
+                messages.warning(request, "Your email is not verified. Please verify it to ensure order notifications reach you.")
+
+        payment_methods = _payment_methods(shortfall) if shortfall > 0 else []
+        payment_method_groups = _group_payment_methods(payment_methods)
+
+        return render(request, "storefront/cart_checkout.html", {
+            "lines": lines,
+            "total": total,
+            "wallet_balance": wallet_balance,
+            "shortfall": shortfall,
+            "payment_method_groups": payment_method_groups,
+        })
+
+    payment_method = request.POST.get("payment_method", "").strip() or None
+
+    if payment_method and shortfall > 0:
+        from allauth.account.models import EmailAddress
+        if not EmailAddress.objects.filter(user=request.user, verified=True).exists():
+            messages.error(request, "Please verify your email before paying via a payment method.")
+            return redirect("account_email")
+
+    try:
+        cart_checkout, grants, payment_url = checkout_cart(
+            customer=customer,
+            cart=cart,
+            callback_url=_callback_url(request),
+            return_url=request.build_absolute_uri("/orders/pending/"),
+            payment_method=payment_method,
+        )
+    except CartPaymentMethodRequiredError:
+        messages.error(request, "Please choose a payment method.")
+        return redirect("storefront:cart_checkout")
+    except EmptyCartError:
+        messages.info(request, "Your cart is empty.")
+        return redirect("storefront:cart")
+
+    if payment_url:
+        return redirect(payment_url)
+
+    return redirect("storefront:cart_checkout_receipt", public_id=cart_checkout.public_id)
+
+
+@login_required
+def cart_checkout_receipt(request, public_id):
+    from apps.billing.models import CartCheckout
+
+    customer, _ = _get_or_create_customer(request.user)
+    cart_checkout = get_object_or_404(CartCheckout, public_id=public_id, customer=customer)
+    orders = cart_checkout.orders.select_related("plan__product").prefetch_related("grants")
+
+    return render(request, "storefront/cart_checkout_receipt.html", {
+        "cart_checkout": cart_checkout,
+        "orders": orders,
+    })
 

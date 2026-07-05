@@ -11,7 +11,7 @@ import logging
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -139,14 +139,14 @@ def products(request):
     customer = _customer(request)
     licenses = (
         License.objects.filter(customer=customer)
-        .select_related("plan__product", "grant")
+        .select_related("plan__product", "grant", "grant__order", "subscription")
         .prefetch_related("installations")
         .order_by("-created_at")
     )
     other_grants = (
         Grant.objects.filter(customer=customer)
         .exclude(type="license_key")
-        .select_related("deliverable__plan__product")
+        .select_related("deliverable__plan__product", "order", "subscription")
         .prefetch_related("secret")
         .order_by("-created_at")
     )
@@ -220,14 +220,17 @@ def subscriptions(request):
     subs = (
         Subscription.objects.filter(customer=customer)
         .select_related("plan__product")
+        .prefetch_related("licenses")
         .order_by("-current_period_end")
     )
 
-    # Annotate shortfall for each active sub
+    # Annotate shortfall + cross-links (latest invoice, related license) for each sub
     subs_with_shortfall = []
     for sub in subs:
         shortfall = max(0, sub.plan.price - customer.wallet.balance) if sub.status == Subscription.Status.ACTIVE else 0
-        subs_with_shortfall.append((sub, shortfall))
+        latest_order = sub.orders.filter(status=Order.Status.PAID).order_by("-created_at").first()
+        license_ = sub.licenses.first()
+        subs_with_shortfall.append((sub, shortfall, latest_order, license_))
 
     return render(request, "dashboard/subscriptions.html", {
         "customer": customer,
@@ -256,7 +259,7 @@ def invoices(request):
     customer = _customer(request)
     orders = (
         Order.objects.filter(customer=customer, status=Order.Status.PAID)
-        .select_related("plan")
+        .select_related("plan__product")
         .order_by("-created_at")
     )
     topups = (
@@ -322,12 +325,33 @@ def invoice_detail(request, public_id):
     from apps.core.models import Setting
     invoice_name = Setting.get("INVOICE_NAME", "")
     tax_id = Setting.get("TAX_ID", "")
+    order_license = License.objects.filter(customer=customer, grant__order=order).first()
     return render(request, "dashboard/invoice_detail.html", {
         "order": order,
         "customer": customer,
         "invoice_name": invoice_name,
         "tax_id": tax_id,
+        "order_license": order_license,
     })
+
+
+@login_required
+def invoice_pdf_download(request, public_id):
+    from apps.billing.invoice_service import render_invoice_pdf
+
+    customer = _customer(request)
+    order = get_object_or_404(
+        Order.objects.select_related("plan__product", "coupon"),
+        public_id=public_id,
+        customer=customer,
+        status=Order.Status.PAID,
+    )
+    pdf_bytes = render_invoice_pdf(order)
+    if not pdf_bytes:
+        raise Http404("Could not generate invoice PDF.")
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="invoice-{order.public_id}.pdf"'
+    return response
 
 
 @login_required

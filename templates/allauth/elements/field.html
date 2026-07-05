@@ -1,0 +1,55 @@
+{% load allauth %}
+{% if attrs.errors %}<div class="text-xs text-primary-600 mb-1">{{ attrs.errors }}</div>{% endif %}
+<div class="mb-4">
+    {% if attrs.type == "textarea" %}
+        <label for="{{ attrs.id }}" class="block text-xs font-semibold text-ink-600 mb-1">
+            {% slot label %}
+            {% endslot %}
+        </label>
+        <textarea {% if attrs.required %}required{% endif %}
+                  {% if attrs.rows %}rows="{{ attrs.rows }}"{% endif %}
+                  {% if attrs.disabled %}disabled{% endif %}
+                  {% if attrs.readonly %}readonly{% endif %}
+                  {% if attrs.checked %}checked{% endif %}
+                  {% if attrs.name %}name="{{ attrs.name }}"{% endif %}
+                  {% if attrs.id %}id="{{ attrs.id }}"{% endif %}
+                  {% if attrs.placeholder %}placeholder="{{ attrs.placeholder }}"{% endif %}
+                  class="input-field">{% slot value %}{% endslot %}</textarea>
+    {% elif attrs.type == "checkbox" or attrs.type == "radio" %}
+        <label class="flex items-center gap-2 text-sm text-ink-700 cursor-pointer">
+            <input {% if attrs.required %}required{% endif %}
+                   {% if attrs.disabled %}disabled{% endif %}
+                   {% if attrs.readonly %}readonly{% endif %}
+                   {% if attrs.checked %}checked{% endif %}
+                   {% if attrs.name %}name="{{ attrs.name }}"{% endif %}
+                   {% if attrs.id %}id="{{ attrs.id }}"{% endif %}
+                   {% if attrs.value is not None %}value="{{ attrs.value }}"{% endif %}
+                   type="{{ attrs.type }}"
+                   class="accent-primary-500 w-4 h-4">
+            {% slot label %}
+            {% endslot %}
+        </label>
+    {% else %}
+        <label for="{{ attrs.id }}" class="block text-xs font-semibold text-ink-600 mb-1">
+            {% slot label %}
+            {% endslot %}
+        </label>
+        <input {% if attrs.required %}required{% endif %}
+               {% if attrs.disabled %}disabled{% endif %}
+               {% if attrs.readonly %}readonly{% endif %}
+               {% if attrs.checked %}checked{% endif %}
+               {% if attrs.name %}name="{{ attrs.name }}"{% endif %}
+               {% if attrs.id %}id="{{ attrs.id }}"{% endif %}
+               {% if attrs.placeholder %}placeholder="{{ attrs.placeholder }}"{% endif %}
+               {% if attrs.autocomplete %}autocomplete="{{ attrs.autocomplete }}"{% endif %}
+               {% if attrs.value is not None %}value="{{ attrs.value }}"{% endif %}
+               type="{{ attrs.type }}"
+               class="input-field">
+    {% endif %}
+    {% if slots.help_text %}
+        <span class="block text-xs text-ink-400 mt-1">
+            {% slot help_text %}
+            {% endslot %}
+        </span>
+    {% endif %}
+</div>

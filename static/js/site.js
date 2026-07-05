@@ -303,6 +303,25 @@
     updatePreview();
   }
 
+  function initGenericAmountPreview() {
+    var inputs = document.querySelectorAll("[data-format-idr]");
+    inputs.forEach(function (input) {
+      var preview = input.nextElementSibling;
+      if (!preview || !preview.hasAttribute("data-format-idr-preview")) {
+        preview = document.createElement("p");
+        preview.setAttribute("data-format-idr-preview", "");
+        preview.className = "text-xs font-semibold text-ink-500 mt-1";
+        input.insertAdjacentElement("afterend", preview);
+      }
+      function update() {
+        var val = parseInt(input.value, 10);
+        preview.textContent = val ? formatRupiah(val) : "";
+      }
+      input.addEventListener("input", update);
+      update();
+    });
+  }
+
   function initCopyButtons() {
     var buttons = document.querySelectorAll("[data-copy-trigger]");
     buttons.forEach(function (btn) {
@@ -354,5 +373,6 @@
     safeInit(initFaqAccordion);
     safeInit(initCopyButtons);
     safeInit(initAmountFormatting);
+    safeInit(initGenericAmountPreview);
   });
 })();

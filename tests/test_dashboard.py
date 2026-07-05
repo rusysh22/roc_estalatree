@@ -131,6 +131,19 @@ def test_invoices_returns_200(authed_client):
 
 
 @pytest.mark.django_db
+def test_invoice_detail_returns_200(authed_client, funded_customer):
+    """Regression test: the URL used to capture `pk` while the view expected
+    `public_id`, causing a 500 (TypeError: unexpected keyword argument 'pk')
+    on every click into an invoice from the list."""
+    product = ProductFactory(type=Product.Type.ONE_TIME, visibility=Product.Visibility.PUBLIC)
+    plan = PlanFactory(product=product, price=50_000)
+    order = Order.objects.create(customer=funded_customer, plan=plan, amount=50_000, status=Order.Status.PAID)
+
+    resp = authed_client.get(reverse("dashboard:invoice_detail", args=[order.public_id]))
+    assert resp.status_code == 200
+
+
+@pytest.mark.django_db
 def test_profile_returns_200(authed_client):
     assert authed_client.get(reverse("dashboard:profile")).status_code == 200
 

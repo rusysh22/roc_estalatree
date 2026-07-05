@@ -45,6 +45,15 @@ class TopUp(TimestampedModel):
         related_name="funding_topup",
         help_text="Top-up-and-buy: complete this Order after TopUp is credited",
     )
+    cart_checkout = models.ForeignKey(
+        "billing.CartCheckout",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="topups",
+        help_text="Multi-item cart checkout: complete every pending Order under this "
+        "CartCheckout after this single combined TopUp is credited",
+    )
 
     class Meta:
         ordering = ["-created_at"]
@@ -117,6 +126,14 @@ class Order(TimestampedModel):
         default=1,
         help_text="Number of base intervals prepaid (e.g. 6 on a monthly plan = 6 months)",
     )
+    cart_checkout = models.ForeignKey(
+        "billing.CartCheckout",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orders",
+        help_text="Set when this Order was created as one line of a multi-item cart checkout",
+    )
 
     class Meta:
         ordering = ["-created_at"]
@@ -129,6 +146,84 @@ class Order(TimestampedModel):
         if not self.public_id:
             assign_unique_public_id(self, "ord_")
         super().save(*args, **kwargs)
+
+
+class CartCheckout(TimestampedModel):
+    """Tracks a multi-item cart checkout that may create several Orders across
+    different sellers, funded by at most one combined TopUp.
+
+    Duitku (like virtually every Indonesian gateway) is configured once for the
+    whole platform (DuitkuClient.from_settings() — no per-seller credentials), so
+    a cart spanning multiple sellers can still be paid with a single invoice; the
+    platform later distributes each Order's earnings to its seller via the
+    existing SellerEarning ledger. This mirrors ADR-015's single-order top-up-and-buy
+    completion pattern (TopUp.checkout_order / complete_pending_order), just for N
+    orders under one TopUp instead of one.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        COMPLETED = "completed", "Completed"
+
+    public_id = models.CharField(max_length=40, unique=True, editable=False)
+    customer = models.ForeignKey(
+        "accounts.Customer", on_delete=models.PROTECT, related_name="cart_checkouts"
+    )
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.public_id} [{self.status}]"
+
+    def save(self, *args, **kwargs):
+        if not self.public_id:
+            assign_unique_public_id(self, "cco_")
+        super().save(*args, **kwargs)
+
+
+class Cart(TimestampedModel):
+    """A buyer's in-progress selection, before checkout.
+
+    Session-bound for guests, customer-bound once logged in. See
+    apps.billing.cart_service.get_or_create_cart() for the session->customer
+    merge that happens on login.
+    """
+
+    customer = models.OneToOneField(
+        "accounts.Customer", null=True, blank=True, on_delete=models.CASCADE, related_name="cart"
+    )
+    session_key = models.CharField(max_length=64, blank=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Cart({self.customer or self.session_key})"
+
+
+class CartItem(TimestampedModel):
+    """One line in a Cart — one Plan, optionally at a discounted multi-month duration.
+
+    v1 scope: plans requiring PWYW price entry or custom intake questions are not
+    addable to cart (apps.billing.cart_service.add_to_cart rejects them) — those
+    still go through the existing single-plan checkout page. Coupons apply per line.
+    """
+
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
+    plan = models.ForeignKey("catalog.Plan", on_delete=models.CASCADE, related_name="cart_items")
+    duration_multiplier = models.PositiveSmallIntegerField(default=1)
+    coupon_code = models.CharField(max_length=50, blank=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["cart", "plan"], name="unique_cart_plan"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.plan} x{self.duration_multiplier}"
 
 
 class PaymentWebhook(models.Model):

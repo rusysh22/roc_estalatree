@@ -171,6 +171,14 @@
             {% elif plan.price == 0 %}Get free
             {% else %}Buy now{% endif %}
           </a>
+          {% if not plan.pwyw and not product.questions.exists and plan.price > 0 %}
+          <form method="post" action="{% url 'storefront:cart_add' plan.pk %}" class="mt-2">
+            {% csrf_token %}
+            <button type="submit" class="w-full text-center font-semibold py-2 rounded-xl text-xs text-ink-500 border border-ink-200 hover:border-primary-400 hover:text-primary-600 transition-colors cursor-pointer">
+              Add to cart
+            </button>
+          </form>
+          {% endif %}
         </div>
         {% empty %}
         <p class="text-ink-400 text-sm py-8 text-center col-span-full">No plans available.</p>
@@ -214,13 +222,23 @@
                 {% endif %}
               </div>
               <!-- CTA -->
-              <a href="{% url 'storefront:checkout' plan.pk %}"
-                 class="shrink-0 text-center font-bold py-2 px-5 rounded-full text-sm transition-all bg-primary-500 hover:bg-primary-600 text-white sm:self-auto self-stretch">
-                {% if product.purchase_button_label %}{{ product.purchase_button_label }}
-                {% elif plan.pwyw %}Name your price
-                {% elif plan.price == 0 %}Get free
-                {% else %}Buy now{% endif %}
-              </a>
+              <div class="shrink-0 flex items-center gap-2">
+                {% if not plan.pwyw and not product.questions.exists and plan.price > 0 %}
+                <form method="post" action="{% url 'storefront:cart_add' plan.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="font-semibold py-2 px-4 rounded-full text-xs text-ink-500 border border-ink-200 hover:border-primary-400 hover:text-primary-600 transition-colors cursor-pointer">
+                    Add to cart
+                  </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'storefront:checkout' plan.pk %}"
+                   class="text-center font-bold py-2 px-5 rounded-full text-sm transition-all bg-primary-500 hover:bg-primary-600 text-white sm:self-auto self-stretch">
+                  {% if product.purchase_button_label %}{{ product.purchase_button_label }}
+                  {% elif plan.pwyw %}Name your price
+                  {% elif plan.price == 0 %}Get free
+                  {% else %}Buy now{% endif %}
+                </a>
+              </div>
             </div>
             {% endfor %}
           </div>
