@@ -20,12 +20,15 @@ Activation service tests (5b):
 15. validate maintenance mode → always active
 16. deactivate frees seat
 """
+import base64
 import time
 from unittest.mock import patch
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from apps.core.models import Setting
+from apps.licensing import entitlement_signing
 from apps.licensing.models import Installation, License
 from apps.licensing.services import activate, deactivate, validate, _issue_token
 from apps.provisioning.models import Deliverable, Grant
@@ -179,6 +182,33 @@ def test_provision_recurring_links_subscription(customer, db):
 
     assert grant.subscription == sub
     assert license.subscription == sub
+
+
+@pytest.mark.django_db(transaction=True)
+def test_recurring_license_returns_subscription_expiry_not_token_expiry(customer):
+    """The product UI must receive the billing period end, not the 7-day token TTL."""
+    from apps.billing.checkout import checkout
+    from apps.billing.models import Subscription
+    from apps.catalog.models import Plan, Product
+    from apps.wallet.models import LedgerEntry
+    from apps.wallet.services import credit
+
+    product = ProductFactory(type=Product.Type.RECURRING)
+    plan = PlanFactory(product=product, price=50_000, interval=Plan.Interval.MONTHLY)
+    DeliverableFactory(plan=plan, type="license_key")
+    credit(customer.wallet, 100_000, LedgerEntry.Type.ADJUSTMENT, ref="test:expiry:fund", note="")
+    _, grants, _ = checkout(
+        customer=customer, plan=plan, checkout_key="ck:expiry:001",
+        callback_url="https://example.com/webhook/", return_url="https://example.com/return/",
+    )
+    license = License.objects.get(grant=grants[0])
+    subscription = Subscription.objects.get(customer=customer, plan=plan)
+
+    result = activate(license.key, fingerprint="fp-subscription-expiry")
+
+    assert result["license_expires_at"] == subscription.current_period_end.isoformat()
+    assert result["token_expires_at"] != result["license_expires_at"]
+    assert result["expires_at"] == result["token_expires_at"]  # legacy API compatibility
 
 
 # ── 5b: Activation service tests ─────────────────────────────────────────────
@@ -337,6 +367,70 @@ def test_activate_invalid_key():
     """Unknown license key returns invalid status."""
     result = activate("ZZZZ-ZZZZ-ZZZZ", fingerprint="fp-none")
     assert result["status"] == "invalid"
+
+
+# ── Entitlement signing tests ────────────────────────────────────────────────
+
+@pytest.fixture
+def signing_key(monkeypatch):
+    """Configure MARKETPLACE_ED25519_PRIVATE_KEY_B64 and return the matching public key."""
+    key = Ed25519PrivateKey.generate()
+    b64 = base64.b64encode(key.private_bytes_raw()).decode()
+    monkeypatch.setenv("MARKETPLACE_ED25519_PRIVATE_KEY_B64", b64)
+    return key.public_key()
+
+
+@pytest.mark.django_db
+def test_activate_returns_valid_entitlement_signature(active_license, signing_key):
+    """Signed entitlement verifies against the matching public key and matches the request."""
+    result = activate(active_license.key, fingerprint="fp-sign-001")
+
+    assert result["entitlement"]["license_id"] == active_license.key
+    assert result["entitlement"]["fingerprint"] == "fp-sign-001"
+    assert result["entitlement"]["status"] == "active"
+    assert result["entitlement_signature"]
+
+    signature = base64.b64decode(result["entitlement_signature"])
+    signing_key.verify(signature, entitlement_signing.canonical_json(result["entitlement"]))
+
+
+@pytest.mark.django_db
+def test_validate_returns_valid_entitlement_signature(active_license, signing_key):
+    """Heartbeat also signs a fresh entitlement envelope."""
+    activate(active_license.key, fingerprint="fp-sign-002")
+    token, _ = _issue_token(active_license.key, "fp-sign-002")
+
+    result = validate(active_license.key, "fp-sign-002", token)
+
+    assert result["entitlement_signature"]
+    signature = base64.b64decode(result["entitlement_signature"])
+    signing_key.verify(signature, entitlement_signing.canonical_json(result["entitlement"]))
+
+
+@pytest.mark.django_db
+def test_entitlement_signature_empty_when_key_unconfigured(active_license, monkeypatch):
+    """No MARKETPLACE_ED25519_PRIVATE_KEY_B64 → unsigned entitlement (dev convenience)."""
+    monkeypatch.delenv("MARKETPLACE_ED25519_PRIVATE_KEY_B64", raising=False)
+
+    result = activate(active_license.key, fingerprint="fp-nosign-001")
+
+    assert result["entitlement_signature"] == ""
+    assert result["entitlement"]["license_id"] == active_license.key
+
+
+@pytest.mark.django_db
+def test_validate_maintenance_mode_signs_entitlement(active_license, signing_key):
+    """Maintenance-mode bypass still returns a verifiable signature, not just status=active."""
+    Setting.objects.update_or_create(key="MAINTENANCE_MODE", defaults={"value": "true"})
+    try:
+        result = validate(active_license.key, "fp-maint-sign", "bogus-token")
+
+        assert result["status"] == "active"
+        assert result["entitlement_signature"]
+        signature = base64.b64decode(result["entitlement_signature"])
+        signing_key.verify(signature, entitlement_signing.canonical_json(result["entitlement"]))
+    finally:
+        Setting.objects.filter(key="MAINTENANCE_MODE").update(value="false")
 
 
 # ── Phase 5 review tests ──────────────────────────────────────────────────────

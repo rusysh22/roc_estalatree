@@ -24,6 +24,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.core.models import Setting
+from apps.licensing import entitlement_signing
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +96,81 @@ def _get_entitlements(license) -> dict:
         return {}
 
 
+def _license_expires_at(license) -> str | None:
+    """Return the commercial access expiry, never the short-lived token expiry."""
+    if license.subscription_id:
+        return license.subscription.current_period_end.isoformat()
+    if license.grant_id and license.grant.valid_until:
+        return license.grant.valid_until.isoformat()
+    return None  # Perpetual license
+
+
+def _effective_access_status(license) -> str:
+    """Resolve all marketplace lifecycle records into the API access status."""
+    from apps.billing.models import Subscription
+    from apps.provisioning.models import Grant
+
+    if license.status == license.Status.REVOKED:
+        return "revoked"
+    if license.status == license.Status.EXPIRED:
+        return "expired"
+    if license.status == license.Status.SUSPENDED:
+        return "suspended"
+    if license.grant_id:
+        if license.grant.status == Grant.Status.REVOKED:
+            return "revoked"
+        if license.grant.status == Grant.Status.EXPIRED:
+            return "expired"
+        if license.grant.status == Grant.Status.SUSPENDED:
+            return "suspended"
+    if license.subscription_id:
+        if license.subscription.status == Subscription.Status.GRACE:
+            return "grace"
+        if license.subscription.status in (Subscription.Status.SUSPENDED, Subscription.Status.CANCELLED):
+            return "suspended"
+    return "active"
+
+
+def _build_signed_entitlement(
+    license,
+    fingerprint: str,
+    status: str,
+    *,
+    token_expires_at: str,
+    license_expires_at: str | None,
+    entitlements: dict,
+) -> tuple[dict, str]:
+    """Build + sign the entitlement envelope (see apps/licensing/entitlement_signing.py).
+
+    Returns (entitlement, signature). Signature is "" if
+    MARKETPLACE_ED25519_PRIVATE_KEY_B64 isn't configured — dev convenience,
+    mirroring ACTIVATION_API_SECRET's "unset = open" pattern. A product build
+    with a public key baked in must treat a missing signature as untrusted.
+    """
+    entitlement = {
+        "license_id": license.key,
+        "fingerprint": fingerprint,
+        "product_id": license.plan.product.slug,
+        "status": status,
+        "issued_at": timezone.now().isoformat(),
+        # `expires_at` is retained for older signed-entitlement consumers and
+        # now means the commercial license end date, not a token refresh date.
+        "expires_at": license_expires_at,
+        "license_expires_at": license_expires_at,
+        "token_expires_at": token_expires_at,
+        "entitlements": entitlements,
+    }
+    try:
+        signature = entitlement_signing.sign_entitlement(entitlement)
+    except entitlement_signing.EntitlementSigningError:
+        logger.warning(
+            "entitlement signing unavailable (MARKETPLACE_ED25519_PRIVATE_KEY_B64 not set) "
+            "— returning unsigned entitlement for key %s", license.key[:4],
+        )
+        signature = ""
+    return entitlement, signature
+
+
 def _check_rate_limit(identifier: str, limit: int) -> bool:
     """Return True if the caller has exceeded the rate limit.
 
@@ -144,19 +220,16 @@ def activate(
 
     # Resolve license (status checks don't need a lock — admin changes are rare)
     try:
-        license = License.objects.select_related("grant__deliverable__plan").get(
-            key=license_key_str
-        )
+        license = License.objects.select_related(
+            "subscription", "grant", "grant__deliverable__plan", "plan__product"
+        ).get(key=license_key_str)
     except License.DoesNotExist:
         logger.info("activate: invalid key (first 4: %s)", license_key_str[:4])
         return {"status": "invalid", "message": "License key not found"}
 
-    if license.status == License.Status.REVOKED:
-        return {"status": "revoked", "message": "License has been revoked"}
-    if license.status == License.Status.SUSPENDED:
-        return {"status": "suspended", "message": "License is currently suspended"}
-    if license.status == License.Status.EXPIRED:
-        return {"status": "expired", "message": "License has expired"}
+    access_status = _effective_access_status(license)
+    if access_status not in ("active", "grace"):
+        return {"status": access_status, "message": f"License is {access_status}"}
 
     # H1: lock License row → re-check idempotency + seat count atomically
     with transaction.atomic():
@@ -188,7 +261,8 @@ def activate(
             )
             is_new = True
 
-    token, expires_at = _issue_token(license_key_str, fingerprint)
+    token, token_expires_at = _issue_token(license_key_str, fingerprint)
+    license_expires_at = _license_expires_at(license)
     grace_days = int(Setting.get("ACTIVATION_GRACE_DAYS", "3"))
 
     if is_new:
@@ -197,12 +271,28 @@ def activate(
             license_key_str[:4], fingerprint[:8], machine_name,
         )
 
+    entitlements = _get_entitlements(license)
+    entitlement, entitlement_signature = _build_signed_entitlement(
+        license,
+        fingerprint,
+        access_status,
+        token_expires_at=token_expires_at,
+        license_expires_at=license_expires_at,
+        entitlements=entitlements,
+    )
+
     return {
-        "status": "active",
+        "status": access_status,
         "token": token,
-        "expires_at": expires_at,
+        # Deprecated compatibility field: it remains the token expiry for old
+        # product builds. New builds must use license_expires_at for UI/gating.
+        "expires_at": token_expires_at,
+        "token_expires_at": token_expires_at,
+        "license_expires_at": license_expires_at,
         "grace_days": grace_days,
-        "entitlements": _get_entitlements(license),
+        "entitlements": entitlements,
+        "entitlement": entitlement,
+        "entitlement_signature": entitlement_signature,
     }
 
 
@@ -224,12 +314,37 @@ def validate(
 
     # Maintenance mode — panic control (never brick customers during outage)
     if Setting.get("MAINTENANCE_MODE", "false").strip().lower() == "true":
-        new_token, expires_at = _issue_token(license_key_str, fingerprint)
+        new_token, token_expires_at = _issue_token(license_key_str, fingerprint)
         logger.info(
             "validate: maintenance mode active — bypassing checks for key %s",
             license_key_str[:4],
         )
-        return {"status": "active", "token": new_token, "expires_at": expires_at}
+        entitlements, entitlement, entitlement_signature = {}, {}, ""
+        try:
+            license = License.objects.select_related(
+                "subscription", "grant", "plan__product",
+            ).get(key=license_key_str)
+            entitlements = _get_entitlements(license)
+            entitlement, entitlement_signature = _build_signed_entitlement(
+                license,
+                fingerprint,
+                "active",
+                token_expires_at=token_expires_at,
+                license_expires_at=_license_expires_at(license),
+                entitlements=entitlements,
+            )
+        except License.DoesNotExist:
+            pass
+        return {
+            "status": "active",
+            "token": new_token,
+            "expires_at": token_expires_at,
+            "token_expires_at": token_expires_at,
+            "license_expires_at": _license_expires_at(license) if entitlement else None,
+            "entitlements": entitlements,
+            "entitlement": entitlement,
+            "entitlement_signature": entitlement_signature,
+        }
 
     # Rate limiting
     if _check_rate_limit(f"key:{license_key_str}", _RATE_LIMIT_VALIDATE):
@@ -246,16 +361,15 @@ def validate(
 
     # Resolve license (check for revocation/suspension since token was issued)
     try:
-        license = License.objects.select_related("grant__deliverable__plan").get(
-            key=license_key_str
-        )
+        license = License.objects.select_related(
+            "subscription", "grant", "grant__deliverable__plan", "plan__product"
+        ).get(key=license_key_str)
     except License.DoesNotExist:
         return {"status": "invalid", "message": "License not found"}
 
-    if license.status == License.Status.REVOKED:
-        return {"status": "revoked", "message": "License has been revoked"}
-    if license.status == License.Status.SUSPENDED:
-        return {"status": "suspended", "message": "License is currently suspended"}
+    access_status = _effective_access_status(license)
+    if access_status not in ("active", "grace"):
+        return {"status": access_status, "message": f"License is {access_status}"}
 
     if token_status in ("active", "grace"):
         # M1: require an active Installation — deactivated devices must re-activate
@@ -275,12 +389,26 @@ def validate(
             }
         Installation.objects.filter(pk=installation.pk).update(last_seen=timezone.now())
 
-        new_token, expires_at = _issue_token(license_key_str, fingerprint)
+        new_token, token_expires_at = _issue_token(license_key_str, fingerprint)
+        license_expires_at = _license_expires_at(license)
+        entitlements = _get_entitlements(license)
+        entitlement, entitlement_signature = _build_signed_entitlement(
+            license,
+            fingerprint,
+            access_status,
+            token_expires_at=token_expires_at,
+            license_expires_at=license_expires_at,
+            entitlements=entitlements,
+        )
         return {
-            "status": "active",
+            "status": access_status,
             "token": new_token,
-            "expires_at": expires_at,
-            "entitlements": _get_entitlements(license),
+            "expires_at": token_expires_at,
+            "token_expires_at": token_expires_at,
+            "license_expires_at": license_expires_at,
+            "entitlements": entitlements,
+            "entitlement": entitlement,
+            "entitlement_signature": entitlement_signature,
         }
 
     # expired
