@@ -40,6 +40,7 @@ A digital-product selling platform (lynk.id-style) whose differentiator is **tok
 | 22 | [22-feature-catalog.md](22-feature-catalog.md) | Lynk.id PRO features → Berlanggan all-access (no owner tiering) |
 | 23 | [23-configuration.md](23-configuration.md) | Config management — 3 tiers (.env vs DB Setting vs per-record) |
 | 24 | [24-deployment.md](24-deployment.md) | **Docker + nginx + Let's Encrypt** production deployment (berlanggan.web.id) |
+| 25 | [25-license-webhook-api-flow.md](25-license-webhook-api-flow.md) | **License key, webhook & Activation API** end-to-end guide — for CS/ops and integrating developers |
 
 ---
 

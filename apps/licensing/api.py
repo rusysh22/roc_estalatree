@@ -8,7 +8,14 @@ pass (dev convenience). Set ACTIVATION_API_SECRET via Admin to enable auth.
 
 Rate limiting is handled inside the service (cache-based, per-key + per-IP).
 All endpoints return HTTP 200 with status in body (standard activation API convention).
+
+Entitlement signing: `entitlement` + `entitlement_signature` are Ed25519-signed
+so a product build can verify the response wasn't tampered with in transit or
+forged by a compromised proxy — see licensing/entitlement_signing.py. Signature
+is "" if MARKETPLACE_ED25519_PRIVATE_KEY_B64 isn't configured (dev only).
 """
+from typing import Optional
+
 from ninja import Router, Schema
 from ninja.security import APIKeyHeader
 
@@ -67,9 +74,13 @@ class ActivationResponse(Schema):
     status: str
     token: str = ""
     expires_at: str = ""
+    token_expires_at: str = ""
+    license_expires_at: Optional[str] = None
     grace_days: int = 0
     message: str = ""
     entitlements: dict = {}
+    entitlement: dict = {}
+    entitlement_signature: str = ""
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
