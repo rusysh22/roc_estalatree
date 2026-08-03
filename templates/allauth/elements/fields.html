@@ -1,0 +1,23 @@
+{% load allauth %}
+{% comment %}
+Theme override of allauth's generic fields-loop element — see allauth's own
+allauth/elements/fields.html for the untagged original (just {{ form.as_p }}).
+Renders each bound field through our styled `field` element instead, so forms
+built with {% element fields form=form %} (Add Email, Change Password, Reset
+Password, MFA, …) match the rest of the site instead of falling back to
+Django's unstyled form.as_p().
+{% endcomment %}
+<div class="space-y-4">
+  {% for bound_field in attrs.form %}
+    {% element field type=bound_field.field.widget.input_type name=bound_field.html_name id=bound_field.id_for_label value=bound_field.value required=bound_field.field.required disabled=bound_field.field.disabled placeholder=bound_field.field.widget.attrs.placeholder autocomplete=bound_field.field.widget.attrs.autocomplete checked=bound_field.value errors=bound_field.errors|join:" " %}
+      {% slot label %}
+        {% if not attrs.unlabeled %}{{ bound_field.label }}{% endif %}
+      {% endslot %}
+      {% if bound_field.help_text %}
+        {% slot help_text %}
+          {{ bound_field.help_text|safe }}
+        {% endslot %}
+      {% endif %}
+    {% endelement %}
+  {% endfor %}
+</div>

@@ -21,7 +21,14 @@ RUN uv sync --no-dev
 
 RUN chmod +x docker-entrypoint.sh docker-entrypoint-worker.sh
 
+RUN groupadd --system marketplace \
+    && useradd --system --gid marketplace --home-dir /app --shell /usr/sbin/nologin marketplace \
+    && mkdir -p /app/staticfiles /app/media \
+    && chown -R marketplace:marketplace /app
+
 ENV PATH="/app/.venv/bin:$PATH"
+
+USER marketplace
 
 EXPOSE 8000
 

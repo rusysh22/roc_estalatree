@@ -111,11 +111,11 @@
       {% csrf_token %}
       <div class="mb-3">
         <label class="block text-xs font-semibold text-ink-600 mb-1">Rating</label>
-        <div class="flex gap-2">
+        <div class="flex gap-2" data-star-rating>
           {% for i in "12345" %}
           <label class="cursor-pointer">
             <input type="radio" name="rating" value="{{ forloop.counter }}" class="sr-only" required>
-            <span class="text-2xl text-ink-200 hover:text-gold-500 peer-checked:text-gold-500 select-none">&#9733;</span>
+            <span data-star class="text-2xl text-ink-200 select-none transition-colors">&#9733;</span>
           </label>
           {% endfor %}
         </div>

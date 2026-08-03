@@ -1,0 +1,119 @@
+{% load money %}<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 2cm 2.2cm; }
+  body { font-family: Helvetica, Arial, sans-serif; color: #16130F; font-size: 10pt; }
+  .brand-name { font-size: 17pt; font-weight: bold; color: #16130F; vertical-align: middle; }
+  .muted { color: #766C5D; }
+  .label { font-size: 8pt; text-transform: uppercase; color: #A79C8B; }
+  .quote-badge { display: inline-block; background-color: #2D6CDF; color: #FFFFFF; font-weight: bold; font-size: 9.5pt;
+                 text-transform: uppercase; padding: 4px 14px; border-radius: 3px; }
+  hr.divider { border: none; border-top: 1px solid #E5DFD3; margin: 18px 0; }
+  h1.product-name { font-size: 15pt; margin: 0 0 4px 0; }
+  p.description { font-size: 9.5pt; color: #4A4436; line-height: 1.5; margin: 0 0 4px 0; }
+  table.panels { width: 100%; }
+  table.panels td { width: 50%; vertical-align: top; font-size: 9.5pt; padding-bottom: 4px; }
+  table.items { width: 100%; margin-top: 6px; border-collapse: collapse; }
+  table.items th { text-align: left; border-bottom: 1.5px solid #16130F; padding: 7px 4px; font-size: 8.5pt;
+                   text-transform: uppercase; color: #766C5D; }
+  table.items td { padding: 9px 4px; border-bottom: 0.75px solid #E5DFD3; font-size: 10pt; vertical-align: top; }
+  table.items td.amount, table.items th.amount { text-align: right; white-space: nowrap; }
+  table.items .item-name { font-weight: bold; }
+  table.items .item-meta { font-size: 8.5pt; color: #766C5D; margin-top: 2px; }
+  table.items .strike { text-decoration: line-through; color: #A79C8B; font-size: 8.5pt; display: block; }
+  .note-box { background-color: #FBF4EC; border: 1px solid #E5DFD3; border-radius: 4px; padding: 12px 16px; margin-top: 18px; font-size: 8.5pt; color: #766C5D; line-height: 1.5; }
+  .footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid #E5DFD3; font-size: 8pt; color: #A79C8B; text-align: center; }
+  h2.section { font-size: 9.5pt; text-transform: uppercase; color: #766C5D; margin: 20px 0 8px 0; }
+</style>
+</head>
+<body>
+
+  <!-- Header: logo + brand, quotation badge/ref -->
+  <table style="width:100%;">
+    <tr>
+      <td style="width:60%;">
+        {% if logo_data_uri %}<img src="{{ logo_data_uri }}" width="34" height="34" style="vertical-align:middle; margin-right:8px;">{% endif %}
+        <span class="brand-name">{{ site_name }}</span>
+      </td>
+      <td style="text-align:right; width:40%;">
+        <span class="quote-badge">Price Quotation</span>
+        <div class="muted" style="margin-top:6px; font-size:9.5pt;">
+          Ref: QUOTE-{{ product.slug|upper }}-{{ generated_at|date:"YmdHi" }}
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <hr class="divider">
+
+  <!-- Prepared by / Date -->
+  <table class="panels">
+    <tr>
+      <td>
+        <div class="label">Prepared by</div>
+        {% if product.seller %}{{ product.seller.name }}{% else %}{{ site_name }} Marketplace{% endif %}
+      </td>
+      <td>
+        <div class="label">Date issued</div>
+        {{ generated_at|date:"d F Y, H:i" }} WIB
+      </td>
+    </tr>
+  </table>
+
+  <!-- Product -->
+  <h2 class="section">Product</h2>
+  <h1 class="product-name">{{ product.name }}</h1>
+  {% if product.description %}
+  <p class="description">{{ product.description }}</p>
+  {% endif %}
+
+  <!-- Plans / pricing -->
+  <h2 class="section">Pricing Options</h2>
+  <table class="items">
+    <thead>
+      <tr><th>Plan</th><th class="amount">Price</th></tr>
+    </thead>
+    <tbody>
+      {% for plan in plans %}
+      <tr>
+        <td>
+          <div class="item-name">{{ plan.name }}</div>
+          <div class="item-meta">
+            {% if plan.interval != "none" %}{{ plan.get_interval_display }} billing{% else %}One-time{% endif %}
+            {% if plan.seat_limit > 1 %} &middot; {{ plan.seat_limit }} seat(s) included{% endif %}
+          </div>
+          {% if plan.features %}
+          <div class="item-meta">
+            {% for k, v in plan.features.items %}{{ k }}{% if v and v != "true" %}: {{ v }}{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}
+          </div>
+          {% endif %}
+        </td>
+        <td class="amount">
+          {% if plan.sale_price %}<span class="strike">{{ plan.sale_price|rupiah }}</span>{% endif %}
+          {% if plan.pwyw %}Name your price{% if plan.min_price > 0 %} (min. {{ plan.min_price|rupiah }}){% endif %}
+          {% elif plan.price == 0 %}Free
+          {% else %}{{ plan.price|rupiah }}{% if plan.interval != "none" %} / {{ plan.get_interval_display }}{% endif %}{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="2">Pricing available on request &mdash; contact us for a custom quote.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="note-box">
+    This is an automatically generated price quotation reflecting the pricing shown on {{ site_domain }}
+    at the time it was downloaded. It is provided for reference/budgeting purposes and is not an invoice
+    or proof of payment. Prices are subject to change; please confirm current pricing before purchase.
+  </div>
+
+  <div class="footer">
+    {{ site_name }} &middot; {{ site_domain }}<br>
+    Questions about this quotation? Contact us via the product page on {{ site_name }}.
+  </div>
+</body>
+</html>
