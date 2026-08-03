@@ -18,6 +18,8 @@ Rate limiting: atomic cache.incr (LocMemCache dev / Redis prod).
 """
 import logging
 
+from django.conf import settings
+
 from django.core.cache import cache
 from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
 from django.db import transaction
@@ -33,12 +35,15 @@ _RATE_WINDOW = 60  # seconds
 _RATE_LIMIT_ACTIVATE = 10   # per license key per window (activate/deactivate)
 _RATE_LIMIT_VALIDATE = 60   # per license key per window (heartbeats)
 _RATE_LIMIT_IP = 120        # per IP per window
+_RATE_LIMIT_OPERATION = 30  # per license key per window
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _ttl_seconds() -> int:
-    return int(Setting.get("ACTIVATION_TOKEN_TTL_DAYS", "7")) * 86400
+    # New installations receive a one-day entitlement token. Existing operators
+    # can retain a different value explicitly through the Marketplace setting.
+    return int(Setting.get("ACTIVATION_TOKEN_TTL_DAYS", "1")) * 86400
 
 
 def _grace_seconds() -> int:
@@ -167,6 +172,10 @@ def _build_signed_entitlement(
             "entitlement signing unavailable (MARKETPLACE_ED25519_PRIVATE_KEY_B64 not set) "
             "— returning unsigned entitlement for key %s", license.key[:4],
         )
+        # Production must fail closed rather than issue an active unsigned
+        # entitlement. Development retains the local unsigned fallback.
+        if not settings.DEBUG:
+            raise
         signature = ""
     return entitlement, signature
 
@@ -444,3 +453,97 @@ def deactivate(
         license_key_str[:4], fingerprint[:8], updated,
     )
     return {"status": "deactivated"}
+
+
+def authorize_operation(
+    license_key_str: str,
+    fingerprint: str,
+    token: str,
+    operation: str,
+    request_hash: str = "",
+    *,
+    ip_address: str = "",
+) -> dict:
+    """Issue a short-lived signed grant for a data-driven premium operation.
+
+    The Marketplace determines the product from the license itself.  It then
+    resolves an OperationPolicy and the plan's entitlement values, so no
+    product or plan name is embedded in this service.
+    """
+    from apps.core.audit import log_action
+    from apps.licensing.models import Installation, License, OperationPolicy
+
+    operation = operation.strip().lower()
+    request_hash = request_hash.strip()
+    if not operation or len(operation) > 100 or len(request_hash) > 128:
+        return {"status": "invalid_request", "message": "Invalid operation request"}
+
+    if _check_rate_limit(f"operation:{license_key_str}", _RATE_LIMIT_OPERATION):
+        return {"status": "rate_limited", "message": "Too many requests; retry later"}
+    if ip_address and _check_rate_limit(f"operation-ip:{ip_address}", _RATE_LIMIT_IP):
+        return {"status": "rate_limited", "message": "Too many requests; retry later"}
+
+    if Setting.get("MAINTENANCE_MODE", "false").strip().lower() == "true":
+        # Premium operation grants remain fail-closed. Maintenance mode only
+        # protects ordinary license heartbeats from a Marketplace outage.
+        return {"status": "service_unavailable", "message": "Operation authorization is unavailable"}
+
+    if _verify_token(token, license_key_str, fingerprint) not in ("active", "grace"):
+        return {"status": "invalid", "message": "Activation token is invalid or expired"}
+
+    try:
+        license = License.objects.select_related(
+            "subscription", "grant", "grant__deliverable__plan", "plan__product"
+        ).get(key=license_key_str)
+    except License.DoesNotExist:
+        return {"status": "invalid", "message": "License not found"}
+
+    access_status = _effective_access_status(license)
+    if access_status not in ("active", "grace"):
+        return {"status": access_status, "message": f"License is {access_status}"}
+
+    installation = Installation.objects.filter(
+        license=license, fingerprint=fingerprint, status=Installation.Status.ACTIVE
+    ).first()
+    if not installation:
+        return {"status": "deactivated", "message": "Device is not registered"}
+
+    policy = OperationPolicy.objects.filter(
+        product=license.plan.product, operation=operation, is_active=True
+    ).first()
+    if not policy:
+        return {"status": "operation_unavailable", "message": "Operation is not configured"}
+
+    entitlements = _get_entitlements(license)
+    actual_value = str(entitlements.get(policy.entitlement_key, "")).lower()
+    required_value = str(policy.required_value).lower()
+    if actual_value != required_value:
+        return {"status": "not_entitled", "message": "Plan does not permit this operation"}
+
+    now = timezone.now()
+    authorization = {
+        "license_id": license.key,
+        "product_id": license.plan.product.slug,
+        "fingerprint": fingerprint,
+        "operation": operation,
+        "request_hash": request_hash,
+        "issued_at": now.isoformat(),
+        "expires_at": (now + timezone.timedelta(seconds=policy.token_ttl_seconds)).isoformat(),
+    }
+    try:
+        signature = entitlement_signing.sign_entitlement(authorization)
+    except entitlement_signing.EntitlementSigningError:
+        logger.exception("authorize_operation: signing unavailable")
+        return {"status": "service_unavailable", "message": "Operation authorization is unavailable"}
+
+    Installation.objects.filter(pk=installation.pk).update(last_seen=now)
+    log_action(
+        action="license.operation_authorized",
+        target=license,
+        meta={"operation": operation, "fingerprint": fingerprint[:12], "request_hash": request_hash},
+    )
+    return {
+        "status": "authorized",
+        "authorization": authorization,
+        "authorization_signature": signature,
+    }

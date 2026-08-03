@@ -34,7 +34,7 @@ from apps.core.models import AuditLog, Setting
 # These match exactly what the services read. Never invent new names here.
 # Source of truth: apps/licensing/services.py + apps/billing/subscription_service.py
 _SETTING_KEYS = [
-    ("ACTIVATION_TOKEN_TTL_DAYS",   "License token TTL (days)",                  "7"),
+    ("ACTIVATION_TOKEN_TTL_DAYS",   "License token TTL (days)",                  "1"),
     ("ACTIVATION_GRACE_DAYS",       "Licensing grace days before suspension",     "3"),
     ("SUBSCRIPTION_GRACE_DAYS",     "Subscription grace days before suspension",  "3"),
     ("GLOBAL_GRACE_EXTENSION_DAYS", "Global grace extension during incidents (days, 0=off)", "0"),
@@ -60,6 +60,7 @@ def setup(request):
     checks = [
         ("DUITKU_API_KEY env",           bool(os.environ.get("DUITKU_API_KEY"))),
         ("DUITKU_MERCHANT_CODE env",     bool(os.environ.get("DUITKU_MERCHANT_CODE"))),
+        ("Ed25519 signing key env",       bool(os.environ.get("MARKETPLACE_ED25519_PRIVATE_KEY_B64"))),
         ("WA_TOKEN env",                 bool(os.environ.get("WA_TOKEN"))),
         ("ACTIVATION_TOKEN_TTL_DAYS",    bool(Setting.get("ACTIVATION_TOKEN_TTL_DAYS"))),
         ("ACTIVATION_GRACE_DAYS",        bool(Setting.get("ACTIVATION_GRACE_DAYS"))),

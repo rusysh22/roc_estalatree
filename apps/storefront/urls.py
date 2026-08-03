@@ -8,6 +8,7 @@ app_name = "storefront"
 urlpatterns = [
     path("", views.landing, name="page"),
     path("p/<slug:slug>/", views.product_detail, name="product"),
+    path("p/<slug:slug>/quotation/pdf/", views.product_quotation_pdf, name="product_quotation_pdf"),
     path("checkout/<int:plan_pk>/", views.checkout_plan, name="checkout"),
     path("orders/pending/", views.order_pending, name="order_pending"),
     path("orders/<public_id>/", views.order_status, name="order_status"),

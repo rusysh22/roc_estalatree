@@ -101,3 +101,33 @@ class Installation(TimestampedModel):
 
     def __str__(self) -> str:
         return f"{self.name or self.fingerprint[:12]} [{self.status}]"
+
+
+class OperationPolicy(TimestampedModel):
+    """Data-driven permission for a remotely authorised premium operation.
+
+    A policy belongs to a catalog product, never to a hard-coded application.
+    For example, ``operation=api_access`` can require the plan entitlement
+    ``API_ACCESS=true`` for one product while another product uses a different
+    operation and entitlement pair.
+    """
+
+    product = models.ForeignKey(
+        "catalog.Product", on_delete=models.CASCADE, related_name="operation_policies"
+    )
+    operation = models.SlugField(max_length=100)
+    entitlement_key = models.CharField(max_length=100)
+    required_value = models.CharField(max_length=200, default="true")
+    token_ttl_seconds = models.PositiveIntegerField(default=300)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["product__slug", "operation"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["product", "operation"], name="unique_operation_policy_per_product"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.product.slug}:{self.operation} requires {self.entitlement_key}={self.required_value}"
