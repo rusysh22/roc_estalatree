@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.licensing.models import Installation, License
+from apps.licensing.models import Installation, License, OperationPolicy
 
 
 class InstallationInline(admin.TabularInline):
@@ -29,3 +29,10 @@ class InstallationAdmin(admin.ModelAdmin):
     list_filter = ["status"]
     search_fields = ["fingerprint", "license__key"]
     readonly_fields = ["fingerprint", "activated_at"]
+
+
+@admin.register(OperationPolicy)
+class OperationPolicyAdmin(admin.ModelAdmin):
+    list_display = ["product", "operation", "entitlement_key", "required_value", "token_ttl_seconds", "is_active"]
+    list_filter = ["is_active", "product"]
+    search_fields = ["product__slug", "operation", "entitlement_key"]

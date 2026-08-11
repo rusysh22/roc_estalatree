@@ -1,0 +1,14 @@
+# Local-dev override, auto-loaded by `docker compose` alongside docker-compose.yml.
+# Exposes the Django app directly on localhost:8000 — bypasses nginx/certbot,
+# which are hardcoded to the production domain (berlanggan.web.id) and a real
+# Let's Encrypt cert that don't exist on this machine.
+#
+# Also swaps gunicorn for `runserver`: gunicorn has no static file handling
+# (that's nginx's job in prod, via the static_data volume), so with nginx
+# bypassed here, static/media 404 under gunicorn. `runserver` serves
+# STATICFILES_DIRS directly whenever DJANGO_DEBUG=True.
+services:
+  web:
+    ports:
+      - "8000:8000"
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]

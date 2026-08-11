@@ -18,6 +18,7 @@ Idempotent — safe to rerun (get_or_create throughout).
 from django.core.management.base import BaseCommand
 
 from apps.catalog.models import Plan, Product
+from apps.licensing.models import OperationPolicy
 from apps.provisioning.models import Deliverable, Entitlement
 from apps.storefront.models import Block, StorePage
 
@@ -87,6 +88,7 @@ class Command(BaseCommand):
         product = self._seed_product()
         plans = self._seed_plans(product)
         self._seed_entitlements(plans)
+        self._seed_operation_policies(product)
         self._seed_storefront_block(product)
         self.stdout.write(self.style.SUCCESS("\nRoC Support Desk product ready."))
 
@@ -171,6 +173,21 @@ class Command(BaseCommand):
 
         total = Entitlement.objects.filter(plans__in=plans.values()).distinct().count()
         self.stdout.write(f"  Entitlements: {total} distinct (key, value) rows attached across 4 plans")
+
+    def _seed_operation_policies(self, product):
+        policy, created = OperationPolicy.objects.update_or_create(
+            product=product,
+            operation="api_access",
+            defaults={
+                "entitlement_key": "API_ACCESS",
+                "required_value": "true",
+                "token_ttl_seconds": 300,
+                "is_active": True,
+            },
+        )
+        self.stdout.write(
+            f"  Operation policy '{policy.operation}' {'created' if created else 'updated'}"
+        )
 
     def _seed_storefront_block(self, product):
         store, created = StorePage.objects.get_or_create(

@@ -17,7 +17,7 @@ from django.contrib.auth.views import redirect_to_login
 from django.core import signing
 from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
 from django.db.models.functions import Coalesce
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
@@ -336,6 +336,29 @@ def product_detail(request, slug):
         "sold_count": sold_count,
         "reviews": reviews,
     })
+
+
+def product_quotation_pdf(request, slug):
+    """Downloadable price-quote PDF for a product's currently offered plans.
+
+    No order/payment involved — reference-only pricing snapshot a visitor can
+    save or forward (e.g. for internal budget approval before purchasing).
+    """
+    from apps.catalog.quotation_service import render_product_quotation_pdf
+
+    product = get_object_or_404(
+        Product, slug=slug,
+        visibility__in=[Product.Visibility.PUBLIC, Product.Visibility.UNLISTED],
+    )
+    plans = product.plans.filter(is_active=True).order_by("sort_order", "price")
+
+    pdf_bytes = render_product_quotation_pdf(product, plans)
+    if pdf_bytes is None:
+        raise Http404("Quotation could not be generated.")
+
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="quotation-{product.slug}.pdf"'
+    return response
 
 
 # ── Checkout ──────────────────────────────────────────────────────────────────

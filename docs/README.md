@@ -41,6 +41,7 @@ A digital-product selling platform (lynk.id-style) whose differentiator is **tok
 | 23 | [23-configuration.md](23-configuration.md) | Config management — 3 tiers (.env vs DB Setting vs per-record) |
 | 24 | [24-deployment.md](24-deployment.md) | **Docker + nginx + Let's Encrypt** production deployment (berlanggan.web.id) |
 | 25 | [25-license-webhook-api-flow.md](25-license-webhook-api-flow.md) | **License key, webhook & Activation API** end-to-end guide — for CS/ops and integrating developers |
+| 26 | [26-license-subscription-integration.md](26-license-subscription-integration.md) | **License ↔ Subscription integration** (functional + technical, incl. `OperationPolicy`/`/v1/operation-authorize`) — *written in Bahasa Indonesia, exception to the English-docs convention, on request* |
 
 ---
 

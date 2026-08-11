@@ -70,6 +70,14 @@ class DeactivateRequest(Schema):
     fingerprint: str
 
 
+class OperationAuthorizationRequest(Schema):
+    license_key: str
+    fingerprint: str
+    token: str
+    operation: str
+    request_hash: str = ""
+
+
 class ActivationResponse(Schema):
     status: str
     token: str = ""
@@ -81,6 +89,13 @@ class ActivationResponse(Schema):
     entitlements: dict = {}
     entitlement: dict = {}
     entitlement_signature: str = ""
+
+
+class OperationAuthorizationResponse(Schema):
+    status: str
+    message: str = ""
+    authorization: dict = {}
+    authorization_signature: str = ""
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -114,6 +129,19 @@ def deactivate(request, body: DeactivateRequest):
     return services.deactivate(
         body.license_key,
         body.fingerprint,
+        ip_address=_get_ip(request),
+    )
+
+
+@router.post("/operation-authorize", response=OperationAuthorizationResponse)
+def operation_authorize(request, body: OperationAuthorizationRequest):
+    """Issue a short-lived grant for a configured premium operation."""
+    return services.authorize_operation(
+        body.license_key,
+        body.fingerprint,
+        body.token,
+        body.operation,
+        body.request_hash,
         ip_address=_get_ip(request),
     )
 
