@@ -22,26 +22,24 @@ from tests.factories import CustomerFactory, DeliverableFactory, PlanFactory, Pr
 
 # ── Shared fixtures ───────────────────────────────────────────────────────────
 
-CALLBACK_URL = "https://example.com/billing/webhook/duitku/"
+CALLBACK_URL = "https://example.com/billing/webhook/sumopod/"
 RETURN_URL = "https://example.com/billing/topup/return/"
 
 
-class MockDuitkuClient:
-    """Stub Duitku client — no network calls."""
+class MockSumopodClient:
+    """Stub Sumopod client — no network calls."""
 
-    def create_invoice(self, merchant_order_id, amount, product_details, email,
-                       callback_url, return_url, payment_method, expiry_period=1440):
-        from apps.billing.duitku import InvoiceResult
-        return InvoiceResult(
-            payment_url=f"https://sandbox.duitku.com/pay/{merchant_order_id}",
-            va_number="1234567890",
-            reference=f"REF-{merchant_order_id}",
+    def create_payment(self, order_id, amount, **kwargs):
+        from apps.billing.sumopod import PaymentResult
+        return PaymentResult(
+            payment_url=f"https://pay.sumopod.com/pay/{order_id}",
+            payment_id=f"pay_{order_id}",
         )
 
-    def check_transaction(self, merchant_order_id):
+    def check_status(self, order_id):
         raise NotImplementedError("not used in checkout tests")
 
-    def verify_webhook_signature(self, merchant_code, amount, merchant_order_id, signature):
+    def verify_webhook(self, headers, raw_body):
         return True
 
     def build_webhook_signature(self, merchant_order_id, amount):
@@ -86,7 +84,7 @@ def contact_plan(db):
 
 
 def _fund_wallet(customer, amount):
-    """Directly credit wallet for test setup (bypasses Duitku)."""
+    """Directly credit wallet for test setup (bypasses the gateway)."""
     from apps.wallet.services import credit
     credit(
         wallet=customer.wallet,
@@ -180,7 +178,7 @@ def test_checkout_insufficient_balance(customer, one_time_plan):
         customer=customer,
         plan=one_time_plan,
         checkout_key="ck_insuf_001",
-        duitku_client=MockDuitkuClient(),
+        gateway_client=MockSumopodClient(),
         callback_url=CALLBACK_URL,
         return_url=RETURN_URL,
         payment_method="VC",
@@ -190,7 +188,7 @@ def test_checkout_insufficient_balance(customer, one_time_plan):
     assert order.amount == 100_000
     assert grants == []
     assert payment_url is not None
-    assert "sandbox.duitku.com" in payment_url
+    assert "pay.sumopod.com" in payment_url
 
     topup = TopUp.objects.get(checkout_order=order)
     assert topup.amount == 70_000  # delta: 100_000 - 30_000
@@ -210,7 +208,7 @@ def test_topup_and_buy_completes_order(customer, one_time_plan):
         customer=customer,
         plan=one_time_plan,
         checkout_key="ck_tab_001",
-        duitku_client=MockDuitkuClient(),
+        gateway_client=MockSumopodClient(),
         callback_url=CALLBACK_URL,
         return_url=RETURN_URL,
         payment_method="VC",
@@ -413,7 +411,7 @@ def test_balance_spent_before_completion_order_stays_pending(customer, one_time_
     order, grants, payment_url = checkout(
         customer=customer, plan=one_time_plan,
         checkout_key="ck_m2_001",
-        duitku_client=MockDuitkuClient(),
+        gateway_client=MockSumopodClient(),
         callback_url=CALLBACK_URL, return_url=RETURN_URL,
         payment_method="VC",
     )

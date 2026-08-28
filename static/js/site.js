@@ -285,10 +285,22 @@
       });
     }
 
+    var feePercent = parseFloat(input.getAttribute("data-fee-percent")) || 0;
+    var feeFlat = parseInt(input.getAttribute("data-fee-flat"), 10) || 0;
+
     function updatePreview() {
       if (preview) {
         var val = parseInt(input.value, 10);
-        preview.textContent = val ? formatRupiah(val) : "";
+        if (!val) {
+          preview.textContent = "";
+        } else if (feePercent || feeFlat) {
+          var fee = Math.ceil(val * feePercent / 100) + feeFlat;
+          preview.textContent =
+            formatRupiah(val) + " + fee " + formatRupiah(fee) +
+            " = " + formatRupiah(val + fee) + " to pay";
+        } else {
+          preview.textContent = formatRupiah(val);
+        }
       }
       syncChips();
     }

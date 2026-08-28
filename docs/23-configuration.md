@@ -21,7 +21,7 @@ It is **non-secret business tuning** that the Superadmin should change at runtim
 
 ## The secret trap (important)
 
-Gateway credentials (Duitku key/secret, WA gateway key) are **Superadmin-configurable but secret**. Do **not** store them as plaintext in `Setting`. Two acceptable options:
+Gateway credentials (Sumopod API key / webhook secret / webhook token, WA gateway key) are **secret**. Do **not** store them as plaintext in `Setting` — they are env-only. Two acceptable options:
 
 1. **Keep them in `.env`** (simplest, safest), or
 2. If they must be UI-editable, store in an **encrypted Setting field** (Fernet / KMS-backed), with **access audited**. Never plaintext in the DB.
@@ -55,8 +55,10 @@ ALLOWED_HOSTS=
 DATABASE_URL=
 REDIS_URL=
 SENTRY_DSN=
-DUITKU_MERCHANT_CODE=
-DUITKU_API_KEY=
+SUMOPOD_API_KEY=
+SUMOPOD_WEBHOOK_SECRET=
+SUMOPOD_WEBHOOK_TOKEN=
+SUMOPOD_SANDBOX=True
 GOOGLE_OAUTH_CLIENT_ID=
 GOOGLE_OAUTH_CLIENT_SECRET=
 WA_GATEWAY_API_KEY=

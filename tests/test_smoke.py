@@ -62,10 +62,10 @@ def test_audit_log_immutable_in_admin(admin_client):
 
 # ── Stubs (xfail until phase lands) ──────────────────────────────────────────
 
-@pytest.mark.xfail(reason="Phase 3: Duitku top-up not yet implemented", strict=False)
+@pytest.mark.xfail(reason="Phase 3: Sumopod top-up not yet implemented", strict=False)
 @pytest.mark.django_db
 def test_golden_path_topup():
-    """Customer tops up via Duitku sandbox; balance increases via ledger."""
+    """Customer tops up via Sumopod sandbox; balance increases via ledger."""
     raise NotImplementedError
 
 

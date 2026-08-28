@@ -38,9 +38,14 @@
           value="{% if prefill_amount %}{{ prefill_amount }}{% endif %}"
           required
           data-amount-input
+          data-fee-percent="{{ fee_percent }}"
+          data-fee-flat="{{ fee_flat }}"
           class="w-full px-3 py-2.5 border border-ink-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300">
         <p class="text-sm font-semibold text-ink-700 mt-1.5" data-amount-preview></p>
-        <p class="text-xs text-ink-400 mt-1">Min {{ min_topup|rupiah }} &middot; Max {{ max_topup|rupiah }}</p>
+        <p class="text-xs text-ink-400 mt-1">
+          Min {{ min_topup|rupiah }} &middot; Max {{ max_topup|rupiah }} &middot;
+          Payment fee {{ fee_percent }}% + Rp{{ fee_flat }} is added at the payment page
+        </p>
       </div>
 
       <div class="mb-5">
@@ -56,7 +61,7 @@
   </div>
 
   <p class="text-center text-xs text-ink-400 mt-4">
-    Secure payment via Duitku. Your balance is credited instantly after payment.
+    Secure payment via Sumopod (QRIS). Your balance is credited automatically once the payment is confirmed.
   </p>
 </div>
 {% endblock %}

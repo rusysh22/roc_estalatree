@@ -1,6 +1,8 @@
 """Billing background tasks (Celery).
 
-Safety-net task: poll Duitku for TopUps whose webhook never arrived.
+Safety-net task: expire TopUps whose Sumopod webhook never arrived. Sumopod has
+no status-query endpoint, so a stuck PENDING TopUp past its expiry window is
+marked EXPIRED (the payment outcome otherwise comes only from the webhook).
 Surfacing: stuck webhooks appear in the Superadmin work queue (Phase 10).
 """
 import logging
@@ -25,12 +27,11 @@ PENDING_THRESHOLD_MINUTES = 10
     acks_late=True,
 )
 def poll_pending_topups(self):
-    """Poll Duitku for every pending TopUp older than PENDING_THRESHOLD_MINUTES.
+    """Expire every pending TopUp older than PENDING_THRESHOLD_MINUTES + expiry window.
 
     Scheduled via django-celery-beat (every 5 minutes in prod).
-    Idempotent: _apply_topup_success uses select_for_update + idempotent credit().
+    Idempotent: recheck_topup_status uses a conditional update.
     """
-    from apps.billing.duitku import DuitkuClient, DuitkuError
     from apps.billing.services import recheck_topup_status
 
     cutoff = timezone.now() - timedelta(minutes=PENDING_THRESHOLD_MINUTES)
@@ -45,17 +46,11 @@ def poll_pending_topups(self):
 
     logger.info("Safety-net: checking %d stuck pending TopUps", count)
 
-    try:
-        duitku_client = DuitkuClient.from_settings()
-    except DuitkuError:
-        logger.warning("Duitku not configured — skipping poll_pending_topups")
-        return
-
     resolved = 0
     for topup in pending_qs.iterator():
         try:
-            recheck_topup_status(topup, duitku_client=duitku_client)
-            if TopUp.objects.filter(pk=topup.pk, status=TopUp.Status.PAID).exists():
+            recheck_topup_status(topup)
+            if not TopUp.objects.filter(pk=topup.pk, status=TopUp.Status.PENDING).exists():
                 resolved += 1
         except Exception as exc:
             logger.error("Error rechecking TopUp %s: %s", topup.public_id, exc)

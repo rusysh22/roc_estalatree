@@ -27,8 +27,16 @@
       <span class="text-ink-700">{{ wallet_balance|rupiah }}</span>
     </div>
     <div class="flex items-center justify-between px-5 py-3 text-sm">
+      <span class="text-ink-500">Top-up needed</span>
+      <span class="text-ink-700">{{ shortfall|rupiah }}</span>
+    </div>
+    <div class="flex items-center justify-between px-5 py-3 text-sm">
+      <span class="text-ink-500">Payment fee (est.)</span>
+      <span class="text-ink-700">{{ gateway_fee|rupiah }}</span>
+    </div>
+    <div class="flex items-center justify-between px-5 py-3 text-sm border-t border-ink-100">
       <span class="font-bold text-gold-700">To pay now</span>
-      <span class="font-extrabold text-gold-700">{{ shortfall|rupiah }}</span>
+      <span class="font-extrabold text-gold-700">{{ gateway_total|rupiah }}</span>
     </div>
     {% endif %}
   </div>
@@ -44,7 +52,7 @@
     {% endif %}
 
     <button type="submit" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 rounded-full cursor-pointer transition-colors">
-      {% if shortfall > 0 %}Pay {{ shortfall|rupiah }}{% else %}Complete purchase{% endif %}
+      {% if shortfall > 0 %}Pay {{ gateway_total|rupiah }}{% else %}Complete purchase{% endif %}
     </button>
   </form>
 

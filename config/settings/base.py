@@ -11,7 +11,7 @@ env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, []),
     SENTRY_DSN=(str, ""),
-    DUITKU_SANDBOX=(bool, True),
+    SUMOPOD_SANDBOX=(bool, True),
 )
 
 # ── Security ─────────────────────────────────────────────────────────────────
@@ -179,11 +179,11 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
 
-# ── Duitku ────────────────────────────────────────────────────────────────────
-DUITKU_MERCHANT_CODE = env("DUITKU_MERCHANT_CODE", default="")
-DUITKU_API_KEY = env("DUITKU_API_KEY", default="")
-DUITKU_CALLBACK_URL = env("DUITKU_CALLBACK_URL", default="")
-DUITKU_SANDBOX = env("DUITKU_SANDBOX", default=True)
+# ── Sumopod ───────────────────────────────────────────────────────────────────
+SUMOPOD_API_KEY = env("SUMOPOD_API_KEY", default="")
+SUMOPOD_WEBHOOK_SECRET = env("SUMOPOD_WEBHOOK_SECRET", default="")
+SUMOPOD_WEBHOOK_TOKEN = env("SUMOPOD_WEBHOOK_TOKEN", default="")
+SUMOPOD_SANDBOX = env("SUMOPOD_SANDBOX", default=True)
 
 # ── Sentry ────────────────────────────────────────────────────────────────────
 SENTRY_DSN = env("SENTRY_DSN", default="")

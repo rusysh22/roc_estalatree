@@ -10,7 +10,10 @@ from apps.core.utils import assign_unique_public_id
 
 
 class TopUp(TimestampedModel):
-    """A Duitku invoice that funds a customer wallet. See ADR-003."""
+    """A Sumopod payment that funds a customer wallet. See ADR-003.
+
+    (Historically Duitku; the DUITKU gateway value is retained for old rows.)
+    """
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
@@ -19,7 +22,8 @@ class TopUp(TimestampedModel):
         FAILED = "failed", "Failed"
 
     class Gateway(models.TextChoices):
-        DUITKU = "duitku", "Duitku"
+        SUMOPOD = "sumopod", "Sumopod"
+        DUITKU = "duitku", "Duitku"  # legacy — retained for historical rows
 
     public_id = models.CharField(max_length=40, unique=True, editable=False)
     customer = models.ForeignKey(
@@ -27,8 +31,11 @@ class TopUp(TimestampedModel):
     )
     amount = models.PositiveBigIntegerField(help_text="Whole IDR")
     bonus = models.PositiveBigIntegerField(default=0, help_text="Promotional bonus IDR")
-    gateway = models.CharField(max_length=20, choices=Gateway.choices, default=Gateway.DUITKU)
+    gateway = models.CharField(max_length=20, choices=Gateway.choices, default=Gateway.SUMOPOD)
     gateway_ref = models.CharField(max_length=200, blank=True)
+    gateway_fee = models.PositiveBigIntegerField(
+        default=0, help_text="Gateway fee (IDR) paid by the customer on top of amount"
+    )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     ledger_entry = models.OneToOneField(
         "wallet.LedgerEntry",
@@ -152,8 +159,8 @@ class CartCheckout(TimestampedModel):
     """Tracks a multi-item cart checkout that may create several Orders across
     different sellers, funded by at most one combined TopUp.
 
-    Duitku (like virtually every Indonesian gateway) is configured once for the
-    whole platform (DuitkuClient.from_settings() — no per-seller credentials), so
+    Sumopod (like virtually every Indonesian gateway) is configured once for the
+    whole platform (SumopodClient.from_settings() — no per-seller credentials), so
     a cart spanning multiple sellers can still be paid with a single invoice; the
     platform later distributes each Order's earnings to its seller via the
     existing SellerEarning ledger. This mirrors ADR-015's single-order top-up-and-buy

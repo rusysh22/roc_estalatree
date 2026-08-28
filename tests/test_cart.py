@@ -8,7 +8,7 @@ Coverage:
   5. Checkout POST with sufficient wallet balance pays every line immediately,
      across multiple sellers, and clears the cart.
   6. Checkout POST with a shortfall creates PENDING orders + one combined TopUp,
-     redirects to the (mocked) Duitku invoice.
+     redirects to the (mocked) Sumopod payment link.
   7. Completing that TopUp (simulated webhook) finishes every pending order.
   8. order_pending routes a cart-linked TopUp to the cart receipt page.
 """
@@ -173,16 +173,17 @@ def test_checkout_shortfall_creates_pending_orders_and_combined_topup(verified_c
     client.post(reverse("storefront:cart_add", args=[plan_b.pk]))
 
     mock_result = MagicMock()
-    mock_result.reference = "REF999"
-    mock_result.payment_url = "https://sandbox.duitku.com/pay/REF999"
+    mock_result.fee = 0
+    mock_result.payment_id = "REF999"
+    mock_result.payment_url = "https://pay.sumopod.com/pay/REF999"
     mock_client = MagicMock()
-    mock_client.create_invoice.return_value = mock_result
+    mock_client.create_payment.return_value = mock_result
 
-    with patch("apps.billing.duitku.DuitkuClient.from_settings", return_value=mock_client):
+    with patch("apps.billing.sumopod.SumopodClient.from_settings", return_value=mock_client):
         resp = client.post(reverse("storefront:cart_checkout"), {"payment_method": "VC"})
 
     assert resp.status_code == 302
-    assert resp["Location"] == "https://sandbox.duitku.com/pay/REF999"
+    assert resp["Location"] == "https://pay.sumopod.com/pay/REF999"
 
     orders = Order.objects.filter(customer=verified_customer)
     assert orders.count() == 2

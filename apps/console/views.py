@@ -58,8 +58,9 @@ def setup(request):
     from apps.storefront.models import StorePage
 
     checks = [
-        ("DUITKU_API_KEY env",           bool(os.environ.get("DUITKU_API_KEY"))),
-        ("DUITKU_MERCHANT_CODE env",     bool(os.environ.get("DUITKU_MERCHANT_CODE"))),
+        ("SUMOPOD_API_KEY env",          bool(os.environ.get("SUMOPOD_API_KEY"))),
+        ("SUMOPOD_WEBHOOK_SECRET env",   bool(os.environ.get("SUMOPOD_WEBHOOK_SECRET"))),
+        ("SUMOPOD_WEBHOOK_TOKEN env",    bool(os.environ.get("SUMOPOD_WEBHOOK_TOKEN"))),
         ("Ed25519 signing key env",       bool(os.environ.get("MARKETPLACE_ED25519_PRIVATE_KEY_B64"))),
         ("WA_TOKEN env",                 bool(os.environ.get("WA_TOKEN"))),
         ("ACTIVATION_TOKEN_TTL_DAYS",    bool(Setting.get("ACTIVATION_TOKEN_TTL_DAYS"))),

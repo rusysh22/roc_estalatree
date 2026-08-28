@@ -1,4 +1,4 @@
-"""Billing views — payment gateway webhook receivers."""
+"""Billing views — payment gateway webhook receiver (Sumopod)."""
 import json
 import logging
 
@@ -13,46 +13,63 @@ logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @require_POST
-def duitku_webhook(request):
-    """Receive and process Duitku payment callbacks.
+def sumopod_webhook(request):
+    """Receive and process Sumopod payment webhooks.
 
-    Idempotency key = duitku:<merchantOrderId>:<resultCode> (M2) — ensures a
-    non-success callback followed by a success callback for the same order are
-    treated as distinct events; the success callback is always processed.
+    Verification (both enforced when configured):
+      - Svix signature: svix-id / svix-timestamp / svix-signature headers, HMAC-SHA256.
+      - X-Webhook-Token header compared to SUMOPOD_WEBHOOK_TOKEN.
 
-    HTTP response strategy:
-    - 200 "OK"  → success or known non-success result (Duitku stops retrying)
-    - 400       → invalid signature (definitively bad; no retry needed)
-    - 500       → unexpected error or TopUp not found (Duitku retries — safe)
+    Idempotency key = sumopod:<svix-id> — stable across Sumopod's retries of the
+    same delivery; falls back to sumopod:<payment_id>:<event_type>.
+
+    HTTP response strategy (Sumopod expects 2xx within 10s):
+      - 200 "OK"  → processed, or a known/unhandled event (stop retrying)
+      - 400       → unparseable payload
+      - 401       → signature/token verification failed
+      - 500       → TopUp not found or unexpected error (Sumopod retries — safe)
     """
-    # Duitku sends the callback as application/x-www-form-urlencoded, not JSON —
-    # request.POST already parses that. Fall back to JSON for robustness (some
-    # sandbox/test tooling posts JSON instead).
-    if request.POST:
-        payload = request.POST.dict()
-    else:
-        try:
-            payload = json.loads(request.body)
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            return HttpResponseBadRequest("Invalid or empty payload")
+    from apps.billing.sumopod import SumopodClient, SumopodError
 
-    merchant_order_id = str(payload.get("merchantOrderId", ""))
-    result_code = str(payload.get("resultCode", ""))
-    # M2: include resultCode so a later success callback isn't deduped against
-    # an earlier non-success one for the same order.
-    idempotency_key = f"duitku:{merchant_order_id}:{result_code}"
+    raw_body = request.body
 
     try:
-        process_webhook_payload("duitku", idempotency_key, payload)
+        client = SumopodClient.from_settings()
+    except SumopodError as exc:
+        logger.error("Sumopod webhook: gateway not configured: %s", exc)
+        return HttpResponseServerError("Gateway not configured")
+
+    try:
+        if not client.verify_webhook(request.headers, raw_body):
+            logger.warning("Sumopod webhook rejected: signature/token verification failed")
+            return HttpResponse("Invalid signature", status=401)
+    except SumopodError as exc:
+        logger.error("Sumopod webhook: verification not configured: %s", exc)
+        return HttpResponseServerError("Webhook verification not configured")
+
+    try:
+        payload = json.loads(raw_body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return HttpResponseBadRequest("Invalid or empty payload")
+
+    event_type = str(payload.get("event_type", ""))
+    data = payload.get("data") or {}
+    svix_id = request.headers.get("svix-id", "")
+    if svix_id:
+        idempotency_key = f"sumopod:{svix_id}"
+    else:
+        idempotency_key = f"sumopod:{data.get('payment_id', '')}:{event_type}"
+
+    try:
+        process_webhook_payload("sumopod", idempotency_key, payload)
     except ValueError as exc:
-        logger.warning("Duitku webhook rejected (bad request): %s", exc)
+        logger.warning("Sumopod webhook rejected (bad request): %s", exc)
         return HttpResponseBadRequest(str(exc))
     except TopUpNotFoundError as exc:
-        # M3: let Duitku retry — order may not exist yet due to replication lag.
-        logger.error("Duitku webhook TopUp not found: %s", exc)
+        logger.error("Sumopod webhook TopUp not found: %s", exc)
         return HttpResponseServerError("Order not found — retry")
     except Exception as exc:
-        logger.exception("Duitku webhook processing error for %s: %s", merchant_order_id, exc)
+        logger.exception("Sumopod webhook processing error (%s): %s", idempotency_key, exc)
         return HttpResponseServerError("Internal error — will retry")
 
     return HttpResponse("OK")

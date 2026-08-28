@@ -1,14 +1,16 @@
 # 08 — Integrations & Notifications
 
-## 8.1 Duitku (Payment / Top-up)
-- Used **only** for topping up balance (money in). Not for direct product checkout.
-- Methods: VA, QRIS, e-wallet, retail.
-- **Flow:** create TopUp `pending` → request invoice from Duitku → redirect/QR → customer pays → **webhook callback**.
-- **Webhook requirements:**
-  - **Verify Duitku signature.**
-  - **Idempotent** (`PaymentWebhook.idempotency_key`) — no double-credit.
-  - On success → credit Wallet via the service layer (LedgerEntry `topup` + bonus if any) → notification.
-- Start in **sandbox**, then production. Credentials in `Setting`/env, not hardcoded.
+## 8.1 Sumopod (Payment / Top-up)
+- Used **only** for topping up balance (money in) and direct-pay checkout. See ADR-021.
+- Methods: **QRIS** (sandbox). Other methods shown as "under maintenance" in the UI.
+- **Client:** `apps/billing/sumopod.py`. **Flow:** create TopUp `pending` → `POST /api/v1/payments` → redirect to `payment_link_url` → customer pays → **webhook**.
+- **Webhook** (`/billing/webhook/sumopod/`, configured once in the Sumopod dashboard):
+  - Verify **both** the Svix signature (`SUMOPOD_WEBHOOK_SECRET`) **and** `X-Webhook-Token` (`SUMOPOD_WEBHOOK_TOKEN`).
+  - **Idempotent** via `PaymentWebhook.idempotency_key = sumopod:<svix-id>` — no double-credit.
+  - Events: `payment.completed` → credit Wallet (LedgerEntry `topup` + bonus) → notification; `payment.failed` / `payment.expired` → mark TopUp FAILED/EXPIRED; `payment.test` → no-op.
+  - Amount cross-check: `webhook.data.amount == topup.amount` (fee passthrough is enabled, so the customer pays `amount + fee`).
+- No transaction-status endpoint: the safety-net task only expires stale pending top-ups.
+- Secrets are **env-only** (`SUMOPOD_API_KEY`, `SUMOPOD_WEBHOOK_SECRET`, `SUMOPOD_WEBHOOK_TOKEN`), never `Setting`/DB. Start in **sandbox** (`SUMOPOD_SANDBOX=True`).
 
 ## 8.2 WhatsApp
 - For notifications & the **Contact** button (deep link `wa.me`).

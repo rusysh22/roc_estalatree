@@ -156,8 +156,8 @@
         {% if shortfall > 0 %}
         <div class="mt-3 bg-gold-50 border border-gold-300 rounded-xl px-3 py-2">
           <p class="text-xs text-gold-800">
-            You need {{ shortfall|rupiah }} more. Clicking the button below will open a payment
-            page for that amount — your order completes automatically once paid.
+            You need {{ shortfall|rupiah }} more. Clicking the button below opens a payment page
+            (total {{ gateway_total|rupiah }}, incl. fee) — your order completes automatically once paid.
           </p>
         </div>
         {% endif %}
@@ -165,10 +165,29 @@
       {% endif %}
 
       <!-- Payment method (only when an amount will be charged via gateway) -->
-      {% if direct_pay_active or shortfall > 0 %}
+      {% if gateway_charge %}
       <div class="bg-white rounded-2xl border border-ink-100 p-5">
         <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-3">Payment Method</p>
         {% include "storefront/partials/_payment_method_picker.html" with form_id="checkout-form" %}
+
+        <dl class="mt-4 space-y-1.5 text-sm border-t border-ink-100 pt-3">
+          <div class="flex justify-between text-ink-600">
+            <dt>{% if direct_pay_active %}Amount{% else %}Top-up needed{% endif %}</dt>
+            <dd>{{ gateway_charge_amount|rupiah }}</dd>
+          </div>
+          <div class="flex justify-between text-ink-600">
+            <dt>Payment fee (est.)</dt>
+            <dd>{{ gateway_fee|rupiah }}</dd>
+          </div>
+          <div class="flex justify-between font-extrabold text-ink-900">
+            <dt>Total to pay</dt>
+            <dd>{{ gateway_total|rupiah }}</dd>
+          </div>
+        </dl>
+        <p class="text-xs text-ink-400 mt-2">
+          The payment fee is added by Sumopod at the payment page. Your wallet is credited the full
+          {{ gateway_charge_amount|rupiah }}.
+        </p>
       </div>
       {% endif %}
 
@@ -304,12 +323,12 @@
             class="w-full py-3.5 rounded-full font-bold text-sm transition-colors
                    bg-primary-500 hover:bg-primary-600 text-white cursor-pointer">
             {% if direct_pay_active %}
-              Pay {{ effective_price|rupiah }} →
+              Pay {{ gateway_total|rupiah }} →
             {% elif plan.interval == 'none' %}
-              {% if shortfall > 0 %}Pay {{ effective_price|rupiah }}{% else %}Confirm Order{% endif %}
+              {% if gateway_charge %}Pay {{ gateway_total|rupiah }}{% else %}Confirm Order{% endif %}
             {% else %}
-              {% if shortfall > 0 %}
-                Top-up &amp; Pay {{ shortfall|rupiah }}
+              {% if gateway_charge %}
+                Top-up &amp; Pay {{ gateway_total|rupiah }}
               {% else %}
                 Confirm &amp; Pay {{ effective_price|rupiah }}
               {% endif %}

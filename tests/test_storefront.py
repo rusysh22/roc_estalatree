@@ -6,10 +6,10 @@ Coverage:
   3. Product detail: 200 for public product, 404 for draft
   4. Checkout GET: 200 when logged in; 302 to login when anon
   5. Checkout POST: balance sufficient → PAID order → redirect to order_status
-  6. Checkout POST: balance insufficient → Duitku redirect (mocked)
+  6. Checkout POST: balance insufficient → Sumopod redirect (mocked)
   7. Order status: PAID renders success; PENDING renders pending
   8. Top-up GET: 200 when logged in
-  9. Top-up POST: valid amount → Duitku redirect (mocked); invalid amount → re-render
+  9. Top-up POST: valid amount → Sumopod redirect (mocked); invalid amount → re-render
  10. Contact GET: 200 for contact-type product
  11. Contact POST: creates Lead; redirects to WA if wa_number set
  12. Auto-create Customer on first checkout
@@ -236,24 +236,25 @@ def test_checkout_post_sufficient_balance_creates_paid_order(funded_authed_clien
     assert Order.objects.filter(customer=funded_customer, status=Order.Status.PAID).exists()
 
 
-# ── 6. Checkout POST: balance insufficient → Duitku redirect ─────────────────
+# ── 6. Checkout POST: balance insufficient → Sumopod redirect ─────────────────
 
 @pytest.mark.django_db(transaction=True)
 def test_checkout_post_insufficient_balance_redirects_to_payment(authed_client, customer, public_product):
     plan = public_product.plans.first()
 
     mock_result = MagicMock()
-    mock_result.reference = "REF123"
-    mock_result.payment_url = "https://sandbox.duitku.com/pay/REF123"
+    mock_result.fee = 0
+    mock_result.payment_id = "REF123"
+    mock_result.payment_url = "https://pay.sumopod.com/pay/REF123"
 
     mock_client = MagicMock()
-    mock_client.create_invoice.return_value = mock_result
+    mock_client.create_payment.return_value = mock_result
 
-    with patch("apps.billing.duitku.DuitkuClient.from_settings", return_value=mock_client):
+    with patch("apps.billing.sumopod.SumopodClient.from_settings", return_value=mock_client):
         resp = authed_client.post(reverse("storefront:checkout", args=[plan.pk]), {"payment_method": "VC"})
 
     assert resp.status_code == 302
-    assert "duitku.com" in resp["Location"] or "sandbox" in resp["Location"]
+    assert "sumopod.com" in resp["Location"]
 
 
 @pytest.mark.django_db(transaction=True)
@@ -269,20 +270,21 @@ def test_guest_checkout_creates_account_and_redirects_to_payment(public_product)
     assert not User.objects.filter(email=guest_email).exists()
 
     mock_result = MagicMock()
-    mock_result.reference = "REF456"
-    mock_result.payment_url = "https://sandbox.duitku.com/pay/REF456"
+    mock_result.fee = 0
+    mock_result.payment_id = "REF456"
+    mock_result.payment_url = "https://pay.sumopod.com/pay/REF456"
 
     mock_client = MagicMock()
-    mock_client.create_invoice.return_value = mock_result
+    mock_client.create_payment.return_value = mock_result
 
-    with patch("apps.billing.duitku.DuitkuClient.from_settings", return_value=mock_client):
+    with patch("apps.billing.sumopod.SumopodClient.from_settings", return_value=mock_client):
         resp = Client().post(reverse("storefront:checkout", args=[plan.pk]), {
             "guest_email": guest_email,
             "payment_method": "VC",
         })
 
     assert resp.status_code == 302
-    assert "duitku.com" in resp["Location"] or "sandbox" in resp["Location"]
+    assert "sumopod.com" in resp["Location"]
     user = User.objects.get(email=guest_email)
     assert Customer.objects.filter(user=user).exists()
 
@@ -362,17 +364,18 @@ def test_topup_get_returns_200(authed_client):
 @pytest.mark.django_db
 def test_topup_post_valid_amount_redirects_to_payment(authed_client, customer):
     mock_result = MagicMock()
-    mock_result.reference = "REF456"
-    mock_result.payment_url = "https://sandbox.duitku.com/pay/REF456"
+    mock_result.fee = 0
+    mock_result.payment_id = "REF456"
+    mock_result.payment_url = "https://pay.sumopod.com/pay/REF456"
 
     mock_client = MagicMock()
-    mock_client.create_invoice.return_value = mock_result
+    mock_client.create_payment.return_value = mock_result
 
-    with patch("apps.billing.duitku.DuitkuClient.from_settings", return_value=mock_client):
+    with patch("apps.billing.sumopod.SumopodClient.from_settings", return_value=mock_client):
         resp = authed_client.post(reverse("storefront:topup"), {"amount": "100000", "payment_method": "VC"})
 
     assert resp.status_code == 302
-    assert "duitku.com" in resp["Location"] or "sandbox" in resp["Location"]
+    assert "sumopod.com" in resp["Location"]
 
 
 @pytest.mark.django_db
@@ -403,25 +406,6 @@ def test_checkout_post_unverified_email_blocked_when_payment_needed(public_produ
     resp = client.post(reverse("storefront:checkout", args=[plan.pk]), {"payment_method": "VC"})
     assert resp.status_code == 302
     assert resp["Location"] == reverse("account_email")
-
-
-# ── Payment method grouping/ordering (docs/feedback item #7) ────────────────────
-
-def test_group_payment_methods_orders_by_popularity():
-    from apps.billing.duitku import PaymentMethod
-    from apps.storefront.views import _group_payment_methods
-
-    methods = [
-        PaymentMethod(code="BT", name="PERMATA VA", image_url="", method_type="va", fee=0),
-        PaymentMethod(code="BC", name="BCA VA", image_url="", method_type="va", fee=0),
-        PaymentMethod(code="BR", name="BRI VA", image_url="", method_type="va", fee=0),
-        PaymentMethod(code="ZZ", name="UNKNOWN VA", image_url="", method_type="va", fee=0),
-        PaymentMethod(code="NQ", name="NOBU QRIS", image_url="", method_type="qris", fee=0),
-        PaymentMethod(code="SP", name="SHOPEEPAY QRIS", image_url="", method_type="qris", fee=0),
-    ]
-    groups = {g["key"]: [m.code for m in g["methods"]] for g in _group_payment_methods(methods)}
-    assert groups["va"] == ["BC", "BR", "BT", "ZZ"]
-    assert groups["qris"] == ["SP", "NQ"]
 
 
 # ── 10+11. Contact ────────────────────────────────────────────────────────────

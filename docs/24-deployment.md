@@ -92,9 +92,11 @@ sudo docker compose up -d certbot
 | `DJANGO_ALLOWED_HOSTS` | `berlanggan.web.id` | Comma-separated if adding `www.` or more hosts later. |
 | `DATABASE_URL` | `postgres://estalatree:estalatree@db:5432/estalatree` | Container-to-container hostname `db`, **internal** port 5432 (the `5434` mapping in compose is only for host-side debugging access). |
 | `REDIS_URL` / `CELERY_BROKER_URL` | `redis://redis:6379/0` | Container hostname `redis`. |
-| `DUITKU_CALLBACK_URL` | `https://berlanggan.web.id/billing/webhook/duitku/` | Must be publicly reachable HTTPS for the gateway to call back. |
+| `SUMOPOD_API_KEY` | _(sandbox key)_ | Env-only secret. |
+| `SUMOPOD_WEBHOOK_SECRET` / `SUMOPOD_WEBHOOK_TOKEN` | _(from Sumopod → Settings > Webhook)_ | Env-only. Both are verified on every webhook. |
+| `SUMOPOD_SANDBOX` | `True` | `False` for production. |
 
-`DUITKU_MERCHANT_CODE`/`DUITKU_API_KEY` (sandbox) and `EMAIL_HOST*` were filled in on 2026-07-04 — SMTP is smtp.sumopod.com, port 465/SSL (`EMAIL_USE_SSL=True`, not `EMAIL_USE_TLS`; `base.py` now reads both `EMAIL_USE_TLS`/`EMAIL_USE_SSL` and the rest of the `EMAIL_HOST*` vars from env, which it previously did not). Still blank: `GOOGLE_CLIENT_ID/SECRET`, `SENTRY_DSN`.
+Register the webhook URL `https://berlanggan.web.id/billing/webhook/sumopod/` in the Sumopod dashboard (Settings > Webhook) — it must be publicly reachable HTTPS. `EMAIL_HOST*` were filled in on 2026-07-04 — SMTP is smtp.sumopod.com, port 465/SSL (`EMAIL_USE_SSL=True`, not `EMAIL_USE_TLS`). Still blank: `GOOGLE_CLIENT_ID/SECRET`, `SENTRY_DSN`.
 
 ## 5. Redeploying after a code change
 

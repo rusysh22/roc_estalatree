@@ -412,9 +412,9 @@ class Command(BaseCommand):
         ord_a_pwyw, _, _ = self._buy_plan(cust_a, wallet_a, pwyw_plan, "seed-alice-pwyw-1", 0, pwyw_price=25_000)
         Installation.objects.get_or_create(license=lic_a, fingerprint="alice-fp-mac-001",
             defaults={"name": "MacBook Air (Alice)", "status": Installation.Status.ACTIVE})
-        TopUp.objects.get_or_create(gateway_ref="duitku-pending-alice-001",
+        TopUp.objects.get_or_create(gateway_ref="sumopod-pending-alice-001",
             defaults={"customer": cust_a, "amount": 200_000, "bonus": 10_000,
-                      "gateway": TopUp.Gateway.DUITKU, "status": TopUp.Status.PENDING})
+                      "gateway": TopUp.Gateway.SUMOPOD, "status": TopUp.Status.PENDING})
         self._ensure_review(ord_a, products["analytics"], 4, "Pro plan worth it untuk tim kecil. Fitur multi-seat sangat berguna.")
         customers["alice"] = cust_a
         self._ensure_seller_earnings(seller, ord_a, ord_a_pwyw)
@@ -576,7 +576,7 @@ class Command(BaseCommand):
             gateway_ref=ref,
             defaults={
                 "customer": customer, "amount": amount, "bonus": 0,
-                "gateway": TopUp.Gateway.DUITKU, "status": TopUp.Status.PAID,
+                "gateway": TopUp.Gateway.SUMOPOD, "status": TopUp.Status.PAID,
             },
         )
         if created:

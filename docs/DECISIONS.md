@@ -2,7 +2,7 @@
 
 > Records each decision **and its rationale** so future agents/sessions don't undo it without context. Newest on top. Keep entries short.
 >
-> **Closed-loop status:** All ADRs below are **Accepted / Final**. Do not change without explicit user instruction. If a new decision is needed, add a new ADR (next: ADR-021) and note it in [STATUS.md](STATUS.md).
+> **Closed-loop status:** All ADRs below are **Accepted / Final**. Do not change without explicit user instruction. If a new decision is needed, add a new ADR (next: ADR-022) and note it in [STATUS.md](STATUS.md).
 
 ---
 
@@ -24,6 +24,12 @@
 | **Icons** | Heroicons SVG inline/sprite; no emoji in UI. |
 
 ---
+
+### ADR-021 — Payment gateway is Sumopod (replaced Duitku)
+**Status:** Accepted · 2026-08-28 (supersedes the gateway choice in ADR-003)
+**Decision:** All wallet top-ups and direct-pay checkouts go through **Sumopod** (`POST /api/v1/payments` → hosted `payment_link_url`). Webhooks are configured once in the Sumopod dashboard and verified with **both** the Svix signature (`SUMOPOD_WEBHOOK_SECRET`) and the `X-Webhook-Token` (`SUMOPOD_WEBHOOK_TOKEN`). Idempotency key is `sumopod:<svix-id>`. Client: `apps/billing/sumopod.py`; webhook view: `apps/billing/views.sumopod_webhook` at `/billing/webhook/sumopod/`.
+**Why:** Simpler integration, QRIS-first, fee-passthrough to the customer so `webhook.data.amount == topup.amount` stays a valid cross-check.
+**Fallout:** Sumopod exposes no transaction-status endpoint, so the safety-net task (`billing.poll_pending_topups`) can only mark stale PENDING top-ups EXPIRED — the authoritative outcome comes from the webhook (`payment.completed` / `payment.failed` / `payment.expired`). Sandbox supports QRIS only; the checkout/top-up UI shows other methods as "under maintenance". The `TopUp.Gateway.DUITKU` enum value is kept for historical rows.
 
 ### ADR-020 — Single-VM Docker Compose deployment; nginx terminates TLS
 **Status:** Accepted · 2026-07-03
@@ -53,7 +59,7 @@
 
 ### ADR-015 — Top-up-and-buy is the default first-purchase path
 **Status:** Accepted · 2026-06-18
-**Decision:** When balance is insufficient at checkout, a single Duitku transaction funds (exact/suggested) **and** completes the purchase. Returning customers with balance buy instantly.
+**Decision:** When balance is insufficient at checkout, a single gateway transaction funds (exact/suggested) **and** completes the purchase. Returning customers with balance buy instantly.
 **Why:** The balance model must not feel like an extra step for one-off buyers; the upfront funding is paid once, repeats/recurring become frictionless. ([21-user-journeys.md](21-user-journeys.md))
 
 ### ADR-014 — Link-in-bio storefront (Lynk.id-style)
@@ -111,9 +117,9 @@
 **Decision:** OSS products activate & heartbeat online; short token + grace period.
 **Why:** Need real-time revocation when a subscription lapses; grace covers offline tolerance.
 
-### ADR-003 — Duitku used only for top-up
-**Status:** Accepted · 2026-06-18
-**Decision:** Duitku funds the wallet; product checkout deducts internal balance.
+### ADR-003 — Payment gateway used only for top-up
+**Status:** Accepted · 2026-06-18 (gateway changed to Sumopod in ADR-021)
+**Decision:** The payment gateway funds the wallet; product checkout deducts internal balance.
 **Why:** One reconciliation point; enables recurring via balance auto-deduct.
 
 ### ADR-002 — Recurring via balance auto-deduct (not auto-debit)

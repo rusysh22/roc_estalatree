@@ -7,7 +7,7 @@ keys sorted, no whitespace, and `,`/`:` as the only separators — the product
 side must reproduce this exact canonicalization to verify.
 
 Security: MARKETPLACE_ED25519_PRIVATE_KEY_B64 is env-only, never the Setting
-model/DB — same rationale as DUITKU_API_KEY (apps/billing/duitku.py) so it
+model/DB — same rationale as SUMOPOD_API_KEY (apps/billing/sumopod.py) so it
 can't leak via Admin or a DB backup.
 """
 import base64

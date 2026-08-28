@@ -197,8 +197,8 @@ def checkout(
     price_override: int | None = None,
     duration_multiplier: int = 1,
     custom_fields: dict | None = None,
-    duitku_client=None,
-    callback_url: str,
+    gateway_client=None,
+    callback_url: str = "",
     return_url: str,
     payment_method: str | None = None,
 ) -> tuple[Order, list[Grant], str | None]:
@@ -208,8 +208,9 @@ def checkout(
         customer:     accounts.Customer instance.
         plan:         catalog.Plan to purchase.
         checkout_key: Caller-supplied idempotency key — same key returns same Order.
-        duitku_client: Injected for testing; omit in production.
-        callback_url: Duitku webhook callback URL (only used when TopUp is needed).
+        gateway_client: Injected for testing; omit in production.
+        callback_url: Accepted for backwards compatibility; unused (Sumopod webhooks
+                      are configured in the dashboard, not per request).
         return_url:   Browser redirect URL after payment (only used when TopUp needed).
 
     Returns:
@@ -389,10 +390,10 @@ def checkout(
         topup, payment_url = initiate_topup(
             customer=customer,
             amount=delta,
-            payment_method=payment_method,
+            payment_method=payment_method or "QRIS",
             callback_url=callback_url,
             return_url=return_url,
-            duitku_client=duitku_client,
+            gateway_client=gateway_client,
         )
         topup.checkout_order = order
         topup.save(update_fields=["checkout_order", "updated_at"])

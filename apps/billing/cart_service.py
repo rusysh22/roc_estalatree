@@ -1,7 +1,7 @@
 """Shopping cart service — add/remove lines, pricing, and multi-item checkout.
 
 v1 scope (docs/feedback section H): a cart can hold plans from different sellers.
-Duitku is configured once for the whole platform (no per-seller merchant credentials),
+Sumopod is configured once for the whole platform (no per-seller merchant credentials),
 so a multi-seller cart still checks out with a single combined invoice when the
 wallet balance falls short — each Order still gets its own seller-earning record,
 same as single-item checkout. PWYW plans and plans whose product has required
@@ -169,8 +169,8 @@ def _increment_coupon_usage(coupon: Coupon) -> None:
         logger.warning("Cart checkout: coupon %s hit its usage limit mid-checkout", coupon.code)
 
 
-def checkout_cart(customer, cart: Cart, *, callback_url: str, return_url: str,
-                   payment_method: str | None = None, duitku_client=None):
+def checkout_cart(customer, cart: Cart, *, callback_url: str = "", return_url: str,
+                   payment_method: str | None = None, gateway_client=None):
     """Check out every line in the cart. Returns (cart_checkout, grants, payment_url) —
     payment_url is None when fully paid from wallet balance (cart_checkout.status is
     already COMPLETED in that case); grants is [] when a TopUp is needed (orders stay
@@ -259,8 +259,8 @@ def checkout_cart(customer, cart: Cart, *, callback_url: str, return_url: str,
 
     from apps.billing.services import initiate_topup
     topup, payment_url = initiate_topup(
-        customer=customer, amount=shortfall, payment_method=payment_method,
-        callback_url=callback_url, return_url=return_url, duitku_client=duitku_client,
+        customer=customer, amount=shortfall, payment_method=payment_method or "QRIS",
+        callback_url=callback_url, return_url=return_url, gateway_client=gateway_client,
     )
     topup.cart_checkout = cart_checkout
     topup.save(update_fields=["cart_checkout", "updated_at"])

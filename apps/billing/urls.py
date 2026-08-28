@@ -1,10 +1,10 @@
-"""Billing URL patterns — webhook receiver + checkout callbacks."""
+"""Billing URL patterns — webhook receiver."""
 from django.urls import path
 
-from apps.billing.views import duitku_webhook
+from apps.billing.views import sumopod_webhook
 
 app_name = "billing"
 
 urlpatterns = [
-    path("webhook/duitku/", duitku_webhook, name="duitku_webhook"),
+    path("webhook/sumopod/", sumopod_webhook, name="sumopod_webhook"),
 ]

@@ -4,7 +4,7 @@ Anonymous visitors can browse; checkout requires a logged-in Customer.
 If a user has no Customer profile yet (e.g. fresh Google SSO), one is
 created automatically before checkout proceeds.
 
-Top-up-and-buy: if balance < plan price at checkout, the Duitku invoice
+Top-up-and-buy: if balance < plan price at checkout, a Sumopod payment
 is initiated and the user is redirected to the payment page. On webhook
 receipt the Order is fulfilled automatically (ADR-015).
 """
@@ -46,8 +46,14 @@ def _get_or_create_customer(user):
     return customer, created
 
 
+# Sumopod sandbox supports QRIS only; other methods are shown as "under maintenance".
+PAYMENT_METHOD = "QRIS"
+
+
 def _callback_url(request):
-    return request.build_absolute_uri("/billing/webhook/duitku/")
+    # Sumopod webhooks are configured in the dashboard, not per request. Kept for
+    # backwards-compatible call signatures.
+    return request.build_absolute_uri("/billing/webhook/sumopod/")
 
 
 def build_order_receipt_token(order) -> str:
@@ -60,64 +66,6 @@ def build_order_receipt_token(order) -> str:
     should behave like a paid invoice PDF, not a security-sensitive action).
     """
     return signing.dumps({"public_id": order.public_id}, salt=ORDER_RECEIPT_SALT)
-
-
-def _payment_methods(amount: int):
-    """Fetch Duitku payment methods for the given amount. Returns [] on gateway failure."""
-    from apps.billing.duitku import DuitkuClient, DuitkuError
-
-    try:
-        client = DuitkuClient.from_settings()
-        return client.get_payment_methods(amount)
-    except DuitkuError:
-        logger.exception("Failed to fetch Duitku payment methods")
-        return []
-
-
-# Display order + label for grouped payment method rendering.
-PAYMENT_METHOD_GROUPS = [
-    ("va", "Bank Transfer / Virtual Account"),
-    ("qris", "QRIS"),
-    ("ewallet", "E-Wallet"),
-    ("retail", "Convenience Store"),
-    ("cc", "Credit / Debit Card"),
-    ("other", "Other"),
-]
-
-
-# Popularity ranking within each group (lower = shown first), per docs/feedback item #7 —
-# based on real-world Indonesian usage (BCA/BNI/BRI VA, ShopeePay/LinkAja/NOBU QRIS, etc.).
-# Codes not listed here sort after all ranked ones, in Duitku's original API order.
-# NOTE: these are Duitku's documented codes as of this session — re-verify against a
-# live get_payment_methods() response if Duitku ever changes their code list, since
-# there's no automated way to detect a drifted mapping here.
-PAYMENT_METHOD_PRIORITY = {
-    # Bank transfer / VA
-    "BC": 0, "I1": 1, "BR": 2, "M2": 3, "VA": 4, "BT": 5, "B1": 6, "A1": 7, "NC": 8, "DN": 9,
-    # QRIS
-    "SP": 0, "LQ": 1, "NQ": 2, "GQ": 3, "AG": 4,
-    # E-wallet
-    "OV": 0, "DA": 1, "SA": 2, "LA": 3, "OL": 4, "SL": 5, "JP": 6,
-}
-
-
-def _group_payment_methods(methods):
-    """Group a flat list of PaymentMethod into [{key, label, methods}], empty groups omitted.
-
-    Methods within each group are sorted by real-world popularity (see
-    PAYMENT_METHOD_PRIORITY) — unranked codes keep their relative Duitku API order,
-    sorted after all ranked ones.
-    """
-    buckets = {key: [] for key, _label in PAYMENT_METHOD_GROUPS}
-    for pm in methods:
-        buckets.setdefault(pm.method_type, buckets["other"]).append(pm)
-    for group_methods in buckets.values():
-        group_methods.sort(key=lambda pm: PAYMENT_METHOD_PRIORITY.get(pm.code.upper(), 999))
-    return [
-        {"key": key, "label": label, "methods": buckets[key]}
-        for key, label in PAYMENT_METHOD_GROUPS
-        if buckets[key]
-    ]
 
 
 # ── Analytics helpers ─────────────────────────────────────────────────────────
@@ -485,11 +433,13 @@ def checkout_plan(request, plan_pk):
         direct_pay_active = master_direct_pay and plan.direct_pay
 
         # Direct pay always charges the full amount via gateway; top-up-and-buy
-        # only charges the shortfall. Payment methods are only needed when
-        # some amount will actually be charged through the gateway.
+        # only charges the shortfall.
         charge_amount = effective_price if direct_pay_active else shortfall
-        payment_methods = _payment_methods(charge_amount) if charge_amount > 0 else []
-        payment_method_groups = _group_payment_methods(payment_methods)
+        gateway_charge = charge_amount > 0
+        # Fee passthrough: the customer pays charge_amount + gateway fee at Sumopod.
+        from apps.billing.sumopod import estimate_fee
+        gateway_fee = estimate_fee(charge_amount) if gateway_charge else 0
+        gateway_total = charge_amount + gateway_fee
 
         _emit_event(request, "checkout_start", product=product, plan=plan)
         return render(request, "storefront/checkout.html", {
@@ -505,8 +455,10 @@ def checkout_plan(request, plan_pk):
             "discount": discount,
             "effective_price": effective_price,
             "questions": questions,
-            "payment_methods": payment_methods,
-            "payment_method_groups": payment_method_groups,
+            "gateway_charge": gateway_charge,
+            "gateway_charge_amount": charge_amount,
+            "gateway_fee": gateway_fee,
+            "gateway_total": gateway_total,
             "duration_multiplier": duration_multiplier,
             "duration_discount_pct": duration_discount_pct,
             "duration_discount_amount": duration_discount_amount,
@@ -520,6 +472,7 @@ def checkout_plan(request, plan_pk):
         CouponLimitError,
         PaymentMethodRequiredError,
     )
+    from apps.billing.sumopod import SumopodError
     from apps.billing.models import Coupon
 
     checkout_token = request.POST.get("checkout_token") or request.session.get(_SESSION_KEY, uuid.uuid4().hex)
@@ -606,6 +559,10 @@ def checkout_plan(request, plan_pk):
     except PaymentMethodRequiredError:
         messages.error(request, "Please choose a payment method.")
         return redirect("storefront:checkout", plan_pk=plan.pk)
+    except SumopodError as exc:
+        logger.error("Sumopod payment initiation failed at checkout: %s", exc)
+        messages.error(request, "Payment is unavailable right now. Please try again in a moment.")
+        return redirect("storefront:checkout", plan_pk=plan.pk)
 
     if payment_url:
         return redirect(payment_url)
@@ -618,18 +575,23 @@ def checkout_plan(request, plan_pk):
 # ── Order status ──────────────────────────────────────────────────────────────
 
 def order_pending(request):
-    """Duitku browser return URL after a payment attempt (topup/checkout).
+    """Sumopod browser return URL after a payment attempt (topup/checkout).
 
     This is only the front-channel redirect — actual crediting happens
-    asynchronously via the webhook (apps.billing.views.duitku_webhook). Route
+    asynchronously via the webhook (apps.billing.views.sumopod_webhook). Route
     the buyer to the right status page rather than showing anything final here.
     """
-    merchant_order_id = request.GET.get("merchantOrderId", "")
-    topup_obj = (
-        TopUp.objects.filter(public_id=merchant_order_id)
-        .select_related("checkout_order", "cart_checkout")
-        .first()
-    )
+    # `ref` is set by our success_return_url; `merchantOrderId` is the legacy param.
+    ref = request.GET.get("ref") or request.GET.get("merchantOrderId", "")
+    topup_qs = TopUp.objects.select_related("checkout_order", "cart_checkout")
+    topup_obj = None
+    if ref:
+        topup_obj = topup_qs.filter(public_id=ref).first()
+    if topup_obj is None and request.user.is_authenticated:
+        # Fall back to this customer's most recent top-up (Sumopod may not echo params).
+        topup_obj = (
+            topup_qs.filter(customer__user=request.user).order_by("-created_at").first()
+        )
     if topup_obj and topup_obj.checkout_order:
         return redirect("storefront:order_status", public_id=topup_obj.checkout_order.public_id)
     if topup_obj and topup_obj.cart_checkout_id:
@@ -701,14 +663,12 @@ def topup(request):
             amount = int(request.POST.get("amount", 0))
         except (ValueError, TypeError):
             amount = 0
-        payment_method = request.POST.get("payment_method", "").strip()
+        payment_method = request.POST.get("payment_method", "").strip() or PAYMENT_METHOD
 
         if amount < MIN_TOPUP:
             messages.error(request, f"Minimum top-up is Rp{MIN_TOPUP:,}.")
         elif amount > MAX_TOPUP:
             messages.error(request, f"Maximum top-up is Rp{MAX_TOPUP:,}.")
-        elif not payment_method:
-            messages.error(request, "Please choose a payment method.")
         else:
             from apps.billing.services import initiate_topup
 
@@ -744,7 +704,7 @@ def topup(request):
         {"value": v, "label": f"{v:,}"}
         for v in [50_000, 100_000, 200_000, 500_000, 1_000_000, 2_000_000]
     ]
-    topup_payment_methods = _payment_methods(prefill_amount or MIN_TOPUP)
+    from apps.billing.sumopod import FEE_FLAT, FEE_PERCENT
     return render(request, "storefront/topup.html", {
         "customer": customer,
         "wallet": customer.wallet,
@@ -752,8 +712,8 @@ def topup(request):
         "min_topup": MIN_TOPUP,
         "max_topup": MAX_TOPUP,
         "prefill_amount": prefill_amount,
-        "payment_methods": topup_payment_methods,
-        "payment_method_groups": _group_payment_methods(topup_payment_methods),
+        "fee_percent": FEE_PERCENT,
+        "fee_flat": FEE_FLAT,
     })
 
 
@@ -870,6 +830,7 @@ def cart_update(request, item_pk):
 
 @login_required
 def cart_checkout_view(request):
+    from apps.billing.sumopod import SumopodError
     from apps.billing.cart_service import (
         CartPaymentMethodRequiredError,
         EmptyCartError,
@@ -901,15 +862,15 @@ def cart_checkout_view(request):
             if not EmailAddress.objects.filter(user=request.user, verified=True).exists():
                 messages.warning(request, "Your email is not verified. Please verify it to ensure order notifications reach you.")
 
-        payment_methods = _payment_methods(shortfall) if shortfall > 0 else []
-        payment_method_groups = _group_payment_methods(payment_methods)
-
+        from apps.billing.sumopod import estimate_fee
+        gateway_fee = estimate_fee(shortfall) if shortfall > 0 else 0
         return render(request, "storefront/cart_checkout.html", {
             "lines": lines,
             "total": total,
             "wallet_balance": wallet_balance,
             "shortfall": shortfall,
-            "payment_method_groups": payment_method_groups,
+            "gateway_fee": gateway_fee,
+            "gateway_total": shortfall + gateway_fee,
         })
 
     payment_method = request.POST.get("payment_method", "").strip() or None
@@ -934,6 +895,10 @@ def cart_checkout_view(request):
     except EmptyCartError:
         messages.info(request, "Your cart is empty.")
         return redirect("storefront:cart")
+    except SumopodError as exc:
+        logger.error("Sumopod payment initiation failed at cart checkout: %s", exc)
+        messages.error(request, "Payment is unavailable right now. Please try again in a moment.")
+        return redirect("storefront:cart_checkout")
 
     if payment_url:
         return redirect(payment_url)
