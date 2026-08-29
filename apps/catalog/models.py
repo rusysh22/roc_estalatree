@@ -71,7 +71,9 @@ class Plan(SellerScopedModel):
     stock_quantity = models.PositiveIntegerField(null=True, blank=True, help_text="Stock limit (null = unlimited)")
     duration_discounts = models.JSONField(
         default=dict, blank=True,
-        help_text='Discount % per multiplier. E.g. {"3":5,"6":10,"12":15} = 3× gets 5% off. Only for recurring plans.',
+        help_text='Duration Plan tiers: prepaid-interval multiplier → discount %. '
+                  'E.g. {"3":5,"6":10,"12":0} = 3× gets 5% off, 12× is offered with no discount. '
+                  'Discount is optional (0 = plain prepay option). Only for recurring plans.',
     )
     direct_pay = models.BooleanField(
         default=True,

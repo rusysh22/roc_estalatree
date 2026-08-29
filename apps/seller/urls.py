@@ -46,4 +46,6 @@ urlpatterns = [
     path("subscriptions/<int:sub_pk>/toggle-renew/", views.subscription_toggle_renew, name="subscription_toggle_renew"),
     path("subscriptions/<int:sub_pk>/toggle-suspend/", views.subscription_toggle_suspend, name="subscription_toggle_suspend"),
     path("orders/<int:pk>/", views.order_detail, name="order_detail"),
+    path("orders/<int:pk>/confirm-payment/", views.order_confirm_payment, name="order_confirm_payment"),
+    path("orders/<int:pk>/reject-payment/", views.order_reject_payment, name="order_reject_payment"),
 ]

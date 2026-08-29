@@ -139,10 +139,10 @@
       </div>
     </details>
 
-    {# Duration Discounts — only visible for recurring plans #}
-    <div id="duration-discounts-section" class="bg-white rounded-xl border border-gray-200 p-6 hidden">
-      <h2 class="font-semibold text-gray-800 mb-1">Duration Discounts</h2>
-      <p class="text-xs text-gray-400 mb-4">Buyers can prepay multiple intervals at a discount. E.g. "6 months at 10% off." Leave empty to disable.</p>
+    {# Duration Plan — only visible for recurring plans #}
+    <div id="duration-plan-section" class="bg-white rounded-xl border border-gray-200 p-6 hidden">
+      <h2 class="font-semibold text-gray-800 mb-1">Duration Plan</h2>
+      <p class="text-xs text-gray-400 mb-4">Let buyers prepay multiple intervals in one go. E.g. "6 months". A discount is optional — leave it blank to simply offer the longer duration. Leave the whole section empty to disable.</p>
 
       <div id="dd-rows" class="space-y-2 mb-3">
         <!-- rows injected by JS -->
@@ -153,7 +153,7 @@
         + Add tier
       </button>
 
-      <p class="text-[10px] text-gray-400 mt-3">Multiplier = number of billing intervals (e.g. 6 on a monthly plan = 6 months). Discount = % off the total.</p>
+      <p class="text-[10px] text-gray-400 mt-3">Multiplier = number of billing intervals (e.g. 6 on a monthly plan = 6 months). Discount = % off the total (optional).</p>
 
       {# Hidden field — JSON assembled by JS on submit #}
       <div class="hidden">{{ form.duration_discounts }}</div>
@@ -380,7 +380,7 @@
 <script>
 (function () {
   // ── Duration discounts UI ──────────────────────────────────────────────────
-  var ddSection = document.getElementById('duration-discounts-section');
+  var ddSection = document.getElementById('duration-plan-section');
   var ddRows    = document.getElementById('dd-rows');
   var ddField   = document.getElementById('id_duration_discounts');
   var intervalRadios = document.querySelectorAll('[name="{{ form.interval.html_name }}"]');
@@ -402,7 +402,7 @@
         '<input type="number" min="2" max="120" placeholder="Multiplier" value="' + (mult || '') + '"' +
                ' class="w-20 bg-transparent text-sm text-gray-800 focus:outline-none" data-dd="mult">' +
         '<span class="text-xs text-gray-400">×&nbsp;interval&nbsp;→</span>' +
-        '<input type="number" min="1" max="90" placeholder="Disc %" value="' + (disc || '') + '"' +
+        '<input type="number" min="0" max="90" placeholder="Disc % (optional)" value="' + (disc || disc === 0 ? disc : '') + '"' +
                ' class="w-20 bg-transparent text-sm text-gray-800 focus:outline-none" data-dd="disc">' +
         '<span class="text-xs text-gray-400">% off</span>' +
       '</div>' +
@@ -417,7 +417,7 @@
     ddRows.querySelectorAll('.flex.items-center.gap-2.flex-1').forEach(function (r) {
       var m = r.querySelector('[data-dd="mult"]').value.trim();
       var d = r.querySelector('[data-dd="disc"]').value.trim();
-      if (m && d) obj[m] = parseInt(d, 10);
+      if (m) obj[m] = d ? parseInt(d, 10) : 0;
     });
     if (ddField) ddField.value = JSON.stringify(obj);
   }

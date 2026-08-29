@@ -103,6 +103,53 @@ def handle_order_paid(customer_id, order_id, plan_name="", **kwargs):
         logger.exception("handle_order_paid: error for customer %s", customer_id)
 
 
+@on("order.awaiting_confirmation")
+def handle_order_awaiting_confirmation(customer_id, order_id, plan_name="", **kwargs):
+    """Tell the buyer their QRIS order is placed, and nudge the seller to confirm."""
+    try:
+        from apps.billing.models import Order
+
+        order = Order.objects.select_related("plan__product__seller__user").get(pk=order_id)
+
+        c = _customer(customer_id)
+        _wa(c, (
+            f"🧾 *Order Diterima — Menunggu Pembayaran*\n\n"
+            f"Produk: *{plan_name or order.plan}*\n"
+            f"Jumlah: Rp{order.amount:,}\n\n"
+            "Selesaikan pembayaran via QRIS penjual. Pesanan akan diproses setelah "
+            "penjual mengonfirmasi pembayaran."
+        ))
+
+        seller = getattr(order.plan.product, "seller", None)
+        seller_user = getattr(seller, "user", None)
+        if seller and seller_user:
+            from apps.notifications.tasks import deliver_whatsapp
+            from apps.notifications.whatsapp import normalize_number
+            if seller.wa_number:
+                deliver_whatsapp.delay(normalize_number(seller.wa_number), (
+                    f"🔔 *Pesanan Baru — Perlu Konfirmasi Pembayaran*\n\n"
+                    f"Produk: *{plan_name or order.plan}*\n"
+                    f"Jumlah: Rp{order.amount:,}\n\n"
+                    "Cek mutasi QRIS Anda, lalu konfirmasi di Seller Dashboard → Orders."
+                ))
+    except Exception:
+        logger.exception("handle_order_awaiting_confirmation: error for order %s", order_id)
+
+
+@on("order.payment_rejected")
+def handle_order_payment_rejected(customer_id, order_id, plan_name="", reason="", **kwargs):
+    try:
+        c = _customer(customer_id)
+        tail = f"\nCatatan penjual: {reason}" if reason else ""
+        _wa(c, (
+            f"⚠️ *Pembayaran Tidak Terverifikasi*\n\n"
+            f"Penjual belum menerima pembayaran untuk *{plan_name}*, jadi pesanan dibatalkan."
+            f"{tail}\n\nHubungi penjual jika Anda sudah membayar."
+        ))
+    except Exception:
+        logger.exception("handle_order_payment_rejected: error for customer %s", customer_id)
+
+
 @on("subscription.renewed")
 def handle_subscription_renewed(customer_id, sub_id, plan_name="", new_period_end="", **kwargs):
     try:
