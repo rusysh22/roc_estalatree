@@ -145,10 +145,10 @@ def test_order_paid_wa_channel_includes_license_key_in_wa_copy(
     )
 
     mock_email.delay.assert_called_once()  # HTML receipt always emailed
-    mock_wa.delay.assert_called_once()
-    wa_msg = mock_wa.delay.call_args[0][1]
     license = License.objects.filter(customer=customer_wa_channel).first()
-    assert license.key in wa_msg
+    wa_messages = [c.args[1] for c in mock_wa.delay.call_args_list]
+    assert any(license.key in m for m in wa_messages)          # purchase WA copy
+    assert any("Welcome to berlanggan" in m for m in wa_messages)  # first-order welcome
 
 
 @pytest.mark.django_db(transaction=True)

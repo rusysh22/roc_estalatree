@@ -25,17 +25,20 @@ def _is_suppressed(to_email: str) -> bool:
     default_retry_delay=60,
     acks_late=True,
 )
-def deliver_whatsapp(self, to_number: str, message: str, delivery_id: int | None = None):
+def deliver_whatsapp(self, to_number: str, message: str, delivery_id: int | None = None,
+                     template: dict | None = None):
     """Send a WA message via the configured backend.
 
-    When `delivery_id` is given, the matching NotificationDelivery row is updated
-    (sent + provider_msg_id on success; failed + email fallback once retries are
+    `template`, when given, is sent as an approved WABA template ({"name",
+    "language", "params"}); `message` is the fallback text. When `delivery_id`
+    is given, the matching NotificationDelivery row is updated (sent +
+    provider_msg_id on success; failed + email fallback once retries are
     exhausted).
     """
     from apps.notifications.whatsapp import send_whatsapp
 
     try:
-        msg_id = send_whatsapp(to_number, message)
+        msg_id = send_whatsapp(to_number, message, template)
     except Exception as exc:
         logger.error("deliver_whatsapp: failed for %s...: %s", to_number[:6], exc)
         try:
@@ -225,6 +228,7 @@ def deliver_topup_confirmation_email(self, to_email: str, amount: int, bonus: in
 def send_renewal_reminders(self):
     """Dispatch all lifecycle reminders (hourly beat).
 
+    - low-balance alert (auto-renew) at D-5..D-7
     - renewal reminders (auto-renew, insufficient balance) at H-3 / H-1
     - expiry reminders (non-renewing subs) at D-7 / D-3 / D-1
     - grace countdown (suspension approaching) at D-2 / D-1
@@ -237,3 +241,21 @@ def send_renewal_reminders(self):
     except Exception as exc:
         logger.error("send_renewal_reminders task error: %s", exc)
         raise self.retry(exc=exc)
+
+
+@shared_task(name="notifications.broadcast_promo", bind=True, max_retries=1)
+def broadcast_promo(self, subject: str, body: str):
+    """Send a promotional email to every opted-in customer (F5: email-only)."""
+    from apps.accounts.models import Customer
+    from apps.notifications.dispatch import notify_promo
+
+    sent = 0
+    qs = Customer.objects.filter(notif_promo=True).select_related("user").iterator()
+    for customer in qs:
+        try:
+            if notify_promo(customer, subject=subject, body=body):
+                sent += 1
+        except Exception:
+            logger.exception("broadcast_promo: failed for customer %s", customer.pk)
+    logger.info("broadcast_promo: queued %d promotional emails", sent)
+    return sent

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block page_title %}Notification preferences{% endblock %}
+
+{% block body %}
+<div class="max-w-md mx-auto mt-16 px-4">
+  <div class="bg-white rounded-2xl border border-gray-200 p-8">
+    {% if invalid %}
+      <h1 class="text-xl font-bold text-gray-900 mb-2">Link expired</h1>
+      <p class="text-sm text-gray-600">This unsubscribe link is invalid or has expired. You can manage
+        notifications from your dashboard after signing in.</p>
+    {% elif done %}
+      <h1 class="text-xl font-bold text-gray-900 mb-2">Preferences updated</h1>
+      <p class="text-sm text-gray-600">You're all set. You can change this any time from your dashboard.</p>
+    {% else %}
+      <h1 class="text-xl font-bold text-gray-900 mb-4">Notification preferences</h1>
+      <form method="post">
+        {% csrf_token %}
+        <label class="flex items-start gap-3 mb-3 cursor-pointer">
+          <input type="radio" name="scope" value="promo" checked class="mt-1">
+          <span class="text-sm text-gray-700">Stop <strong>promotional</strong> emails only (keep account &amp; billing notifications)</span>
+        </label>
+        <label class="flex items-start gap-3 mb-5 cursor-pointer">
+          <input type="radio" name="scope" value="all" class="mt-1">
+          <span class="text-sm text-gray-700">Stop promotions <strong>and</strong> switch all notifications to email only</span>
+        </label>
+        <button type="submit" class="bg-gray-900 text-white font-semibold px-5 py-2 rounded-full text-sm">
+          Update preferences
+        </button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

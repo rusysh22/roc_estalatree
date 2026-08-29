@@ -78,11 +78,18 @@ def request_code(customer, number: str) -> None:
     )
     cache.set(cd_key, 1, SEND_COOLDOWN)
 
-    deliver_whatsapp.delay(
-        number,
+    text = (
         f"Your berlanggan verification code is {code}. It expires in 5 minutes. "
-        f"Do not share this code with anyone.",
+        f"Do not share this code with anyone."
     )
+    template = None
+    from apps.notifications.templates_registry import get_template, template_mode
+    if template_mode() != "off":
+        tpl = get_template("otp")
+        if tpl:
+            template = {"name": tpl.name, "language": tpl.language, "params": [code]}
+
+    deliver_whatsapp.delay(number, text, template=template)
 
 
 def verify_code(customer, number: str, code: str) -> None:

@@ -31,7 +31,8 @@ def _try_log(dedup_key: str, channel: str, recipient: str) -> bool:
         return False
 
 
-def _send_once(customer, *, dedup_key: str, event: str, subject: str, body: str) -> bool:
+def _send_once(customer, *, dedup_key: str, event: str, subject: str, body: str,
+               wa_params=None) -> bool:
     """Dedup-guarded single-channel reminder. Returns True if it was dispatched."""
     from apps.core.models import NotificationChannel
     from apps.notifications.dispatch import effective_channel, notify
@@ -45,7 +46,8 @@ def _send_once(customer, *, dedup_key: str, event: str, subject: str, body: str)
     )
     if not _try_log(dedup_key, channel, recipient):
         return False
-    notify(customer, event=event, wa_text=body, email_subject=subject, email_body=body)
+    notify(customer, event=event, wa_text=body, email_subject=subject,
+           email_body=body, wa_params=wa_params)
     return True
 
 
@@ -93,6 +95,8 @@ def dispatch_renewal_reminders() -> dict:
                     event=f"reminder:{slug}",
                     subject=f"Renewal reminder {label}: {sub.plan.name}",
                     body=msg,
+                    wa_params=[sub.plan.name, label, f"{sub.plan.price:,}",
+                               f"{balance:,}", f"{shortfall:,}"],
                 ):
                     counts[slug] += 1
             except Exception as exc:
@@ -100,6 +104,55 @@ def dispatch_renewal_reminders() -> dict:
 
     logger.info("dispatch_renewal_reminders: %s", counts)
     return counts
+
+
+# ── Low-balance alert (proactive, before H-3) ──────────────────────────────
+
+def dispatch_low_balance_alerts() -> dict:
+    """ACTIVE auto-renew subs renewing in ~5–7 days whose balance can't cover it.
+
+    Earlier and gentler than the H-3/H-1 renewal reminders — gives the customer
+    time to top up before it becomes urgent. One alert per renewal period.
+    """
+    from apps.billing.models import Subscription
+
+    now = timezone.now()
+    start = now + timedelta(days=5)
+    end = now + timedelta(days=7)
+
+    qs = Subscription.objects.filter(
+        status=Subscription.Status.ACTIVE, auto_renew=True,
+        current_period_end__gte=start, current_period_end__lt=end,
+    ).select_related("customer__user", "customer__wallet", "plan")
+
+    sent = 0
+    for sub in qs:
+        try:
+            customer = sub.customer
+            balance = customer.wallet.balance
+            if balance >= sub.plan.price:
+                continue
+            pe = sub.current_period_end.date().isoformat()
+            msg = (
+                f"💡 *Low balance*\n\n"
+                f"Your balance (Rp{balance:,}) won't cover the upcoming renewal of "
+                f"*{sub.plan.name}* (Rp{sub.plan.price:,}) on {pe}.\n"
+                f"Top up to keep your subscription active."
+            )
+            if _send_once(
+                customer,
+                dedup_key=f"lowbal:{sub.pk}:{pe}",
+                event="low_balance",
+                subject=f"Low balance for {sub.plan.name} renewal",
+                body=msg,
+                wa_params=[f"{balance:,}", sub.plan.name, f"{sub.plan.price:,}", pe],
+            ):
+                sent += 1
+        except Exception as exc:
+            logger.error("dispatch_low_balance_alerts: sub %s: %s", sub.pk, exc)
+
+    logger.info("dispatch_low_balance_alerts: %d", sent)
+    return {"low_balance": sent}
 
 
 # ── Expiry reminders (non-renewing subscriptions) ───────────────────────────
@@ -134,6 +187,7 @@ def dispatch_expiry_reminders() -> dict:
                     event=f"expiry:{slug}",
                     subject=f"Access expiring in {left}: {sub.plan.name}",
                     body=msg,
+                    wa_params=[sub.plan.name, pe, left],
                 ):
                     counts[slug] += 1
             except Exception as exc:
@@ -179,6 +233,7 @@ def dispatch_grace_countdown() -> dict:
                     event=f"grace:{slug}",
                     subject=f"Access suspends in {left}: {sub.plan.name}",
                     body=msg,
+                    wa_params=[sub.plan.name, left, f"{balance:,}"],
                 ):
                     counts[slug] += 1
             except Exception as exc:
@@ -216,6 +271,7 @@ def dispatch_pending_order_reminders() -> dict:
                     event=f"order_pending:{slug}",
                     subject=f"Payment still pending: {order.plan}",
                     body=msg,
+                    wa_params=[str(order.plan), f"{order.amount:,}"],
                 ):
                     counts[slug] += 1
             except Exception as exc:
@@ -229,6 +285,7 @@ def dispatch_pending_order_reminders() -> dict:
 
 def dispatch_all_reminders() -> dict:
     return {
+        "low_balance": dispatch_low_balance_alerts(),
         "renewal": dispatch_renewal_reminders(),
         "expiry": dispatch_expiry_reminders(),
         "grace": dispatch_grace_countdown(),

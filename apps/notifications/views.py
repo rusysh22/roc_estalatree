@@ -1,4 +1,4 @@
-"""Webhook endpoints for notification providers."""
+"""Webhook + unsubscribe endpoints for notifications."""
 import json
 import logging
 
@@ -8,6 +8,7 @@ from django.http import (
     HttpResponseBadRequest,
     HttpResponseServerError,
 )
+from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -57,3 +58,28 @@ def kirimchat_webhook(request):
         return HttpResponseServerError("Processing error — will retry")
 
     return HttpResponse("OK")
+
+
+def unsubscribe(request, token):
+    """One-click preference change from an email footer link (no login needed)."""
+    from apps.accounts.models import Customer
+    from apps.core.models import NotificationChannel
+    from apps.notifications.unsubscribe import read_token
+
+    customer_id = read_token(token)
+    customer = Customer.objects.filter(pk=customer_id).first() if customer_id else None
+    if customer is None:
+        return render(request, "notifications/unsubscribe.html", {"invalid": True}, status=400)
+
+    if request.method == "POST":
+        scope = request.POST.get("scope", "promo")
+        if scope == "all":
+            customer.notification_channel = NotificationChannel.EMAIL
+            customer.notif_promo = False
+            customer.save(update_fields=["notification_channel", "notif_promo", "updated_at"])
+        else:
+            customer.notif_promo = False
+            customer.save(update_fields=["notif_promo", "updated_at"])
+        return render(request, "notifications/unsubscribe.html", {"done": True})
+
+    return render(request, "notifications/unsubscribe.html", {"customer": customer, "token": token})

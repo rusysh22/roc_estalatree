@@ -32,15 +32,15 @@ def _customer(customer_id):
     return Customer.objects.select_related("user", "wallet").get(pk=customer_id)
 
 
-def _notify(customer, *, event, wa_text, email_subject, email_body):
+def _notify(customer, *, event, wa_text, email_subject, email_body, wa_params=None):
     from apps.notifications.dispatch import notify
-    notify(customer, event=event, wa_text=wa_text,
-           email_subject=email_subject, email_body=email_body)
+    notify(customer, event=event, wa_text=wa_text, email_subject=email_subject,
+           email_body=email_body, wa_params=wa_params)
 
 
-def _wa_copy(customer, event, wa_text):
+def _wa_copy(customer, event, wa_text, wa_params=None):
     from apps.notifications.dispatch import notify_wa_copy
-    notify_wa_copy(customer, event=event, wa_text=wa_text)
+    notify_wa_copy(customer, event=event, wa_text=wa_text, wa_params=wa_params)
 
 
 # ── Handlers ──────────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ def handle_topup_paid(customer_id, amount, bonus=0, **kwargs):
         )
         from apps.notifications.tasks import deliver_topup_confirmation_email
         deliver_topup_confirmation_email.delay(c.user.email, amount, bonus, customer_id)
-        _wa_copy(c, "topup.paid", msg)
+        _wa_copy(c, "topup.paid", msg, wa_params=[f"Rp{amount:,}{bonus_text}"])
     except Exception:
         logger.exception("handle_topup_paid: error for customer %s", customer_id)
 
@@ -96,7 +96,22 @@ def handle_order_paid(customer_id, order_id, plan_name="", **kwargs):
         )
         from apps.notifications.tasks import deliver_order_confirmation_email
         deliver_order_confirmation_email.delay(c.user.email, order.pk)
-        _wa_copy(c, "order.paid", msg)
+        _wa_copy(c, "order.paid", msg,
+                 wa_params=[str(plan_name or order.plan), delivery_text])
+
+        # Welcome message on the customer's first paid order.
+        if Order.objects.filter(customer_id=customer_id, status=Order.Status.PAID).count() == 1:
+            name = c.user.get_short_name()
+            _notify(
+                c,
+                event="welcome",
+                wa_text=f"👋 Welcome to berlanggan, {name}! Your account is ready. "
+                        f"Manage your subscriptions and balance from your dashboard.",
+                email_subject="Welcome to berlanggan",
+                email_body=f"Welcome to berlanggan, {name}!\n\nYour account is ready. "
+                           f"Manage your subscriptions and balance from your dashboard.",
+                wa_params=[name],
+            )
     except Exception:
         logger.exception("handle_order_paid: error for customer %s", customer_id)
 
@@ -123,6 +138,7 @@ def handle_order_awaiting_confirmation(customer_id, order_id, plan_name="", **kw
             wa_text=body,
             email_subject=f"Order received — awaiting payment: {plan_name or order.plan}",
             email_body=body,
+            wa_params=[str(plan_name or order.plan), f"{order.amount:,}"],
         )
 
         # Sellers are email-only (ADR-022).
@@ -155,7 +171,8 @@ def handle_order_payment_rejected(customer_id, order_id, plan_name="", reason=""
             f"{tail}\n\nContact the seller if you have already paid."
         )
         _notify(c, event="order.payment_rejected", wa_text=body,
-                email_subject=f"Payment not verified: {plan_name}", email_body=body)
+                email_subject=f"Payment not verified: {plan_name}", email_body=body,
+                wa_params=[str(plan_name)])
     except Exception:
         logger.exception("handle_order_payment_rejected: error for customer %s", customer_id)
 
@@ -171,7 +188,8 @@ def handle_subscription_renewed(customer_id, sub_id, plan_name="", new_period_en
             f"Active until: {period_str}"
         )
         _notify(c, event="subscription.renewed", wa_text=msg,
-                email_subject=f"Subscription renewed: {plan_name}", email_body=msg)
+                email_subject=f"Subscription renewed: {plan_name}", email_body=msg,
+                wa_params=[str(plan_name), period_str])
     except Exception:
         logger.exception("handle_subscription_renewed: error for customer %s", customer_id)
 
@@ -187,7 +205,8 @@ def handle_subscription_graced(customer_id, sub_id, plan_name="", grace_days=3, 
             f"Top up now to keep your access active."
         )
         _notify(c, event="subscription.graced", wa_text=msg,
-                email_subject=f"Renewal failed: {plan_name}", email_body=msg)
+                email_subject=f"Renewal failed: {plan_name}", email_body=msg,
+                wa_params=[str(plan_name), str(grace_days)])
     except Exception:
         logger.exception("handle_subscription_graced: error for customer %s", customer_id)
 
@@ -203,7 +222,8 @@ def handle_subscription_suspended(customer_id, sub_id, plan_name="", **kwargs):
             f"Top up now — access will be restored automatically."
         )
         _notify(c, event="subscription.suspended", wa_text=msg,
-                email_subject=f"Access suspended: {plan_name}", email_body=msg)
+                email_subject=f"Access suspended: {plan_name}", email_body=msg,
+                wa_params=[str(plan_name)])
     except Exception:
         logger.exception("handle_subscription_suspended: error for customer %s", customer_id)
 
@@ -218,6 +238,7 @@ def handle_subscription_cancelled(customer_id, sub_id, plan_name="", **kwargs):
             f"Reactivate any time from your dashboard."
         )
         _notify(c, event="subscription.cancelled", wa_text=msg,
-                email_subject=f"Subscription ended: {plan_name}", email_body=msg)
+                email_subject=f"Subscription ended: {plan_name}", email_body=msg,
+                wa_params=[str(plan_name)])
     except Exception:
         logger.exception("handle_subscription_cancelled: error for customer %s", customer_id)

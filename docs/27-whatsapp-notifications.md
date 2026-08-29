@@ -312,10 +312,14 @@ Legenda kanal: **P** = kirim ke kanal pilihan pelanggan (`resolve_channel`); **E
 
 > Preference center penuh (link unsubscribe di email, dst.) digabung ke N.7.
 
-### Fase N.5 — Template WABA
-- [ ] `templates_registry.py`.
-- [ ] Ajukan template ke kirim.chat/Meta (lihat daftar di bawah) — **butuh waktu approval, mulai awal**.
-- [ ] `KirimChatBackend.send()` dukung `message_type="template"` + variabel.
+### Fase N.5 — Template WABA ✅ kode (2026-08-30) · ⏳ approval
+- [x] `apps/notifications/templates_registry.py` — `TEMPLATES` (event → `Template(name, category, body, variables)`), alias untuk reuse (h1→h3, d3/d1→d7, dst.), `get_template()`, `template_mode()`.
+- [x] `KirimChatBackend.send(to, msg, template=None)` — kirim `message_type="template"` (bentuk payload **belum diverifikasi** ke template asli — cek sebelum `WA_TEMPLATE_MODE=on`). Console/Fonnte terima & abaikan.
+- [x] `send_whatsapp` + `deliver_whatsapp` task + `dispatch.notify()/notify_wa_copy()` terima `template` / `wa_params`. Handler + reminder + OTP mengirim `wa_params`.
+- [x] `Setting WA_TEMPLATE_MODE` — `off` (default, teks polos) / `on` (template bila ada + params, else teks) / `strict` (tanpa template → rute ke email).
+- [x] `python manage.py wa_templates` — cetak daftar template untuk di-submit.
+- [x] Tes: `tests/test_wa_templates_and_prefs.py` (registry, mode off/on).
+- [ ] **Kamu:** submit ~14 template di dashboard kirim.chat/Meta, tunggu approval, lalu set `WA_TEMPLATE_MODE=on`.
 
 ### Fase N.6 — Notifikasi baru (Tier 1) ✅ (2026-08-30)
 - [x] `reminders.py` di-refactor: helper `_send_once()` + `_window()`; `dispatch_all_reminders()` dipanggil task hourly `send_renewal_reminders`.
@@ -324,13 +328,16 @@ Legenda kanal: **P** = kirim ke kanal pilihan pelanggan (`resolve_channel`); **E
 - [x] **Pending-payment nudge** — `dispatch_pending_order_reminders()` untuk order `PENDING` + `qris_static`, umur ~2h / ~24h.
 - [x] Tes: `tests/test_lifecycle_reminders.py` (8).
 - [ ] Auto-expire order QRIS Statis + notifikasi "order expired" — **ditunda**: butuh keputusan billing (tidak ada `Order.expires_at`; order QRIS Statis sekarang PENDING selamanya sampai seller konfirmasi/tolak).
-- [ ] Saldo rendah proaktif, welcome message → digeser ke N.7.
-- [ ] `subscription.renewed` + email.
 
-### Fase N.7 — Tier 2 & 3
-- [ ] Saldo rendah proaktif, welcome message.
-- [ ] Quiet hours + broadcast throttle.
-- [ ] Promosi / win-back / produk baru — **email-only** (opt-in `notif_promo`).
+### Fase N.7 — Tier 2 & 3 ✅ (2026-08-30)
+- [x] **Saldo rendah proaktif** — `dispatch_low_balance_alerts()` (auto-renew, renewal D-5..D-7, saldo < harga), 1× per periode. Ikut `dispatch_all_reminders()`.
+- [x] **Welcome message** — di `handle_order_paid` saat order PAID pertama pelanggan (event `welcome`, kanal pilihan + template).
+- [x] **Quiet hours** — `dispatch._quiet_hours_delay()`; non-urgent WA ditunda ke `WA_QUIET_END` (WIB). `Setting WA_QUIET_START`/`WA_QUIET_END`, default 0/0 = mati. Urgent (`suspended`, `payment_rejected`) tak pernah ditunda.
+- [x] **Unsubscribe** — `apps/notifications/unsubscribe.py` (token bertanda tangan) + view `/notifications/unsubscribe/<token>/` + template; footer "Manage notifications" ditambahkan ke email single-channel (`dispatch.notify`) & promo. Scope: promo-only atau all→email.
+- [x] **Promosi email-only** — `dispatch.notify_promo()` (hormati `notif_promo`, email-only, + footer unsub) + task `notifications.broadcast_promo(subject, body)`.
+- [x] Tes: `tests/test_wa_templates_and_prefs.py` (low-balance, unsubscribe, promo opt-in).
+- [ ] Broadcast throttle (rate-limit WA 60/menit) — belum perlu selama promosi email-only; tambah saat WA marketing diaktifkan.
+- [ ] Win-back / produk baru dari seller yang di-follow — belum (butuh campaign UI / trigger; `broadcast_promo` sudah jadi fondasinya).
 
 **Draft template WABA untuk diajukan** (nama sementara — semua kategori utility kecuali OTP):
 `otp_wa_verification` (auth) · `topup_success` · `order_success` · `order_pending_payment` · `order_expired` ·

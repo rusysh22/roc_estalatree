@@ -19,16 +19,24 @@ logger = logging.getLogger(__name__)
 
 @runtime_checkable
 class WhatsAppBackend(Protocol):
-    def send(self, to_number: str, message: str) -> str | None:
-        """Send the message. Returns the provider message id when available."""
+    def send(self, to_number: str, message: str, template: dict | None = None) -> str | None:
+        """Send the message. Returns the provider message id when available.
+
+        `template`, when given, is {"name", "language", "params": [str, ...]} and
+        the backend should send an approved WABA template instead of free text.
+        `message` is still passed as the human-readable fallback / log line.
+        """
         ...
 
 
 class ConsoleBackend:
     """Dev / test backend — logs the message. No credentials needed."""
 
-    def send(self, to_number: str, message: str) -> str | None:
-        logger.info("[WA-console] → %s: %s", to_number, message[:80])
+    def send(self, to_number: str, message: str, template: dict | None = None) -> str | None:
+        if template:
+            logger.info("[WA-console] → %s: template %s %s", to_number, template["name"], template.get("params"))
+        else:
+            logger.info("[WA-console] → %s: %s", to_number, message[:80])
         return None
 
 
@@ -40,13 +48,14 @@ class FonnteBackend:
 
     API_URL = "https://api.fonnte.com/send"
 
-    def send(self, to_number: str, message: str) -> str | None:
+    def send(self, to_number: str, message: str, template: dict | None = None) -> str | None:
         import os
         token = os.environ.get("WA_TOKEN", "")
         if not token:
             logger.warning("FonnteBackend: WA_TOKEN env var not set — message not sent to %s", to_number)
             return None
 
+        # Fonnte has no first-class template API — send the rendered text.
         payload = json.dumps({"target": to_number, "message": message}).encode()
         req = urllib.request.Request(
             self.API_URL,
@@ -72,16 +81,18 @@ class KirimChatBackend:
     """kirim.chat WA gateway (ADR-022). Requires WA_TOKEN env var (kc_live_… API key).
 
     Docs: https://docs.kirim.chat/developers
-    Text send only for now; template sends (message_type="template") land with
-    the WABA template work — see docs/27-whatsapp-notifications.md §C8.
 
     WA_TOKEN is a secret API credential — read from env only, never a DB Setting
     (same rule as FonnteBackend).
+
+    Template payload shape (message_type="template") is taken from the docs
+    summary and NOT yet verified against a live approved template — confirm the
+    `template` object keys before flipping WA_TEMPLATE_MODE on in production.
     """
 
     API_URL = "https://api-prod.kirim.chat/api/v1/public/messages/send"
 
-    def send(self, to_number: str, message: str) -> str | None:
+    def send(self, to_number: str, message: str, template: dict | None = None) -> str | None:
         import os
         token = os.environ.get("WA_TOKEN", "")
         if not token:
@@ -90,12 +101,25 @@ class KirimChatBackend:
             )
             return None
 
-        payload = json.dumps({
-            "phone_number": to_number,
-            "channel": "whatsapp",
-            "message_type": "text",
-            "content": message,
-        }).encode()
+        if template:
+            body = {
+                "phone_number": to_number,
+                "channel": "whatsapp",
+                "message_type": "template",
+                "template": {
+                    "name": template["name"],
+                    "language": template.get("language", "en"),
+                    "parameters": [{"type": "text", "text": str(p)} for p in template.get("params", [])],
+                },
+            }
+        else:
+            body = {
+                "phone_number": to_number,
+                "channel": "whatsapp",
+                "message_type": "text",
+                "content": message,
+            }
+        payload = json.dumps(body).encode()
         req = urllib.request.Request(
             self.API_URL,
             data=payload,
@@ -159,11 +183,13 @@ def normalize_number(raw: str) -> str:
     return normalize_wa_number(raw)
 
 
-def send_whatsapp(to_number: str, message: str) -> str | None:
+def send_whatsapp(to_number: str, message: str, template: dict | None = None) -> str | None:
     """Send a WA message via the configured backend. No-op if number is blank.
 
+    `template`, when given, is {"name", "language", "params": [...]} and is sent
+    as an approved WABA template; `message` remains the human-readable fallback.
     Returns the provider message id when the backend reports one.
     """
     if not to_number:
         return None
-    return get_backend().send(normalize_number(to_number), message)
+    return get_backend().send(normalize_number(to_number), message, template)
