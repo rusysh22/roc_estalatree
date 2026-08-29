@@ -82,6 +82,32 @@ class WhatsAppSuppression(TimestampedModel):
         return f"{self.number} [{self.reason}]"
 
 
+class WhatsAppOTP(TimestampedModel):
+    """One-time code for verifying a customer's WhatsApp number (ADR-022, N.4).
+
+    Only the hash of the code is stored. A code is valid until `expires_at`,
+    for at most `MAX_ATTEMPTS` guesses, and only while `consumed_at` is null.
+    """
+
+    MAX_ATTEMPTS = 5
+
+    customer = models.ForeignKey(
+        "accounts.Customer", on_delete=models.CASCADE, related_name="wa_otps"
+    )
+    number = models.CharField(max_length=20)
+    code_hash = models.CharField(max_length=128)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["customer", "number", "consumed_at"])]
+
+    def __str__(self):
+        return f"OTP {self.number} for customer {self.customer_id}"
+
+
 class NotificationDelivery(TimestampedModel):
     """Outbox row: one per notification we hand to a channel.
 

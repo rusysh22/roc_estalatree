@@ -279,12 +279,6 @@ def profile(request):
     customer = _customer(request)
     if request.method == "POST":
         from apps.core.models import NotificationChannel
-        from apps.notifications.whatsapp import normalize_number
-
-        wa = normalize_number(request.POST.get("wa_number", ""))
-        if wa != customer.wa_number:
-            customer.wa_number = wa
-            customer.wa_number_verified_at = None  # re-verify after any change
 
         channel = request.POST.get("notification_channel", NotificationChannel.EMAIL)
         if channel not in NotificationChannel.values:
@@ -295,17 +289,7 @@ def profile(request):
             messages.warning(request, "Verify your WhatsApp number first to receive notifications there.")
         customer.notification_channel = channel
         customer.notif_promo = bool(request.POST.get("notif_promo"))
-
-        try:
-            customer.full_clean(exclude=["user"])
-        except ValidationError as e:
-            messages.error(request, "; ".join(sum(e.message_dict.values(), [])))
-            return redirect("dashboard:profile")
-
-        customer.save(update_fields=[
-            "wa_number", "wa_number_verified_at", "notification_channel",
-            "notif_promo", "updated_at",
-        ])
+        customer.save(update_fields=["notification_channel", "notif_promo", "updated_at"])
         messages.success(request, "Profile updated.")
         return redirect("dashboard:profile")
 
@@ -317,10 +301,48 @@ def profile(request):
     except Exception:
         email_verified = True
 
+    from django.utils import timezone as _tz
+    pending_otp = (
+        customer.wa_otps.filter(consumed_at__isnull=True, expires_at__gt=_tz.now())
+        .order_by("-created_at")
+        .first()
+    )
+
     return render(request, "dashboard/profile.html", {
         "customer": customer,
         "email_verified": email_verified,
+        "pending_wa_number": pending_otp.number if pending_otp else "",
     })
+
+
+@login_required
+@require_POST
+def wa_send_otp(request):
+    from apps.notifications.otp import OtpError, request_code
+
+    customer = _customer(request)
+    number = request.POST.get("wa_number", "").strip() or customer.wa_number
+    try:
+        request_code(customer, number)
+        messages.success(request, "Verification code sent to your WhatsApp.")
+    except OtpError as e:
+        messages.error(request, str(e))
+    return redirect("dashboard:profile")
+
+
+@login_required
+@require_POST
+def wa_verify_otp(request):
+    from apps.notifications.otp import OtpError, verify_code
+
+    customer = _customer(request)
+    number = request.POST.get("wa_number", "").strip() or customer.wa_number
+    try:
+        verify_code(customer, number, request.POST.get("code", ""))
+        messages.success(request, "WhatsApp number verified.")
+    except OtpError as e:
+        messages.error(request, str(e))
+    return redirect("dashboard:profile")
 
 
 @login_required

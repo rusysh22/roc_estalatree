@@ -33,22 +33,6 @@
         {% endif %}
       </div>
 
-      <div class="mb-5">
-        <label for="wa_number" class="block text-sm font-medium text-ink-700 mb-1">WhatsApp Number</label>
-        <input type="tel" id="wa_number" name="wa_number"
-               value="{{ customer.wa_number }}"
-               placeholder="628123456789"
-               class="w-full px-3 py-2 border border-ink-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-        {% if customer.wa_number %}
-          {% if customer.wa_verified %}
-          <p class="text-xs text-moss-600 mt-1">WhatsApp number verified.</p>
-          {% else %}
-          <p class="text-xs text-gold-600 mt-1">Not verified &mdash; verify it to receive notifications on WhatsApp.</p>
-          {% endif %}
-        {% endif %}
-        <p class="text-xs text-ink-400 mt-1">Changing the number resets verification.</p>
-      </div>
-
       <!-- Notification channel (one channel, ADR-022) -->
       <div class="mb-5 space-y-2">
         <p class="text-sm font-medium text-ink-700">Notification channel</p>
@@ -82,6 +66,59 @@
         Save
       </button>
     </form>
+  </div>
+
+  <!-- WhatsApp number + verification -->
+  <div class="bg-white rounded-2xl border border-ink-100 p-6">
+    <h2 class="font-bold text-ink-800 mb-1">WhatsApp number</h2>
+    <p class="text-xs text-ink-400 mb-4">Verify your number to receive notifications on WhatsApp. Verification is required before you can pick WhatsApp as your channel.</p>
+
+    {% if customer.wa_verified %}
+    <div class="flex items-center justify-between px-4 py-3 border border-moss-100 bg-moss-50 rounded-xl">
+      <div>
+        <p class="text-sm font-medium text-ink-800">{{ customer.wa_number }}</p>
+        <p class="text-xs text-moss-600">Verified</p>
+      </div>
+      <form method="post" action="{% url 'dashboard:wa_send_otp' %}">
+        {% csrf_token %}
+        <input type="hidden" name="wa_number" value="{{ customer.wa_number }}">
+        <button type="submit" class="text-xs font-semibold text-primary-600 hover:text-primary-700 underline">Re-verify</button>
+      </form>
+    </div>
+    {% else %}
+    <form method="post" action="{% url 'dashboard:wa_send_otp' %}" class="mb-4">
+      {% csrf_token %}
+      <label for="wa_number" class="block text-sm font-medium text-ink-700 mb-1">Number</label>
+      <div class="flex gap-2">
+        <input type="tel" id="wa_number" name="wa_number"
+               value="{{ pending_wa_number|default:customer.wa_number }}"
+               placeholder="628123456789"
+               class="flex-1 px-3 py-2 border border-ink-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+        <button type="submit"
+                class="bg-primary-500 hover:bg-primary-600 text-white font-semibold px-4 py-2 rounded-xl text-sm whitespace-nowrap">
+          Send code
+        </button>
+      </div>
+    </form>
+
+    {% if pending_wa_number %}
+    <form method="post" action="{% url 'dashboard:wa_verify_otp' %}">
+      {% csrf_token %}
+      <input type="hidden" name="wa_number" value="{{ pending_wa_number }}">
+      <label for="code" class="block text-sm font-medium text-ink-700 mb-1">Enter the 6-digit code sent to {{ pending_wa_number }}</label>
+      <div class="flex gap-2">
+        <input type="text" id="code" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+               placeholder="123456"
+               class="flex-1 px-3 py-2 border border-ink-300 rounded-xl text-sm tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500">
+        <button type="submit"
+                class="bg-ink-800 hover:bg-ink-900 text-white font-semibold px-4 py-2 rounded-xl text-sm">
+          Verify
+        </button>
+      </div>
+      <p class="text-xs text-ink-400 mt-1">Code expires in 5 minutes.</p>
+    </form>
+    {% endif %}
+    {% endif %}
   </div>
 
   <!-- Account security links -->

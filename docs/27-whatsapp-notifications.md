@@ -303,11 +303,14 @@ Legenda kanal: **P** = kirim ke kanal pilihan pelanggan (`resolve_channel`); **E
 - [x] `WhatsAppSuppression` model + admin; STOP/START keyword; `effective_channel()` cek suppression.
 - [x] Tes: `tests/test_notification_webhook.py` (signature 401, delivered, failed→fallback, idempotency, STOP).
 
-### Fase N.4 — OTP verifikasi nomor (pelanggan)
-- [ ] `WhatsAppOTP`, service generate/verify, rate limit.
-- [ ] UI dashboard pelanggan: input nomor → kirim kode → verifikasi; opsi "WhatsApp" di preference terkunci sampai verified.
-- [ ] Preference center pelanggan: pilih kanal (email/WA), toggle `notif_promo`, link unsubscribe.
-- [ ] Tes: happy path, kode kedaluwarsa, brute-force, cooldown.
+### Fase N.4 — OTP verifikasi nomor (pelanggan) ✅ (2026-08-30)
+- [x] `WhatsAppOTP` model (migration `notifications/0004`) — hanya hash kode, `expires_at`, `attempts` (maks 5), `consumed_at`.
+- [x] `apps/notifications/otp.py` — `request_code()` / `verify_code()`; rate limit: cooldown 60s, maks 3 kirim/nomor/jam, cek suppression. Kode 6 digit, TTL 5 menit, dikirim via `deliver_whatsapp` (plain text; template `authentication` menyusul di N.5).
+- [x] Views `dashboard:wa_send_otp` / `dashboard:wa_verify_otp`; `dashboard/profile.html` — kartu "WhatsApp number" (input → Send code → Enter code → Verify); nomor **tidak lagi** disimpan lewat form profil utama, hanya via alur OTP. Radio "WhatsApp" terkunci sampai `wa_verified` (sudah dari N.1).
+- [x] Ganti nomor / verify ulang → `verify_code` set `wa_number` + `wa_number_verified_at`.
+- [x] Tes: `tests/test_wa_otp.py` (happy path, brute-force lock, kedaluwarsa, cooldown, suppressed, view wiring).
+
+> Preference center penuh (link unsubscribe di email, dst.) digabung ke N.7.
 
 ### Fase N.5 — Template WABA
 - [ ] `templates_registry.py`.

@@ -4,6 +4,7 @@ from apps.notifications.models import (
     EmailSuppression,
     NotificationDelivery,
     NotificationLog,
+    WhatsAppOTP,
     WhatsAppSuppression,
 )
 
@@ -27,6 +28,13 @@ class WhatsAppSuppressionAdmin(admin.ModelAdmin):
     list_display = ("number", "reason", "created_at")
     list_filter = ("reason",)
     search_fields = ("number", "detail")
+
+
+@admin.register(WhatsAppOTP)
+class WhatsAppOTPAdmin(admin.ModelAdmin):
+    list_display = ("number", "customer", "attempts", "expires_at", "consumed_at", "created_at")
+    search_fields = ("number", "customer__user__email")
+    readonly_fields = ("customer", "number", "code_hash", "expires_at", "attempts", "consumed_at")
 
 
 @admin.register(NotificationDelivery)
