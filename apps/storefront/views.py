@@ -895,11 +895,14 @@ def privacy(request):
 # to a session-bound cart; checkout itself requires login (matches top-up).
 # PWYW plans and plans with required intake questions are not addable to cart.
 
-def _cart_lines(cart):
+def _cart_lines(cart, only_ids=None):
     from apps.billing.cart_service import compute_cart_line
 
     lines, total = [], 0
+    wanted = {int(i) for i in only_ids} if only_ids is not None else None
     for item in cart.items.select_related("plan__product__seller").all():
+        if wanted is not None and item.pk not in wanted:
+            continue
         price, discount, coupon_obj, base_price = compute_cart_line(item)
         lines.append({"item": item, "price": price, "discount": discount,
                       "coupon": coupon_obj, "base_price": base_price})
@@ -1007,7 +1010,13 @@ def cart_checkout_view(request):
             return guest_redirect
 
     cart = get_or_create_cart(request)
-    lines, total = _cart_lines(cart)
+
+    # A subset of the cart may be selected on the cart page (checkbox per line).
+    selected_ids = request.POST.getlist("item") or request.GET.getlist("item") or None
+    all_ids = list(cart.items.values_list("pk", flat=True))
+    if selected_ids is not None:
+        selected_ids = [i for i in selected_ids if i.isdigit() and int(i) in all_ids]
+    lines, total = _cart_lines(cart, only_ids=selected_ids)
     if not lines:
         messages.info(request, "Your cart is empty.")
         return redirect("storefront:cart")
@@ -1036,6 +1045,7 @@ def cart_checkout_view(request):
         return render(request, "storefront/cart_checkout.html", {
             "lines": lines,
             "total": total,
+            "selected_ids": selected_ids or [ln["item"].pk for ln in lines],
             "wallet_balance": wallet_balance,
             "wallet_covers": wallet_covers,
             "shortfall": shortfall if gateway_online else 0,
@@ -1065,6 +1075,7 @@ def cart_checkout_view(request):
             return_url=request.build_absolute_uri("/orders/pending/"),
             payment_method=payment_method,
             payment_proof=payment_proof,
+            selected_item_ids=selected_ids,
         )
     except CartPaymentMethodRequiredError:
         messages.error(request, "Please choose a payment method.")
@@ -1093,12 +1104,27 @@ def cart_checkout_receipt(request, public_id):
     customer, _ = _get_or_create_customer(request.user)
     cart_checkout = get_object_or_404(CartCheckout, public_id=public_id, customer=customer)
     orders = list(
-        cart_checkout.orders.select_related("plan__product__seller").prefetch_related("grants")
+        cart_checkout.orders
+        .select_related("plan__product__seller", "subscription")
+        .prefetch_related("grants")
+        .order_by("plan__product__seller__name", "created_at")
     )
+
+    # Group by store so a multi-seller cart reads clearly.
+    stores = []
+    for order in orders:
+        seller = order.plan.product.seller
+        key = seller.pk if seller else 0
+        if not stores or stores[-1]["key"] != key:
+            stores.append({"key": key, "seller": seller, "orders": [], "subtotal": 0})
+        stores[-1]["orders"].append(order)
+        stores[-1]["subtotal"] += order.amount
 
     return render(request, "storefront/cart_checkout_receipt.html", {
         "cart_checkout": cart_checkout,
         "orders": orders,
+        "stores": stores,
+        "multi_store": len(stores) > 1,
         "total": sum(o.amount for o in orders),
     })
 

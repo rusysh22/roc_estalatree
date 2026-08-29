@@ -3,20 +3,20 @@
 {% block page_title %}Home{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-extrabold text-ink-900 mb-6 tracking-tight">Dashboard</h1>
+<h1 class="text-xl sm:text-2xl font-extrabold text-ink-900 mb-5 sm:mb-6 tracking-tight">Dashboard</h1>
 
 <!-- Renewal CTA banner (H-24 shortfall) -->
 {% if next_sub and shortfall > 0 and hours_until < 24 %}
-<div class="mb-6 bg-gold-50 border border-gold-300 rounded-2xl px-5 py-4 flex items-center justify-between">
+<div class="mb-6 bg-gold-50 border border-gold-300 rounded-2xl px-5 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
   <div>
     <p class="font-bold text-gold-800">
-      Renewal due in {{ hours_until|rupiah }}h &mdash; balance short by
+      Renewal due in {{ hours_until|floatformat:0 }}h &mdash; balance short by
       <strong>{{ shortfall|rupiah }}</strong>
     </p>
     <p class="text-sm text-gold-700 mt-0.5">{{ next_sub.plan.name }}</p>
   </div>
   <a href="{% url 'dashboard:wallet' %}"
-     class="ml-4 shrink-0 bg-gold-500 hover:bg-gold-600 text-ink-900 text-sm font-bold px-4 py-2 rounded-xl">
+     class="shrink-0 text-center bg-gold-500 hover:bg-gold-600 text-ink-900 text-sm font-bold px-4 py-2 rounded-full">
     Top up now
   </a>
 </div>

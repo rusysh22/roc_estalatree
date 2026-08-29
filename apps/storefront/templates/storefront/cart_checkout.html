@@ -8,7 +8,7 @@
 <div class="min-h-screen flex flex-col">
 
   <header class="sticky top-0 z-30 bg-cream/90 backdrop-blur border-b border-ink-900/5">
-    <div class="max-w-md mx-auto px-4 h-14 flex items-center gap-2">
+    <div class="max-w-md lg:max-w-5xl mx-auto px-4 lg:px-8 h-14 flex items-center gap-2">
       <a href="{% url 'storefront:cart' %}" class="-ml-1.5 p-1.5 rounded-full text-ink-500 hover:bg-ink-900/5 transition-colors" aria-label="Back">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
       </a>
@@ -22,7 +22,11 @@
 
   {% include "storefront/partials/_toasts.html" %}
 
-  <main class="flex-1 max-w-md mx-auto w-full px-4 py-4 pb-48 space-y-3">
+  <main class="flex-1 w-full mx-auto max-w-md lg:max-w-5xl px-4 lg:px-8 py-4 lg:py-10">
+   <div class="lg:grid lg:grid-cols-[1fr_22rem] lg:gap-10 lg:items-start pb-44 lg:pb-0">
+
+    {# ── LEFT column ── #}
+    <div class="min-w-0 space-y-3">
 
     {# ── Items ── #}
     <section class="bg-white rounded-2xl border border-ink-100 divide-y divide-ink-100">
@@ -40,13 +44,6 @@
         <span class="text-sm font-bold text-ink-900 shrink-0">{{ line.price|rupiah }}</span>
       </div>
       {% endfor %}
-    </section>
-
-    {# ── Order total ── #}
-    <section class="bg-white rounded-2xl border border-ink-100 p-4 text-sm">
-      <div class="flex justify-between font-extrabold text-ink-900">
-        <span>Order total</span><span>{{ total|rupiah }}</span>
-      </div>
     </section>
 
     {# ── Guest email ── #}
@@ -161,24 +158,41 @@
       </div>
     </section>
 
-  </main>
+    </div>{# /left column #}
 
-  {# ── Sticky bottom CTA (the form) ── #}
-  <form method="post" action="{% url 'storefront:cart_checkout' %}" id="cart-checkout-form" enctype="multipart/form-data"
-        class="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-ink-100 shadow-[0_-10px_30px_-12px_rgba(22,19,15,.18)]">
-    {% csrf_token %}
-    <div class="max-w-md mx-auto px-4 pt-3 pb-4">
-      <div class="flex items-center justify-between mb-2.5">
-        <span class="text-xs font-semibold text-ink-500">Total to pay</span>
-        <span class="text-xl font-extrabold text-ink-900" data-total-display>{% if wallet_covers %}{{ total|rupiah }}{% else %}{{ gateway_total|rupiah }}{% endif %}</span>
-      </div>
-      <button type="submit" data-pay-btn {% if no_payment_method %}disabled{% endif %}
-              class="w-full py-3.5 rounded-full font-bold text-sm bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white transition-colors disabled:bg-ink-200 disabled:text-ink-400 disabled:cursor-not-allowed">
-        {% if no_payment_method %}Payment unavailable{% elif wallet_covers %}Confirm & pay{% else %}Pay now{% endif %}
-      </button>
-      <p class="text-[11px] text-center text-ink-400 mt-2">Secure payment · instant access</p>
-    </div>
-  </form>
+    {# ── RIGHT column: summary + CTA ── #}
+    <aside class="lg:sticky lg:top-20 mt-3 lg:mt-0 space-y-3">
+      <section class="bg-white rounded-2xl border border-ink-100 p-4 text-sm">
+        <p class="text-[11px] font-bold text-ink-400 uppercase tracking-wide mb-3">Order summary</p>
+        <div class="flex justify-between text-ink-500">
+          <span>{{ lines|length }} item{{ lines|length|pluralize }}</span><span>{{ total|rupiah }}</span>
+        </div>
+        <div class="flex justify-between font-extrabold text-ink-900 pt-2 mt-2 border-t border-ink-100">
+          <span>Order total</span><span>{{ total|rupiah }}</span>
+        </div>
+      </section>
+
+      <form method="post" action="{% url 'storefront:cart_checkout' %}" id="cart-checkout-form" enctype="multipart/form-data"
+            class="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-ink-100 shadow-[0_-10px_30px_-12px_rgba(22,19,15,.18)]
+                   lg:static lg:z-auto lg:rounded-2xl lg:border lg:border-ink-100 lg:shadow-none">
+        {% csrf_token %}
+        {% for id in selected_ids %}<input type="hidden" name="item" value="{{ id }}">{% endfor %}
+        <div class="max-w-md lg:max-w-none mx-auto px-4 pt-3 pb-4 lg:p-5">
+          <div class="flex items-center justify-between mb-2.5">
+            <span class="text-xs font-semibold text-ink-500">Total to pay</span>
+            <span class="text-xl font-extrabold text-ink-900" data-total-display>{% if wallet_covers %}{{ total|rupiah }}{% else %}{{ gateway_total|rupiah }}{% endif %}</span>
+          </div>
+          <button type="submit" data-pay-btn {% if no_payment_method %}disabled{% endif %}
+                  class="w-full py-3.5 rounded-full font-bold text-sm bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white transition-colors disabled:bg-ink-200 disabled:text-ink-400 disabled:cursor-not-allowed">
+            {% if no_payment_method %}Payment unavailable{% elif wallet_covers %}Confirm & pay{% else %}Pay now{% endif %}
+          </button>
+          <p class="text-[11px] text-center text-ink-400 mt-2">Secure payment · instant access</p>
+        </div>
+      </form>
+    </aside>
+
+   </div>{# /grid #}
+  </main>
 </div>
 {% endblock %}
 

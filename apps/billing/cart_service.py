@@ -171,11 +171,14 @@ def _increment_coupon_usage(coupon: Coupon) -> None:
 
 def checkout_cart(customer, cart: Cart, *, callback_url: str = "", return_url: str,
                    payment_method: str | None = None, gateway_client=None,
-                   payment_proof=None):
-    """Check out every line in the cart. Returns (cart_checkout, grants, payment_url) —
+                   payment_proof=None, selected_item_ids=None):
+    """Check out the cart. Returns (cart_checkout, grants, payment_url) —
     payment_url is None when fully paid from wallet balance (cart_checkout.status is
     already COMPLETED in that case); grants is [] when a TopUp is needed (orders stay
     PENDING, cart_checkout stays PENDING, until the webhook completes them).
+
+    selected_item_ids: if given, only those CartItems are checked out and removed;
+    the rest stay in the cart. None means "every line".
 
     A CartCheckout row is always created (even when paid immediately from wallet
     balance) so there's one canonical receipt page for both paths.
@@ -183,9 +186,13 @@ def checkout_cart(customer, cart: Cart, *, callback_url: str = "", return_url: s
     from apps.billing.checkout import _assign_invoice_number, _create_subscription, _provision_order, _record_seller_earning
 
     items = list(cart.items.select_related("plan__product").all())
+    if selected_item_ids is not None:
+        wanted = {int(i) for i in selected_item_ids}
+        items = [i for i in items if i.pk in wanted]
     if not items:
         raise EmptyCartError("Your cart is empty.")
 
+    checked_out_ids = [i.pk for i in items]
     lines = [(item, *compute_cart_line(item)) for item in items]
     total = sum(price for _item, price, _discount, _coupon, _base in lines)
 
@@ -211,7 +218,7 @@ def checkout_cart(customer, cart: Cart, *, callback_url: str = "", return_url: s
                     cart_checkout=cart_checkout,
                     idempotency_key=f"cart:{cart.pk}:item:{item.pk}",
                 )
-            cart.items.all().delete()
+            cart.items.filter(pk__in=checked_out_ids).delete()
         emit("order.awaiting_confirmation", customer_id=customer.pk,
              order_id=cart_checkout.orders.first().pk, plan_name="cart checkout")
         return cart_checkout, [], None
@@ -260,7 +267,7 @@ def checkout_cart(customer, cart: Cart, *, callback_url: str = "", return_url: s
 
                 grants_all.extend(grants)
 
-            cart.items.all().delete()
+            cart.items.filter(pk__in=checked_out_ids).delete()
 
         return cart_checkout, grants_all, None
 
@@ -297,7 +304,7 @@ def checkout_cart(customer, cart: Cart, *, callback_url: str = "", return_url: s
         topup.cart_checkout = cart_checkout
         topup.save(update_fields=["cart_checkout", "updated_at"])
 
-        cart.items.all().delete()
+        cart.items.filter(pk__in=checked_out_ids).delete()
 
     return cart_checkout, [], payment_url
 

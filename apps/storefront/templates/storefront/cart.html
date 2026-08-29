@@ -9,7 +9,7 @@
 
   {# ── Minimal top bar (no marketplace nav / footer) ── #}
   <header class="sticky top-0 z-30 bg-cream/90 backdrop-blur border-b border-ink-900/5">
-    <div class="max-w-md mx-auto px-4 h-14 flex items-center gap-2">
+    <div class="max-w-xl mx-auto px-4 h-14 flex items-center gap-2">
       <a href="{% url 'storefront:page' %}"
          class="-ml-1.5 p-1.5 rounded-full text-ink-500 hover:bg-ink-900/5 transition-colors" aria-label="Continue shopping">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
@@ -20,7 +20,7 @@
 
   {% include "storefront/partials/_toasts.html" %}
 
-  <main class="flex-1 max-w-md mx-auto w-full px-4 py-4 {% if lines %}pb-40{% else %}pb-10{% endif %}">
+  <main class="flex-1 max-w-xl mx-auto w-full px-4 py-4 {% if lines %}pb-44{% else %}pb-10{% endif %}">
 
     {% if not lines %}
     <div class="bg-white rounded-2xl border border-ink-100 p-10 text-center mt-6">
@@ -36,93 +36,154 @@
     </div>
     {% else %}
 
-    <ul class="space-y-3">
-      {% for line in lines %}
-      <li class="bg-white rounded-2xl border border-ink-100 p-3.5 hover:border-ink-200 transition-colors">
-        <div class="flex gap-3.5">
-          {# thumbnail #}
-          {% if line.item.plan.product.cover_image %}
-          <img src="{{ line.item.plan.product.cover_image.url }}" alt=""
-               class="w-16 h-16 rounded-xl object-cover shrink-0 ring-1 ring-ink-900/5">
-          {% else %}
-          <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-cream to-ink-100 flex items-center justify-center shrink-0 text-xl font-extrabold text-ink-300">
-            {{ line.item.plan.product.name|slice:':1'|upper }}
-          </div>
-          {% endif %}
+    <form method="get" action="{% url 'storefront:cart_checkout' %}" id="cart-select-form" data-cart-select-form>
 
-          <div class="flex-1 min-w-0">
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0">
-                <p class="font-bold text-ink-900 text-sm leading-tight line-clamp-1">{{ line.item.plan.product.name }}</p>
-                <p class="text-[11px] text-ink-400 mt-0.5 line-clamp-1">
-                  {{ line.item.plan.name }}{% if line.item.plan.product.seller %} · {{ line.item.plan.product.seller.name }}{% endif %}
-                </p>
-              </div>
-              <div class="text-right shrink-0">
-                {% if line.discount %}<p class="text-[11px] text-ink-300 line-through leading-none">{{ line.base_price|rupiah }}</p>{% endif %}
-                <p class="font-extrabold text-ink-900 text-sm leading-tight mt-0.5">{{ line.price|rupiah }}</p>
-              </div>
+      {# Select all #}
+      <label class="flex items-center gap-2.5 px-1 mb-2.5 cursor-pointer select-none">
+        <input type="checkbox" data-select-all checked
+               class="w-4 h-4 rounded border-ink-300 text-primary-600 focus:ring-primary-400">
+        <span class="text-xs font-bold text-ink-500 uppercase tracking-wide">Select all</span>
+      </label>
+
+      <ul class="space-y-3">
+        {% for line in lines %}
+        <li class="bg-white rounded-2xl border border-ink-100 p-3.5 hover:border-ink-200 transition-colors">
+          <div class="flex gap-3">
+            <input type="checkbox" name="item" value="{{ line.item.pk }}" checked
+                   data-cart-select data-price="{{ line.price }}"
+                   class="mt-1 w-4 h-4 shrink-0 rounded border-ink-300 text-primary-600 focus:ring-primary-400">
+
+            {% if line.item.plan.product.cover_image %}
+            <img src="{{ line.item.plan.product.cover_image.url }}" alt=""
+                 class="w-16 h-16 rounded-xl object-cover shrink-0 ring-1 ring-ink-900/5">
+            {% else %}
+            <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-cream to-ink-100 flex items-center justify-center shrink-0 text-xl font-extrabold text-ink-300">
+              {{ line.item.plan.product.name|slice:':1'|upper }}
             </div>
+            {% endif %}
 
-            <div class="flex items-center justify-between gap-2 mt-2.5">
-              {% if line.item.plan.interval != "none" and line.item.plan.duration_discounts %}
-              <form method="post" action="{% url 'storefront:cart_update' line.item.pk %}" class="relative">
-                {% csrf_token %}
-                <select name="duration" onchange="this.form.submit()"
-                        class="appearance-none text-[11px] font-semibold text-ink-700 bg-cream border border-ink-200 rounded-lg pl-2.5 pr-7 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-200 cursor-pointer">
-                  <option value="1" {% if line.item.duration_multiplier == 1 %}selected{% endif %}>1 {{ line.item.plan.get_interval_display|lower }}</option>
-                  {% for mult, pct in line.item.plan.duration_discounts.items %}
-                  <option value="{{ mult }}" {% if line.item.duration_multiplier|stringformat:"s" == mult %}selected{% endif %}>{{ mult }} {{ line.item.plan.get_interval_display|lower }}{% if pct %} (−{{ pct }}%){% endif %}</option>
-                  {% endfor %}
-                </select>
-                <svg class="w-3 h-3 text-ink-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
-              </form>
-              {% else %}
-              <span></span>
-              {% endif %}
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="font-bold text-ink-900 text-sm leading-tight line-clamp-1">{{ line.item.plan.product.name }}</p>
+                  <p class="text-[11px] text-ink-400 mt-0.5 line-clamp-1">
+                    {{ line.item.plan.name }}{% if line.item.plan.product.seller %} · {{ line.item.plan.product.seller.name }}{% endif %}
+                  </p>
+                </div>
+                <div class="text-right shrink-0">
+                  {% if line.discount %}<p class="text-[11px] text-ink-300 line-through leading-none">{{ line.base_price|rupiah }}</p>{% endif %}
+                  <p class="font-extrabold text-ink-900 text-sm leading-tight mt-0.5">{{ line.price|rupiah }}</p>
+                </div>
+              </div>
 
-              <form method="post" action="{% url 'storefront:cart_remove' line.item.pk %}" data-cart-form>
-                {% csrf_token %}
-                <button type="submit"
+              <div class="flex items-center justify-between gap-2 mt-2.5">
+                {% if line.item.plan.interval != "none" and line.item.plan.duration_discounts %}
+                <div class="relative">
+                  <select data-duration-select data-item="{{ line.item.pk }}"
+                          class="appearance-none text-[11px] font-semibold text-ink-700 bg-cream border border-ink-200 rounded-lg pl-2.5 pr-7 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-200 cursor-pointer">
+                    <option value="1" {% if line.item.duration_multiplier == 1 %}selected{% endif %}>1 {{ line.item.plan.get_interval_display|lower }}</option>
+                    {% for mult, pct in line.item.plan.duration_discounts.items %}
+                    <option value="{{ mult }}" {% if line.item.duration_multiplier|stringformat:"s" == mult %}selected{% endif %}>{{ mult }} {{ line.item.plan.get_interval_display|lower }}{% if pct %} (−{{ pct }}%){% endif %}</option>
+                    {% endfor %}
+                  </select>
+                  <svg class="w-3 h-3 text-ink-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                </div>
+                {% else %}
+                <span></span>
+                {% endif %}
+
+                <button type="button" data-remove-item data-item="{{ line.item.pk }}"
                         class="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-400 hover:text-primary-600 transition-colors cursor-pointer">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-1 0v12a1 1 0 01-1 1H10a1 1 0 01-1-1V7"/></svg>
                   Remove
                 </button>
-              </form>
+              </div>
             </div>
           </div>
-        </div>
-      </li>
-      {% endfor %}
-    </ul>
+        </li>
+        {% endfor %}
+      </ul>
 
-    <a href="{% url 'storefront:page' %}"
-       class="flex items-center justify-center gap-1.5 text-sm font-semibold text-ink-400 hover:text-ink-600 mt-5 transition-colors">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-      Add another product
-    </a>
+      <a href="{% url 'storefront:page' %}"
+         class="flex items-center justify-center gap-1.5 text-sm font-semibold text-ink-400 hover:text-ink-600 mt-5 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Add another product
+      </a>
+
+      {# ── Sticky bottom checkout bar ── #}
+      <div class="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-ink-100 shadow-[0_-10px_30px_-12px_rgba(22,19,15,.18)]">
+        <div class="max-w-xl mx-auto px-4 pt-3 pb-4">
+          <div class="flex items-baseline justify-between mb-2.5">
+            <span class="text-xs font-semibold text-ink-500" data-cart-count-label>Total ({{ lines|length }} item{{ lines|length|pluralize }})</span>
+            <span class="text-xl font-extrabold text-ink-900" data-cart-total>{{ total|rupiah }}</span>
+          </div>
+          <button type="submit" data-checkout-btn
+                  class="flex w-full items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white font-bold text-sm py-3.5 rounded-full transition-colors disabled:bg-ink-200 disabled:text-ink-400 disabled:cursor-not-allowed">
+            Continue to payment
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+    </form>
+
+    {# Hidden helper forms for remove / duration change (posted via JS) #}
+    {% for line in lines %}
+    <form method="post" action="{% url 'storefront:cart_remove' line.item.pk %}" id="rm-{{ line.item.pk }}" class="hidden">{% csrf_token %}</form>
+    <form method="post" action="{% url 'storefront:cart_update' line.item.pk %}" id="dur-{{ line.item.pk }}" class="hidden">
+      {% csrf_token %}<input type="hidden" name="duration" value="">
+    </form>
+    {% endfor %}
     {% endif %}
   </main>
-
-  {% if lines %}
-  {# ── Sticky bottom checkout bar ── #}
-  <div class="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-ink-100 shadow-[0_-10px_30px_-12px_rgba(22,19,15,.18)]">
-    <div class="max-w-md mx-auto px-4 pt-3 pb-4">
-      <div class="flex items-baseline justify-between mb-2.5">
-        <span class="text-xs font-semibold text-ink-500">Total ({{ lines|length }} item{{ lines|length|pluralize }})</span>
-        <span class="text-xl font-extrabold text-ink-900">{{ total|rupiah }}</span>
-      </div>
-      <a href="{% url 'storefront:cart_checkout' %}"
-         class="flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white font-bold text-sm py-3.5 rounded-full transition-colors">
-        Continue to payment
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
-      </a>
-    </div>
-  </div>
-  {% endif %}
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script src="{% static 'js/site.js' %}" defer></script>
+<script>
+(function () {
+  var form = document.querySelector('[data-cart-select-form]');
+  if (!form) return;
+
+  var boxes    = Array.prototype.slice.call(form.querySelectorAll('[data-cart-select]'));
+  var selAll   = form.querySelector('[data-select-all]');
+  var totalEl  = form.querySelector('[data-cart-total]');
+  var countEl  = form.querySelector('[data-cart-count-label]');
+  var btn      = form.querySelector('[data-checkout-btn]');
+
+  function idr(n) { return 'Rp' + Number(n || 0).toLocaleString('id-ID'); }
+
+  function recompute() {
+    var sum = 0, n = 0;
+    boxes.forEach(function (b) {
+      if (b.checked) { sum += parseInt(b.dataset.price, 10) || 0; n += 1; }
+    });
+    totalEl.textContent = idr(sum);
+    countEl.textContent = 'Total (' + n + ' item' + (n === 1 ? '' : 's') + ')';
+    btn.disabled = n === 0;
+    if (selAll) selAll.checked = n === boxes.length && n > 0;
+  }
+
+  boxes.forEach(function (b) { b.addEventListener('change', recompute); });
+  if (selAll) selAll.addEventListener('change', function () {
+    boxes.forEach(function (b) { b.checked = selAll.checked; });
+    recompute();
+  });
+  recompute();
+
+  // Remove / duration change → submit the matching hidden form
+  document.querySelectorAll('[data-remove-item]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      var f = document.getElementById('rm-' + el.dataset.item);
+      if (f) f.submit();
+    });
+  });
+  document.querySelectorAll('[data-duration-select]').forEach(function (sel) {
+    sel.addEventListener('change', function () {
+      var f = document.getElementById('dur-' + sel.dataset.item);
+      if (f) { f.querySelector('[name=duration]').value = sel.value; f.submit(); }
+    });
+  });
+})();
+</script>
 {% endblock %}
