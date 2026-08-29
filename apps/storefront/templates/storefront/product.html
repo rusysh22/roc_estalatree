@@ -3,321 +3,146 @@
 {% block page_title %}{{ product.name }}{% endblock %}
 
 {% block content %}
+<div class="max-w-2xl mx-auto pb-28 lg:pb-4">
 
-<!-- Back link -->
-<div class="mb-5">
-  <a href="{% url 'storefront:page' %}" class="inline-flex items-center gap-1.5 text-sm text-ink-400 hover:text-primary-600 transition-colors">
+  <a href="{% url 'storefront:page' %}"
+     class="inline-flex items-center gap-1.5 text-sm text-ink-400 hover:text-primary-600 transition-colors mb-4">
     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-    Back to marketplace
+    Marketplace
   </a>
-</div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+  <div class="space-y-3">
 
-  <!-- ── Left: main content ── -->
-  <div class="lg:col-span-2 space-y-5">
-
-    <!-- Product header card -->
-    <div class="landing-card overflow-hidden">
-      {% if product.cover_image_url %}
-      <div class="relative w-full h-56 sm:h-72 overflow-hidden bg-primary-50">
-        <img src="{{ product.cover_image_url }}" alt="{{ product.name }}"
-             class="w-full h-full object-cover">
-      </div>
+    {# ── 1. Product ── #}
+    <section class="bg-white rounded-2xl border border-ink-100 overflow-hidden">
+      {% if product.cover_image %}
+      <img src="{{ product.cover_image.url }}" alt="{{ product.name }}" class="w-full h-52 sm:h-64 object-cover">
       {% endif %}
-
-      <div class="p-5 sm:p-6">
-        <!-- Title row -->
-        <div class="flex flex-wrap items-center gap-2 mb-1.5">
+      <div class="p-5">
+        <div class="flex flex-wrap items-center gap-2 mb-1">
           <h1 class="text-xl sm:text-2xl font-extrabold text-ink-900 leading-tight tracking-tight">{{ product.name }}</h1>
           {% if product.type == 'recurring' %}
-          <span class="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-primary-50 text-primary-600 font-bold border border-primary-100">Recurring</span>
+          <span class="text-[11px] px-2 py-0.5 rounded-full bg-primary-50 text-primary-600 font-bold">Recurring</span>
           {% elif product.type == 'free' %}
-          <span class="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-moss-50 text-moss-600 font-bold border border-moss-100">Free</span>
+          <span class="text-[11px] px-2 py-0.5 rounded-full bg-moss-50 text-moss-600 font-bold">Free</span>
           {% endif %}
         </div>
-
-        <!-- Sold count -->
         {% if sold_count > 0 %}
-        <p class="text-sm text-ink-400 mb-3">
-          <span class="font-bold text-ink-700">{{ sold_count }}</span> sold
-          {% if product.type == 'recurring' %}
-          &middot; <span class="text-moss-600 font-semibold">Active subscribers</span>
-          {% endif %}
-        </p>
+        <p class="text-sm text-ink-400"><span class="font-bold text-ink-700">{{ sold_count }}</span> sold</p>
         {% endif %}
-
-        <!-- Description -->
         {% if product.description %}
-        <p class="text-ink-500 text-sm sm:text-base leading-relaxed">{{ product.description }}</p>
+        <p class="text-ink-500 text-sm leading-relaxed mt-3 whitespace-pre-line">{{ product.description }}</p>
         {% endif %}
-
-        <!-- Download quotation -->
         <a href="{% url 'storefront:product_quotation_pdf' product.slug %}" target="_blank" rel="noopener"
            class="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-ink-500 border border-ink-200 rounded-full px-3 py-1.5 hover:border-primary-400 hover:text-primary-600 transition-colors">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H8a2 2 0 01-2-2V5a2 2 0 012-2h6l6 6v11a2 2 0 01-2 2z"/></svg>
           Download quotation (PDF)
         </a>
       </div>
-    </div>
+    </section>
 
-    <!-- Seller card — mobile only (shows between header and plans) -->
+    {# ── 2. Seller ── #}
     {% if product.seller %}
-    <div class="lg:hidden landing-card p-4 flex items-center gap-3">
-      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-moss-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-        {{ product.seller.name|slice:":1"|upper }}
+    <section class="bg-white rounded-2xl border border-ink-100 p-4 flex items-center gap-3">
+      {% if product.seller.logo %}
+      <img src="{{ product.seller.logo.url }}" alt="" class="w-10 h-10 rounded-full object-cover shrink-0">
+      {% else %}
+      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-moss-500 flex items-center justify-center text-white font-bold text-sm shrink-0">{{ product.seller.name|slice:':1'|upper }}</div>
+      {% endif %}
+      <div class="min-w-0 flex-1">
+        <p class="text-[11px] text-ink-400 uppercase tracking-wide font-bold">Sold by</p>
+        <a href="{{ product.seller.store_url }}" class="font-bold text-ink-900 text-sm hover:text-primary-600 transition-colors">{{ product.seller.name }}</a>
+        {% if product.seller.bio %}<p class="text-xs text-ink-500 line-clamp-2 mt-0.5">{{ product.seller.bio }}</p>{% endif %}
       </div>
-      <div class="min-w-0">
-        <p class="text-xs text-ink-400 uppercase tracking-wide font-bold">Sold by</p>
-        <a href="{{ product.seller.store_url }}" class="font-bold text-ink-900 text-sm truncate hover:text-primary-600 transition-colors">{{ product.seller.name }}</a>
-      </div>
-      <div class="ml-auto flex items-center gap-3 text-xs text-ink-400 shrink-0">
-        <span class="flex items-center gap-1">
-          <svg class="w-3.5 h-3.5 text-moss-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-          Secure
-        </span>
-        <span class="flex items-center gap-1">
-          <svg class="w-3.5 h-3.5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Instant
-        </span>
-      </div>
-    </div>
+    </section>
     {% endif %}
 
-    <!-- Plans / CTA -->
+    {# ── 3. Plans / CTA ── #}
     {% if product.type == "contact" %}
-    <div class="landing-card p-5 sm:p-6">
-      <h2 class="font-bold text-ink-800 mb-4">Get in Touch</h2>
+    <section class="bg-white rounded-2xl border border-ink-100 p-5">
+      <p class="text-[11px] font-bold text-ink-400 uppercase tracking-wide mb-3">Get in touch</p>
       <a href="{% url 'storefront:contact' product.pk %}"
-         class="inline-flex items-center gap-2 bg-moss-500 hover:bg-moss-600 text-white font-bold px-6 py-3 rounded-full transition-colors text-sm">
+         class="inline-flex items-center justify-center gap-2 w-full bg-moss-500 hover:bg-moss-600 text-white font-bold px-6 py-3 rounded-full transition-colors text-sm">
         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.003 2C6.479 2 2 6.479 2 12.003c0 1.992.585 3.842 1.594 5.393L2 22l4.728-1.562A9.954 9.954 0 0012.003 22C17.523 22 22 17.521 22 12.003 22 6.479 17.523 2 12.003 2z"/></svg>
         Contact via WhatsApp
       </a>
-    </div>
-
+    </section>
     {% else %}
-    <div class="landing-card p-5 sm:p-6">
-      <h2 class="font-bold text-ink-800 mb-4">Choose a Plan</h2>
-
-      {% if plans|length <= 4 %}
-      <!-- Few plans: card grid layout -->
-      <div class="grid gap-3
-        {% if plans|length == 1 %}grid-cols-1
-        {% elif plans|length == 2 %}grid-cols-1 sm:grid-cols-2
-        {% else %}grid-cols-1 md:grid-cols-3{% endif %}">
-
+    <section class="bg-white rounded-2xl border border-ink-100 p-5 scroll-mt-24" id="plans">
+      <p class="text-[11px] font-bold text-ink-400 uppercase tracking-wide mb-3">Choose a plan</p>
+      <div class="space-y-2.5">
         {% for plan in plans %}
-        <div class="flex flex-col rounded-2xl border p-4 transition-all
-          {% if forloop.first and plans|length > 1 %}
-            border-primary-300 bg-gradient-to-b from-primary-50 to-white ring-1 ring-primary-200 shadow-sm
-          {% else %}
-            border-ink-100 bg-white hover:border-primary-200 hover:shadow-sm
-          {% endif %}">
+        <div class="rounded-xl border p-4
+          {% if forloop.first and plans|length > 1 %}border-primary-300 bg-primary-50/50{% else %}border-ink-100{% endif %}">
 
-          {% if forloop.first and plans|length > 1 %}
-          <div class="mb-3">
-            <span class="inline-flex items-center bg-primary-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">Most popular</span>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <p class="font-bold text-ink-900 text-[15px] leading-tight">{{ plan.name }}</p>
+                {% if forloop.first and plans|length > 1 %}
+                <span class="text-[9px] font-bold bg-primary-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wide">Popular</span>
+                {% endif %}
+              </div>
+              <p class="text-xs text-ink-400 mt-0.5">
+                {% if plan.interval != 'none' %}{{ plan.get_interval_display }} billing{% else %}One-time{% endif %}{% if plan.seat_limit > 1 %} · {{ plan.seat_limit }} seats{% endif %}
+              </p>
+            </div>
+            <div class="text-right shrink-0">
+              {% if plan.sale_price %}<span class="block text-[11px] text-ink-400 line-through">{{ plan.sale_price|rupiah }}</span>{% endif %}
+              <span class="text-lg font-extrabold leading-none {% if plan.pwyw %}text-gold-600{% elif forloop.first and plans|length > 1 %}text-primary-600{% else %}text-ink-900{% endif %}">
+                {% if plan.pwyw %}Name price{% elif plan.price == 0 %}Free{% else %}{{ plan.price|rupiah }}{% endif %}
+              </span>
+              {% if plan.interval != 'none' %}<span class="block text-[11px] text-ink-400">/ {{ plan.get_interval_display|lower }}</span>{% endif %}
+              {% if plan.pwyw and plan.min_price > 0 %}<span class="block text-[11px] text-ink-400">min {{ plan.min_price|rupiah }}</span>{% endif %}
+            </div>
           </div>
-          {% else %}
-          <div class="mb-3 h-5"></div>
-          {% endif %}
-
-          <p class="font-bold text-ink-900 text-base leading-tight">{{ plan.name }}</p>
-
-          {% if plan.interval != "none" %}
-          <p class="text-xs text-ink-400 mt-0.5 mb-3">{{ plan.get_interval_display }} billing</p>
-          {% else %}
-          <div class="mb-3"></div>
-          {% endif %}
-
-          <div class="mb-1">
-            {% if plan.sale_price %}
-            <span class="text-xs text-ink-400 line-through block">{{ plan.sale_price|rupiah }}</span>
-            {% endif %}
-            <span class="text-2xl font-extrabold leading-none
-              {% if plan.pwyw %}text-gold-600
-              {% elif forloop.first and plans|length > 1 %}text-primary-600
-              {% else %}text-ink-900{% endif %}">
-              {% if plan.pwyw %}Name your price{% elif plan.price == 0 %}Free{% else %}{{ plan.price|rupiah }}{% endif %}
-            </span>
-            {% if plan.interval != "none" %}
-            <span class="text-xs text-ink-400 ml-0.5">/ {{ plan.get_interval_display }}</span>
-            {% endif %}
-          </div>
-
-          {% if plan.min_price > 0 and plan.pwyw %}
-          <p class="text-xs text-ink-400 mb-2">Min: {{ plan.min_price|rupiah }}</p>
-          {% endif %}
-
-          {% if plan.seat_limit > 1 %}
-          <p class="text-xs text-ink-500 mt-2 flex items-center gap-1">
-            <svg class="w-3.5 h-3.5 text-ink-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            {{ plan.seat_limit }} seat(s) included
-          </p>
-          {% endif %}
 
           {% if plan.features %}
-          <ul class="text-xs text-ink-600 space-y-1.5 mt-3 flex-1">
+          <ul class="text-xs text-ink-600 space-y-1 mt-3">
             {% for k, v in plan.features.items %}
+            {% if forloop.counter <= 4 %}
             <li class="flex items-start gap-1.5">
-              <svg class="w-3.5 h-3.5 text-moss-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <svg class="w-3.5 h-3.5 text-moss-500 shrink-0 mt-px" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
               <span>{{ k }}{% if v and v != "true" %}: {{ v }}{% endif %}</span>
             </li>
+            {% endif %}
             {% endfor %}
           </ul>
-          {% else %}
-          <div class="flex-1"></div>
           {% endif %}
 
-          <a href="{% url 'storefront:checkout' plan.pk %}"
-             class="mt-4 block text-center font-bold py-2.5 rounded-xl text-sm transition-all
-               {% if forloop.first and plans|length > 1 %}bg-primary-500 hover:bg-primary-600 text-white shadow-sm
-               {% else %}bg-cream hover:bg-primary-500 hover:text-white text-ink-800{% endif %}">
-            {% if product.purchase_button_label %}{{ product.purchase_button_label }}
-            {% elif plan.pwyw %}Name your price
-            {% elif plan.price == 0 %}Get free
-            {% else %}Buy now{% endif %}
-          </a>
-          {% if not plan.pwyw and not product.questions.exists and plan.price > 0 %}
-          <form method="post" action="{% url 'storefront:cart_add' plan.pk %}" class="mt-2">
-            {% csrf_token %}
-            <button type="submit" class="w-full text-center font-semibold py-2 rounded-xl text-xs text-ink-500 border border-ink-200 hover:border-primary-400 hover:text-primary-600 transition-colors cursor-pointer">
-              Add to cart
-            </button>
-          </form>
-          {% endif %}
-        </div>
-        {% empty %}
-        <p class="text-ink-400 text-sm py-8 text-center col-span-full">No plans available.</p>
-        {% endfor %}
-      </div>
-
-      {% else %}
-      <!-- Many plans: grouped compact rows by billing interval -->
-      {% regroup plans by get_interval_display as interval_groups %}
-      <div class="space-y-6">
-        {% for group in interval_groups %}
-        <div>
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-xs font-bold text-ink-500 uppercase tracking-wide">{{ group.grouper }}</span>
-            <div class="flex-1 border-t border-ink-100"></div>
-          </div>
-          <div class="space-y-2">
-            {% for plan in group.list %}
-            <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-2xl border border-ink-100 bg-cream/60 hover:border-primary-200 hover:bg-white transition-all">
-              <!-- Name & seats -->
-              <div class="flex-1 min-w-0">
-                <p class="font-bold text-ink-900 text-sm leading-tight">{{ plan.name }}</p>
-                <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                  {% if plan.seat_limit > 1 %}
-                  <span class="text-xs text-ink-400">{{ plan.seat_limit }} seats</span>
-                  {% endif %}
-                  {% if plan.sale_price %}
-                  <span class="text-xs text-ink-400 line-through">{{ plan.sale_price|rupiah }}</span>
-                  {% endif %}
-                </div>
-              </div>
-              <!-- Price -->
-              <div class="shrink-0 text-left sm:text-right">
-                <span class="font-bold text-ink-900 text-base">
-                  {% if plan.pwyw %}Name your price
-                  {% elif plan.price == 0 %}Free
-                  {% else %}{{ plan.price|rupiah }}{% endif %}
-                </span>
-                {% if plan.interval != "none" %}
-                <span class="text-xs text-ink-400 ml-0.5">/ {{ plan.get_interval_display }}</span>
-                {% endif %}
-              </div>
-              <!-- CTA -->
-              <div class="shrink-0 flex items-center gap-2">
-                {% if not plan.pwyw and not product.questions.exists and plan.price > 0 %}
-                <form method="post" action="{% url 'storefront:cart_add' plan.pk %}">
-                  {% csrf_token %}
-                  <button type="submit" class="font-semibold py-2 px-4 rounded-full text-xs text-ink-500 border border-ink-200 hover:border-primary-400 hover:text-primary-600 transition-colors cursor-pointer">
-                    Add to cart
-                  </button>
-                </form>
-                {% endif %}
-                <a href="{% url 'storefront:checkout' plan.pk %}"
-                   class="text-center font-bold py-2 px-5 rounded-full text-sm transition-all bg-primary-500 hover:bg-primary-600 text-white sm:self-auto self-stretch">
-                  {% if product.purchase_button_label %}{{ product.purchase_button_label }}
-                  {% elif plan.pwyw %}Name your price
-                  {% elif plan.price == 0 %}Get free
-                  {% else %}Buy now{% endif %}
-                </a>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-      {% endif %}
-
-    </div>
-    {% endif %}
-
-    <!-- Reviews -->
-    {% if reviews %}
-    <div class="landing-card p-5 sm:p-6">
-      <h2 class="font-bold text-ink-800 mb-4">Customer Reviews</h2>
-      <div class="space-y-4">
-        {% for review in reviews %}
-        <div class="flex gap-3 pb-4 border-b border-ink-100 last:border-0 last:pb-0">
-          <!-- Avatar -->
-          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-moss-400 flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
-            {{ review.order.customer.user.email|slice:":1"|upper }}
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between gap-2 mb-1">
-              <span class="text-xs text-ink-500 truncate">{{ review.order.customer.user.email|truncatechars:28 }}</span>
-              <div class="flex text-gold-500 text-xs shrink-0">
-                {% for i in "12345" %}{% if forloop.counter <= review.rating %}&#9733;{% else %}<span class="text-ink-200">&#9733;</span>{% endif %}{% endfor %}
-              </div>
-            </div>
-            {% if review.text %}
-            <p class="text-sm text-ink-600 leading-relaxed">{{ review.text }}</p>
+          <div class="flex flex-col sm:flex-row gap-2 mt-3.5">
+            <a href="{% url 'storefront:checkout' plan.pk %}"
+               class="flex-1 text-center font-bold py-2.5 rounded-full text-sm transition-colors
+                 {% if forloop.first and plans|length > 1 %}bg-primary-500 hover:bg-primary-600 text-white{% else %}bg-ink-900 hover:bg-primary-600 text-white{% endif %}">
+              {% if product.purchase_button_label %}{{ product.purchase_button_label }}{% elif plan.pwyw %}Name your price{% elif plan.price == 0 %}Get free{% else %}Buy now{% endif %}
+            </a>
+            {% if not plan.pwyw and not product.questions.exists and plan.price > 0 %}
+            <form method="post" action="{% url 'storefront:cart_add' plan.pk %}" class="sm:w-auto">
+              {% csrf_token %}
+              <button type="submit"
+                      class="w-full sm:w-auto font-semibold py-2.5 px-5 rounded-full text-sm text-ink-600 border border-ink-200 hover:border-primary-400 hover:text-primary-600 transition-colors cursor-pointer">
+                Add to cart
+              </button>
+            </form>
             {% endif %}
           </div>
         </div>
+        {% empty %}
+        <p class="text-ink-400 text-sm py-6 text-center">No plans available.</p>
         {% endfor %}
       </div>
-    </div>
+    </section>
     {% endif %}
 
-  </div>
-
-  <!-- ── Right: sidebar (desktop only for full view) ── -->
-  <div class="hidden lg:block space-y-4 sticky top-24">
-
-    <!-- Seller card -->
-    {% if product.seller %}
-    <div class="landing-card p-4">
-      <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-3">Sold by</p>
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-moss-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-          {{ product.seller.name|slice:":1"|upper }}
-        </div>
-        <div class="min-w-0">
-          <a href="{{ product.seller.store_url }}" class="font-bold text-ink-900 text-sm hover:text-primary-600 transition-colors">{{ product.seller.name }}</a>
-          {% if product.seller.bio %}
-          <p class="text-xs text-ink-500 mt-0.5 line-clamp-2">{{ product.seller.bio }}</p>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Trust badges -->
-    <div class="landing-card p-4 space-y-3">
-      <p class="text-xs text-ink-400 uppercase tracking-wide font-bold">Guaranteed</p>
+    {# ── 4. Reassurance ── #}
+    <section class="bg-white rounded-2xl border border-ink-100 p-5 space-y-3">
       <div class="flex items-start gap-3">
         <div class="w-8 h-8 bg-moss-50 rounded-xl flex items-center justify-center shrink-0">
           <svg class="w-4 h-4 text-moss-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
         </div>
         <div>
-          <p class="text-sm font-semibold text-ink-800">Secure payment</p>
-          <p class="text-xs text-ink-500">Processed safely via Sumopod (QRIS)</p>
+          <p class="text-sm font-semibold text-ink-800">Secure payment via QRIS</p>
+          <p class="text-xs text-ink-500">Your order is delivered the moment it's paid.</p>
         </div>
       </div>
       <div class="flex items-start gap-3">
@@ -325,8 +150,8 @@
           <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
         </div>
         <div>
-          <p class="text-sm font-semibold text-ink-800">Instant delivery</p>
-          <p class="text-xs text-ink-500">License key sent immediately</p>
+          <p class="text-sm font-semibold text-ink-800">Instant access</p>
+          <p class="text-xs text-ink-500">License key / download available right away.</p>
         </div>
       </div>
       <div class="flex items-start gap-3">
@@ -335,54 +160,71 @@
         </div>
         <div>
           <p class="text-sm font-semibold text-ink-800">Email support</p>
-          <p class="text-xs text-ink-500">Questions? We're here to help</p>
+          <p class="text-xs text-ink-500">Questions? We're here to help.</p>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Refund policy -->
-    <div class="bg-cream border border-ink-100 rounded-3xl p-4">
-      <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-2">Refund policy</p>
+    {# ── 5. Refund policy ── #}
+    <section class="bg-cream border border-ink-100 rounded-2xl p-4">
+      <p class="text-[11px] font-bold text-ink-400 uppercase tracking-wide mb-1.5">Refund policy</p>
       <p class="text-xs text-ink-500 leading-relaxed">
-        Refund requests can be submitted within 7 days of purchase via your dashboard if the product was not delivered or does not match the description.
+        Refund requests can be submitted within 7 days of purchase via your dashboard if the
+        product was not delivered or does not match the description.
       </p>
-    </div>
+    </section>
 
-    <!-- Payment methods -->
-    <div class="landing-card p-4">
-      <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-3">Payment methods</p>
-      <div class="flex flex-wrap gap-1.5">
-        <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">Virtual Account</span>
-        <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">QRIS</span>
-        <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">GoPay</span>
-        <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">OVO</span>
-        <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">Dana</span>
-        <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">ShopeePay</span>
+    {# ── 6. Reviews ── #}
+    {% if reviews %}
+    <section class="bg-white rounded-2xl border border-ink-100 p-5">
+      <p class="text-[11px] font-bold text-ink-400 uppercase tracking-wide mb-4">Customer reviews</p>
+      <div class="space-y-4">
+        {% for review in reviews %}
+        <div class="flex gap-3 pb-4 border-b border-ink-100 last:border-0 last:pb-0">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-moss-400 flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
+            {{ review.order.customer.user.email|slice:':1'|upper }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <span class="text-xs text-ink-500 truncate">{{ review.order.customer.user.email|truncatechars:24 }}</span>
+              <span class="text-gold-500 text-xs shrink-0">
+                {% for i in "12345" %}{% if forloop.counter <= review.rating %}&#9733;{% else %}<span class="text-ink-200">&#9733;</span>{% endif %}{% endfor %}
+              </span>
+            </div>
+            {% if review.text %}<p class="text-sm text-ink-600 leading-relaxed">{{ review.text }}</p>{% endif %}
+          </div>
+        </div>
+        {% endfor %}
       </div>
-      <p class="text-xs text-ink-400 mt-2.5">Top up wallet, then purchase instantly.</p>
-    </div>
+    </section>
+    {% endif %}
 
-  </div>
-
-</div>
-
-<!-- Mobile sidebar footer (payment methods + refund) -->
-<div class="lg:hidden mt-5 space-y-4">
-  <div class="landing-card p-4">
-    <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-3">Payment methods</p>
-    <div class="flex flex-wrap gap-1.5">
-      <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">Virtual Account</span>
-      <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">QRIS</span>
-      <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">GoPay</span>
-      <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">OVO</span>
-      <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">Dana</span>
-      <span class="text-xs border border-ink-100 rounded-lg px-2 py-1 text-ink-500 bg-cream">ShopeePay</span>
-    </div>
-  </div>
-  <div class="bg-cream border border-ink-100 rounded-3xl p-4">
-    <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-2">Refund policy</p>
-    <p class="text-xs text-ink-500 leading-relaxed">Refund requests can be submitted within 7 days of purchase via your dashboard if the product was not delivered or does not match the description.</p>
   </div>
 </div>
 
+{# ── Sticky mobile CTA ── #}
+<div class="fixed bottom-0 inset-x-0 z-30 lg:hidden bg-white border-t border-ink-100 shadow-[0_-10px_30px_-12px_rgba(22,19,15,.18)]">
+  <div class="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+    {% if product.type == "contact" %}
+    <a href="{% url 'storefront:contact' product.pk %}"
+       class="flex-1 text-center bg-moss-500 hover:bg-moss-600 text-white font-bold text-sm py-3 rounded-full transition-colors">
+      Chat via WhatsApp
+    </a>
+    {% elif single_plan %}
+    <a href="{% url 'storefront:checkout' single_plan.pk %}"
+       class="flex-1 text-center bg-primary-500 hover:bg-primary-600 text-white font-bold text-sm py-3 rounded-full transition-colors">
+      {% if single_plan.pwyw %}Name your price{% elif single_plan.price == 0 %}Get it free{% else %}Buy · {{ single_plan.price|rupiah }}{% endif %}
+    </a>
+    {% elif plans %}
+    <div class="min-w-0">
+      <p class="text-[11px] text-ink-400 leading-none">From</p>
+      <p class="text-base font-extrabold text-ink-900 leading-tight">{{ cheapest_price|rupiah }}</p>
+    </div>
+    <a href="#plans"
+       class="flex-1 text-center bg-primary-500 hover:bg-primary-600 text-white font-bold text-sm py-3 rounded-full transition-colors">
+      Choose a plan
+    </a>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

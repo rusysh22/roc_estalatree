@@ -121,15 +121,45 @@ def test_plan_with_required_questions_cannot_be_added_to_cart(seller_a):
     assert not cart or not cart.items.exists()
 
 
-# ── 4. Checkout requires login ───────────────────────────────────────────────────
+# ── 4. Guest cart checkout (no login wall) ───────────────────────────────────────
 
 @pytest.mark.django_db
-def test_cart_checkout_requires_login(plan_a):
+def test_guest_can_reach_cart_checkout(plan_a):
     client = Client()
     client.post(reverse("storefront:cart_add", args=[plan_a.pk]))
     resp = client.get(reverse("storefront:cart_checkout"))
+    assert resp.status_code == 200
+    assert b'name="guest_email"' in resp.content
+
+
+@pytest.mark.django_db
+def test_guest_cart_checkout_creates_account(plan_a):
+    from apps.accounts.models import User
+
+    client = Client()
+    client.post(reverse("storefront:cart_add", args=[plan_a.pk]))
+    resp = client.post(reverse("storefront:cart_checkout"), {"guest_email": "cartguest@x.test"})
+    # missing email → prompt; with email but no gateway key → bounces back, but the account is made
     assert resp.status_code == 302
-    assert "login" in resp["Location"]
+    assert User.objects.filter(email="cartguest@x.test").exists()
+
+
+@pytest.mark.django_db
+def test_cart_add_ajax_returns_drawer_json(plan_a):
+    client = Client()
+    resp = client.post(reverse("storefront:cart_add", args=[plan_a.pk]), HTTP_X_REQUESTED_WITH="fetch")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["count"] == 1
+    assert reverse("storefront:cart_checkout") in data["html"]
+
+
+@pytest.mark.django_db
+def test_cart_add_plain_post_still_redirects(plan_a):
+    client = Client()
+    resp = client.post(reverse("storefront:cart_add", args=[plan_a.pk]))
+    assert resp.status_code == 302
+    assert resp["Location"].endswith("/cart/")
 
 
 # ── 5. Sufficient balance — multi-seller, immediate PAID ────────────────────────
@@ -207,6 +237,39 @@ def test_checkout_shortfall_creates_pending_orders_and_combined_topup(verified_c
 
     topup.cart_checkout.refresh_from_db()
     assert topup.cart_checkout.status == CartCheckout.Status.COMPLETED
+
+
+@pytest.mark.django_db
+def test_cart_kept_when_online_payment_initiation_fails(verified_customer, plan_a, plan_b):
+    """Gateway error at cart checkout must NOT empty the cart or strand orders."""
+    from apps.billing.sumopod import SumopodError
+
+    client = Client()
+    client.force_login(verified_customer.user)
+    client.post(reverse("storefront:cart_add", args=[plan_a.pk]))
+    client.post(reverse("storefront:cart_add", args=[plan_b.pk]))
+
+    with patch("apps.billing.sumopod.SumopodClient.from_settings",
+               side_effect=SumopodError("gateway down")):
+        resp = client.post(reverse("storefront:cart_checkout"), {"payment_method": "QRIS"})
+
+    assert resp.status_code == 302
+    assert resp["Location"] == reverse("storefront:cart_checkout")
+
+    # Cart intact, nothing stranded
+    assert Cart.objects.get(customer=verified_customer).items.count() == 2
+    assert Order.objects.filter(customer=verified_customer).count() == 0
+    assert CartCheckout.objects.filter(customer=verified_customer).count() == 0
+
+    # And a retry once the gateway is back succeeds cleanly
+    mock_result = MagicMock(fee=0, payment_id="REF1", payment_url="https://pay.sumopod.com/pay/REF1")
+    mock_client = MagicMock()
+    mock_client.create_payment.return_value = mock_result
+    with patch("apps.billing.sumopod.SumopodClient.from_settings", return_value=mock_client):
+        resp = client.post(reverse("storefront:cart_checkout"), {"payment_method": "QRIS"})
+    assert resp["Location"] == "https://pay.sumopod.com/pay/REF1"
+    assert Order.objects.filter(customer=verified_customer, status=Order.Status.PENDING).count() == 2
+    assert Cart.objects.get(customer=verified_customer).items.count() == 0
 
 
 # ── 8. order_pending routes cart-linked topups to the cart receipt ──────────────

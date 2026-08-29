@@ -189,14 +189,14 @@ def checkout_cart(customer, cart: Cart, *, callback_url: str = "", return_url: s
     lines = [(item, *compute_cart_line(item)) for item in items]
     total = sum(price for _item, price, _discount, _coupon, _base in lines)
 
-    # ── QRIS Statis — one seller, buyer pays the seller's static QR directly ──
+    # ── Static QRIS — one seller, buyer pays the seller's static QR directly ──
     if payment_method == Order.PaymentChannel.QRIS_STATIC:
         seller_ids = {item.plan.product.seller_id for item, *_ in lines}
         seller = items[0].plan.product.seller
         if len(seller_ids) != 1 or seller is None or not seller.qris_ready:
-            raise CartError("QRIS Statis is only available when every item is from one seller who accepts it.")
-        cart_checkout = CartCheckout.objects.create(customer=customer, status=CartCheckout.Status.PENDING)
+            raise CartError("Static QRIS is only available when every item is from one seller who accepts it.")
         with transaction.atomic():
+            cart_checkout = CartCheckout.objects.create(customer=customer, status=CartCheckout.Status.PENDING)
             for i, (item, price, discount, coupon_obj, _base) in enumerate(lines):
                 Order.objects.create(
                     customer=customer,
@@ -269,8 +269,14 @@ def checkout_cart(customer, cart: Cart, *, callback_url: str = "", return_url: s
         raise CartPaymentMethodRequiredError("A payment_method is required when the wallet balance is insufficient.")
 
     shortfall = total - wallet.balance
-    cart_checkout = CartCheckout.objects.create(customer=customer)
+    from apps.billing.services import initiate_topup
+
+    # Everything here is one transaction: the pending orders, the combined TopUp, the
+    # gateway call, and clearing the cart. If the gateway is unavailable initiate_topup
+    # raises (SumopodError) and the whole thing rolls back — the buyer keeps their cart
+    # and no half-finished orders are left behind.
     with transaction.atomic():
+        cart_checkout = CartCheckout.objects.create(customer=customer)
         for item, price, discount, coupon_obj, _base in lines:
             Order.objects.create(
                 customer=customer,
@@ -283,15 +289,15 @@ def checkout_cart(customer, cart: Cart, *, callback_url: str = "", return_url: s
                 cart_checkout=cart_checkout,
                 idempotency_key=f"cart:{cart.pk}:item:{item.pk}",
             )
-        cart.items.all().delete()
 
-    from apps.billing.services import initiate_topup
-    topup, payment_url = initiate_topup(
-        customer=customer, amount=shortfall, payment_method=payment_method or "QRIS",
-        callback_url=callback_url, return_url=return_url, gateway_client=gateway_client,
-    )
-    topup.cart_checkout = cart_checkout
-    topup.save(update_fields=["cart_checkout", "updated_at"])
+        topup, payment_url = initiate_topup(
+            customer=customer, amount=shortfall, payment_method=payment_method or "QRIS",
+            callback_url=callback_url, return_url=return_url, gateway_client=gateway_client,
+        )
+        topup.cart_checkout = cart_checkout
+        topup.save(update_fields=["cart_checkout", "updated_at"])
+
+        cart.items.all().delete()
 
     return cart_checkout, [], payment_url
 

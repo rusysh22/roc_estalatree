@@ -107,7 +107,7 @@ class SellerProfile(TimestampedModel):
         default=0, help_text="Platform commission percentage (0–100)"
     )
     bio = models.TextField(blank=True)
-    logo_url = models.URLField(blank=True)
+    logo = models.ImageField(upload_to="seller/logo/", blank=True, null=True)
     wa_number = models.CharField(max_length=20, blank=True)
 
     # Seller plan & KYC
@@ -124,7 +124,7 @@ class SellerProfile(TimestampedModel):
     ga_tracking_id = models.CharField(max_length=30, blank=True, help_text="e.g. G-XXXXXXXXXX")
     fb_pixel_id = models.CharField(max_length=20, blank=True)
 
-    # QRIS Statis — buyer pays the seller's own static QRIS directly (money never
+    # Static QRIS — buyer pays the seller's own static QRIS directly (money never
     # touches the platform wallet or Duitku). Orders wait for the seller to
     # manually confirm receipt before provisioning runs. See ADR / checkout.py.
     qris_enabled = models.BooleanField(default=False)
@@ -143,7 +143,7 @@ class SellerProfile(TimestampedModel):
 
     @property
     def qris_ready(self) -> bool:
-        """True when this seller can actually accept QRIS Statis payments."""
+        """True when this seller can actually accept Static QRIS payments."""
         return bool(self.qris_enabled and self.qris_image)
 
     @property

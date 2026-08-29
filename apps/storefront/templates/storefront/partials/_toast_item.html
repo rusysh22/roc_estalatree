@@ -1,0 +1,16 @@
+{% comment %}One toast row. Params from the caller: msg, tone (bg class), icon (svg path d), sticky (0/1).{% endcomment %}
+<div data-toast="{% if sticky %}stay{% else %}auto{% endif %}" role="alert"
+     class="pointer-events-auto w-full sm:w-96 max-w-[calc(100vw-1.5rem)] flex items-start gap-3
+            {{ tone }} text-white rounded-2xl shadow-[0_18px_40px_-12px_rgba(22,19,15,.45)]
+            px-4 py-3.5 -translate-y-2 opacity-0 transition-all duration-300">
+  <span class="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center shrink-0 mt-px">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="{{ icon }}"/>
+    </svg>
+  </span>
+  <p class="flex-1 text-sm sm:text-[15px] font-semibold leading-snug">{{ msg }}</p>
+  <button type="button" data-toast-close aria-label="Dismiss"
+          class="shrink-0 -mr-1 -mt-0.5 p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg>
+  </button>
+</div>

@@ -2,6 +2,7 @@
 from django import forms
 
 from apps.accounts.models import SellerProfile
+from apps.core.forms import ImageUploadField
 from apps.billing.models import AffiliateLink, Coupon, SellerPayout
 from apps.catalog.models import CourseLesson, CourseModule, Plan, Product, ProductQuestion
 from apps.provisioning.models import Deliverable, Entitlement
@@ -9,10 +10,17 @@ from apps.storefront.models import Block, StorePage
 
 
 class SellerProfileForm(forms.ModelForm):
+    logo = ImageUploadField(required=False, square=True, label="Store logo")
+    qris_image = ImageUploadField(
+        required=False, fmt="png", label="QRIS image",
+        help_text="A screenshot of your static QRIS (JPG / PNG). Stored as PNG so the "
+                  "code stays sharp and easy to scan.",
+    )
+
     class Meta:
         model = SellerProfile
         fields = [
-            "name", "bio", "logo_url", "wa_number",
+            "name", "bio", "logo", "wa_number",
             "payout_bank_name", "payout_account_number", "payout_account_name",
             "custom_domain", "ga_tracking_id", "fb_pixel_id",
             "qris_enabled", "qris_image", "qris_instructions",
@@ -20,7 +28,6 @@ class SellerProfileForm(forms.ModelForm):
         widgets = {
             "name": forms.TextInput(attrs={"class": "input-field"}),
             "bio": forms.Textarea(attrs={"class": "input-field", "rows": 3}),
-            "logo_url": forms.URLInput(attrs={"class": "input-field"}),
             "wa_number": forms.TextInput(attrs={"class": "input-field", "placeholder": "628123456789"}),
             "payout_bank_name": forms.TextInput(attrs={"class": "input-field", "placeholder": "BCA / BNI / Mandiri"}),
             "payout_account_number": forms.TextInput(attrs={"class": "input-field"}),
@@ -28,7 +35,6 @@ class SellerProfileForm(forms.ModelForm):
             "custom_domain": forms.TextInput(attrs={"class": "input-field", "placeholder": "shop.example.com"}),
             "ga_tracking_id": forms.TextInput(attrs={"class": "input-field", "placeholder": "G-XXXXXXXXXX"}),
             "fb_pixel_id": forms.TextInput(attrs={"class": "input-field", "placeholder": "123456789012345"}),
-            "qris_image": forms.ClearableFileInput(attrs={"class": "input-field", "accept": "image/*"}),
             "qris_instructions": forms.Textarea(attrs={
                 "class": "input-field", "rows": 3,
                 "placeholder": "e.g. Transfer the exact amount, then upload your receipt below.",
@@ -40,20 +46,21 @@ class SellerProfileForm(forms.ModelForm):
         enabled = cleaned.get("qris_enabled")
         has_image = cleaned.get("qris_image") or getattr(self.instance, "qris_image", None)
         if enabled and not has_image:
-            self.add_error("qris_image", "Upload a QRIS image to enable QRIS Statis payments.")
+            self.add_error("qris_image", "Upload a QRIS image to enable Static QRIS payments.")
         return cleaned
 
 
 class ProductForm(forms.ModelForm):
+    cover_image = ImageUploadField(required=False, label="Cover image")
+
     class Meta:
         model = Product
-        fields = ["name", "type", "visibility", "description", "cover_image_url", "wa_number", "purchase_button_label"]
+        fields = ["name", "type", "visibility", "description", "cover_image", "wa_number", "purchase_button_label"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input-field"}),
             "type": forms.Select(attrs={"class": "input-field"}),
             "visibility": forms.Select(attrs={"class": "input-field"}),
             "description": forms.Textarea(attrs={"class": "input-field", "rows": 4}),
-            "cover_image_url": forms.URLInput(attrs={"class": "input-field", "placeholder": "https://..."}),
             "wa_number": forms.TextInput(attrs={"class": "input-field", "placeholder": "628123456789"}),
             "purchase_button_label": forms.TextInput(attrs={"class": "input-field", "placeholder": "Buy Now"}),
         }
@@ -130,13 +137,14 @@ class OnboardingProductForm(forms.Form):
 
 
 class StorePageForm(forms.ModelForm):
+    avatar = ImageUploadField(required=False, square=True, label="Store avatar")
+
     class Meta:
         model = StorePage
-        fields = ["title", "description", "avatar_url"]
+        fields = ["title", "description", "avatar"]
         widgets = {
             "title": forms.TextInput(attrs={"class": "input-field", "placeholder": "Your store name"}),
             "description": forms.Textarea(attrs={"class": "input-field", "rows": 3, "placeholder": "Tell customers a bit about your store…"}),
-            "avatar_url": forms.URLInput(attrs={"class": "input-field", "placeholder": "https://...", "id": "id_avatar_url"}),
         }
 
 
@@ -161,11 +169,7 @@ class ThemeForm(forms.Form):
         widget=forms.TextInput(attrs={"type": "color", "class": "h-10 w-16 rounded border border-gray-300 cursor-pointer p-0.5"}),
         label="Background color",
     )
-    banner_url = forms.URLField(
-        required=False,
-        widget=forms.URLInput(attrs={"class": "input-field", "placeholder": "https://..."}),
-        label="Banner image URL",
-    )
+    banner = ImageUploadField(required=False, label="Banner image")
     layout = forms.ChoiceField(
         choices=LAYOUT_CHOICES,
         widget=forms.Select(attrs={"class": "input-field"}),

@@ -1,0 +1,91 @@
+{% comment %}
+Reusable image-upload control for the seller dashboard.
+
+    {% include "seller/_image_upload.html" with field=form.logo current=seller.logo shape="circle" hint="Recommended square, at least 400×400 px" %}
+
+Params:
+  field    — a bound ImageUploadField (required)
+  current  — the existing ImageFieldFile, for the "current image" preview (optional)
+  shape    — "circle" | "rounded" | "wide"  (default "rounded")
+  hint     — extra one-line guidance under the button (optional)
+
+The parent <form> MUST have enctype="multipart/form-data".
+Server-side processing (auto-resize, WebP, EXIF strip) lives in
+apps/core/images.py — this widget only previews and gives friendly hints.
+{% endcomment %}
+{% with wid=field.id_for_label %}
+<div class="flex items-start gap-4" data-imgup="{{ wid }}">
+  <div class="{% if shape == 'circle' %}w-20 h-20 rounded-full{% elif shape == 'wide' %}w-32 h-20 rounded-xl{% else %}w-20 h-20 rounded-xl{% endif %}
+              flex-shrink-0 overflow-hidden border-2 border-dashed border-gray-200 bg-gray-50
+              flex items-center justify-center">
+    <img data-imgup-preview
+         src="{% if current %}{{ current.url }}{% endif %}"
+         class="w-full h-full object-cover {% if not current %}hidden{% endif %}" alt="">
+    <svg data-imgup-placeholder class="w-7 h-7 text-gray-300 {% if current %}hidden{% endif %}"
+         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+    </svg>
+  </div>
+
+  <div class="flex-1 min-w-0">
+    <label for="{{ wid }}" class="btn-secondary inline-flex cursor-pointer">
+      <span data-imgup-btnlabel>{% if current %}Replace image{% else %}Upload image{% endif %}</span>
+    </label>
+    {{ field }}
+    <p class="text-xs text-gray-400 mt-1.5" data-imgup-hint>
+      {% if hint %}{{ hint }} · {% endif %}{{ field.help_text }}
+    </p>
+    <p class="text-xs text-red-500 mt-1 hidden" data-imgup-warn></p>
+    {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+  </div>
+</div>
+
+<script>
+(function () {
+  var root = document.querySelector('[data-imgup="{{ wid }}"]');
+  if (!root) return;
+  var input   = document.getElementById('{{ wid }}');
+  var preview = root.querySelector('[data-imgup-preview]');
+  var ph      = root.querySelector('[data-imgup-placeholder]');
+  var btn     = root.querySelector('[data-imgup-btnlabel]');
+  var warn    = root.querySelector('[data-imgup-warn]');
+  var MAX_MB = 10, MIN_SIDE = 200;
+
+  input.addEventListener('change', function () {
+    warn.classList.add('hidden'); warn.textContent = '';
+    var file = input.files && input.files[0];
+    if (!file) return;
+
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) {
+      warn.textContent = 'Format tidak didukung — pilih file JPG, PNG, atau WebP.';
+      warn.classList.remove('hidden'); input.value = ''; return;
+    }
+    if (file.size > MAX_MB * 1024 * 1024) {
+      warn.textContent = 'Ukuran ' + (file.size / 1048576).toFixed(1) + ' MB melebihi ' + MAX_MB + ' MB. Pilih gambar lain atau kompres dulu.';
+      warn.classList.remove('hidden'); input.value = ''; return;
+    }
+
+    var url = URL.createObjectURL(file);
+    var probe = new Image();
+    probe.onload = function () {
+      if (Math.min(probe.naturalWidth, probe.naturalHeight) < MIN_SIDE) {
+        warn.textContent = 'Resolusi ' + probe.naturalWidth + '×' + probe.naturalHeight +
+          ' px terlalu kecil (min ' + MIN_SIDE + '×' + MIN_SIDE + '). Gunakan gambar yang lebih besar.';
+        warn.classList.remove('hidden'); input.value = '';
+        URL.revokeObjectURL(url); return;
+      }
+      preview.src = url;
+      preview.classList.remove('hidden');
+      if (ph) ph.classList.add('hidden');
+      if (btn) btn.textContent = 'Replace image';
+    };
+    probe.onerror = function () {
+      warn.textContent = 'Gambar tidak bisa dibaca. Coba file lain.';
+      warn.classList.remove('hidden'); input.value = ''; URL.revokeObjectURL(url);
+    };
+    probe.src = url;
+  });
+})();
+</script>
+{% endwith %}

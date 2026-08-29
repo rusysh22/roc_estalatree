@@ -52,6 +52,22 @@ def estimate_fee(amount: int) -> int:
     return math.ceil(int(amount) * FEE_PERCENT / 100) + FEE_FLAT
 
 
+def is_configured() -> bool:
+    """True when the online gateway can be attempted (SUMOPOD_API_KEY is set).
+
+    Lets checkout hide the "pay online" option instead of offering a method that
+    would fail the moment the buyer submits.
+    """
+    import os
+
+    from django.conf import settings as django_settings
+
+    return bool(
+        os.environ.get("SUMOPOD_API_KEY", "")
+        or getattr(django_settings, "SUMOPOD_API_KEY", "")
+    )
+
+
 class SumopodError(Exception):
     """Raised when Sumopod returns an error or the network call fails."""
 

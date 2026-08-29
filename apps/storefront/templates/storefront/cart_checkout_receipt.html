@@ -20,11 +20,18 @@
     </div>
     {% with first=orders|first %}
     {% if first.awaiting_seller_confirmation %}
-    <h1 class="text-xl font-extrabold text-gold-800 tracking-tight">Selesaikan pembayaran QRIS</h1>
-    <p class="text-ink-500 text-sm mt-1">Total {{ total|rupiah }} &middot; menunggu penjual mengonfirmasi.</p>
+    <h1 class="text-xl font-extrabold text-gold-800 tracking-tight">Complete your QRIS payment</h1>
+    <p class="text-ink-500 text-sm mt-1">Total {{ total|rupiah }} &middot; waiting for the seller to confirm.</p>
     {% with seller=first.plan.product.seller %}
     {% if seller.qris_image %}
     <img src="{{ seller.qris_image.url }}" alt="QRIS {{ seller.name }}" class="mx-auto max-h-64 rounded-xl border border-ink-100 mt-4">
+    <div class="mt-2">
+      <a href="{% url 'storefront:qris_download' seller.slug %}"
+         class="inline-flex items-center gap-1.5 text-xs font-semibold text-gold-800 border border-gold-300 rounded-lg px-3 py-1.5 hover:bg-gold-50 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Download QRIS
+      </a>
+    </div>
     {% endif %}
     {% if seller.qris_instructions %}
     <p class="text-xs text-ink-500 mt-3 whitespace-pre-line">{{ seller.qris_instructions }}</p>

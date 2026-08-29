@@ -9,8 +9,8 @@
     {% for seller in featured_sellers %}
     <a href="{{ seller.store_url }}" data-reveal data-reveal-delay="{{ forloop.counter0 }}00"
        class="landing-card shrink-0 w-64 sm:w-auto p-6 text-center hover:-translate-y-1 transition-transform">
-      {% if seller.logo_url %}
-      <img src="{{ seller.logo_url }}" alt="{{ seller.name }}" class="w-16 h-16 rounded-full mx-auto object-cover ring-4 ring-primary-50">
+      {% if seller.logo %}
+      <img src="{{ seller.logo.url }}" alt="{{ seller.name }}" class="w-16 h-16 rounded-full mx-auto object-cover ring-4 ring-primary-50">
       {% else %}
       <div class="w-16 h-16 rounded-full mx-auto bg-gradient-to-br from-primary-400 to-moss-500 flex items-center justify-center">
         <span class="text-xl font-extrabold text-white">{{ seller.name|slice:":1"|upper }}</span>

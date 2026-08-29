@@ -88,6 +88,12 @@ def home(request):
         .order_by("-created_at")[:5]
     )
 
+    unpaid_orders = (
+        Order.objects.filter(customer=customer, status=Order.Status.PENDING)
+        .select_related("plan__product")
+        .order_by("-created_at")
+    )
+
     return render(request, "dashboard/home.html", {
         "customer": customer,
         "wallet": customer.wallet,
@@ -96,6 +102,7 @@ def home(request):
         "shortfall": shortfall,
         "active_subs": active_subs,
         "recent_grants": recent_grants,
+        "unpaid_orders": unpaid_orders,
     })
 
 

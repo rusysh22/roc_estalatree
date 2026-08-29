@@ -7,27 +7,26 @@
 
 {% block body %}
 {% include "storefront/partials/_nav.html" %}
+{% include "storefront/partials/_toasts.html" %}
 
 <main class="max-w-5xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
-  {% if messages %}
-    <div class="mb-6 space-y-2">
-      {% for msg in messages %}
-        <div class="px-4 py-3 rounded-xl text-sm border
-          {% if msg.tags == 'error' %}bg-primary-50 text-primary-700 border-primary-200
-          {% elif msg.tags == 'success' %}bg-moss-50 text-moss-700 border-moss-200
-          {% else %}bg-white text-ink-600 border-ink-200{% endif %}">
-          {{ msg }}
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-
   {% block content %}{% endblock %}
 </main>
 
 {% include "storefront/partials/_footer.html" %}
+
+{# ── Slide-over cart drawer (filled by cart.js) ── #}
+<div id="cart-drawer-backdrop" hidden
+     class="fixed inset-0 z-[60] bg-ink-900/40 opacity-0 transition-opacity duration-200"></div>
+<aside id="cart-drawer" hidden
+       class="fixed top-0 right-0 z-[61] h-full w-full max-w-sm bg-cream flex flex-col
+              translate-x-full transition-transform duration-200 shadow-2xl"
+       aria-label="Cart">
+  {% cart_drawer_content %}
+</aside>
 {% endblock %}
 
 {% block scripts %}
 <script src="{% static 'js/site.js' %}" defer></script>
+<script src="{% static 'js/cart.js' %}" defer></script>
 {% endblock %}

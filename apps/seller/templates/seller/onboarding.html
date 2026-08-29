@@ -37,7 +37,7 @@
       {% if step == "identity" %}
       <h2 class="font-bold text-ink-900 mb-1">Store identity</h2>
       <p class="text-xs text-ink-400 mb-4">This is how customers will see your store. You can change it anytime later.</p>
-      <form method="post">
+      <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="space-y-4">
           <div>
@@ -49,8 +49,8 @@
             {{ form.description }}
           </div>
           <div>
-            <label class="block text-xs font-semibold text-ink-600 mb-1">Avatar/logo URL <span class="text-ink-300 font-normal">(optional)</span></label>
-            {{ form.avatar_url }}
+            <label class="block text-xs font-semibold text-ink-600 mb-1">Store photo <span class="text-ink-300 font-normal">(optional)</span></label>
+            {% include "seller/_image_upload.html" with field=form.avatar current=store_page.avatar shape="circle" %}
           </div>
           <button type="submit" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold text-sm py-3 rounded-full transition-colors cursor-pointer">
             Continue &rarr;

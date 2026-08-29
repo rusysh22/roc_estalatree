@@ -145,7 +145,7 @@ class Order(TimestampedModel):
     class PaymentChannel(models.TextChoices):
         WALLET = "wallet", "Wallet"
         GATEWAY = "gateway", "Payment Gateway"
-        QRIS_STATIC = "qris_static", "QRIS Statis"
+        QRIS_STATIC = "qris_static", "Static QRIS"
 
     payment_channel = models.CharField(
         max_length=20, choices=PaymentChannel.choices, default=PaymentChannel.WALLET,
@@ -154,7 +154,7 @@ class Order(TimestampedModel):
     )
     payment_proof = models.ImageField(
         upload_to="payment_proofs/", blank=True, null=True,
-        help_text="Optional payment receipt uploaded by the buyer (QRIS Statis).",
+        help_text="Optional payment receipt uploaded by the buyer (Static QRIS).",
     )
 
     class Meta:
@@ -166,7 +166,7 @@ class Order(TimestampedModel):
 
     @property
     def awaiting_seller_confirmation(self) -> bool:
-        """PENDING QRIS Statis order — the seller must confirm payment received."""
+        """PENDING Static QRIS order — the seller must confirm payment received."""
         return (
             self.status == self.Status.PENDING
             and self.payment_channel == self.PaymentChannel.QRIS_STATIC

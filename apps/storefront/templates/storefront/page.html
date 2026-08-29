@@ -66,9 +66,9 @@ if (localStorage.getItem('cookie_consent') === 'accepted') window._deferredFbq()
 <div class="max-w-2xl mx-auto">
 
   <!-- Banner -->
-  {% if theme.banner_url %}
+  {% if store_page.banner %}
   <div class="w-full h-40 rounded-3xl overflow-hidden mb-6 shadow-[0_20px_40px_-28px_rgba(22,19,15,.35)]">
-    <img src="{{ theme.banner_url }}" alt="" class="w-full h-full object-cover">
+    <img src="{{ store_page.banner.url }}" alt="" class="w-full h-full object-cover">
   </div>
   {% endif %}
 
@@ -76,8 +76,8 @@ if (localStorage.getItem('cookie_consent') === 'accepted') window._deferredFbq()
   <div class="text-center mb-10 relative">
     <div class="landing-blob absolute -top-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-primary-100/60 blur-2xl -z-10" aria-hidden="true"></div>
 
-    {% if store_page.avatar_url %}
-    <img src="{{ store_page.avatar_url }}" alt="{{ store_page.title }}"
+    {% if store_page.avatar %}
+    <img src="{{ store_page.avatar.url }}" alt="{{ store_page.title }}"
          class="w-24 h-24 rounded-full mx-auto mb-4 object-cover ring-4 ring-white shadow-lg">
     {% else %}
     <div class="w-24 h-24 rounded-full mx-auto mb-4 bg-gradient-to-br from-primary-400 to-moss-500 flex items-center justify-center shadow-lg ring-4 ring-white">
@@ -156,75 +156,60 @@ if (localStorage.getItem('cookie_consent') === 'accepted') window._deferredFbq()
 
       {% elif block.type == "product" and block.product %}
         {% with product=block.product %}
-        <div class="bg-white border border-ink-100 overflow-hidden hover:border-primary-200 hover:shadow-[0_20px_40px_-28px_rgba(22,19,15,.35)] transition-all theme-card-shape">
-          {% if product.cover_image_url %}
-          <img src="{{ product.cover_image_url }}" alt="{{ product.name }}"
-               class="w-full h-36 object-cover">
+        <div class="bg-white border border-ink-100 overflow-hidden hover:border-primary-200 transition-colors theme-card-shape">
+          {% if product.cover_image %}
+          <img src="{{ product.cover_image.url }}" alt="{{ product.name }}" class="w-full h-36 object-cover">
           {% endif %}
-          <!-- Product card header -->
-          <div class="p-5">
-            <div class="flex items-start justify-between mb-2">
-              <div class="flex-1 min-w-0 mr-3">
-                <div class="flex items-center gap-2 flex-wrap mb-1">
-                  <h3 class="font-bold text-ink-900">{{ product.name }}</h3>
+          <div class="p-4 sm:p-5">
+            <div class="flex items-start justify-between gap-3 mb-2">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h3 class="font-bold text-ink-900 leading-tight">{{ product.name }}</h3>
                   {% if product.type == 'recurring' %}
-                  <span class="text-xs px-1.5 py-0.5 rounded bg-primary-50 text-primary-600 font-semibold">Recurring</span>
+                  <span class="text-[11px] px-1.5 py-0.5 rounded-full bg-primary-50 text-primary-600 font-bold">Recurring</span>
                   {% elif product.type == 'free' %}
-                  <span class="text-xs px-1.5 py-0.5 rounded bg-moss-50 text-moss-600 font-semibold">Free</span>
+                  <span class="text-[11px] px-1.5 py-0.5 rounded-full bg-moss-50 text-moss-600 font-bold">Free</span>
                   {% endif %}
                 </div>
                 {% if product.description %}
-                <p class="text-sm text-ink-500 line-clamp-2">{{ product.description }}</p>
+                <p class="text-sm text-ink-500 line-clamp-2 mt-1">{{ product.description }}</p>
                 {% endif %}
               </div>
-              <!-- Sold count badge -->
-                      {% with cnt=sold_counts|dict_get:product.pk %}
+              {% with cnt=sold_counts|dict_get:product.pk %}
               {% if cnt %}
-              <div class="shrink-0 text-right ml-2">
-                <p class="text-xs text-ink-400 whitespace-nowrap"><span class="font-bold text-ink-600">{{ cnt }}</span> sold</p>
-              </div>
+              <p class="text-xs text-ink-400 whitespace-nowrap shrink-0"><span class="font-bold text-ink-600">{{ cnt }}</span> sold</p>
               {% endif %}
               {% endwith %}
             </div>
 
             {% if product.type == "contact" %}
               <a href="{% url 'storefront:contact' product.pk %}"
-                 class="inline-flex items-center gap-2 bg-moss-500 hover:bg-moss-600 text-white font-semibold text-sm px-5 py-2.5 transition-colors mt-2 theme-btn-shape">
+                 class="inline-flex items-center justify-center gap-2 w-full bg-moss-500 hover:bg-moss-600 text-white font-bold text-sm px-5 py-2.5 transition-colors mt-2 theme-btn-shape">
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.003 2C6.479 2 2 6.479 2 12.003c0 1.992.585 3.842 1.594 5.393L2 22l4.728-1.562A9.954 9.954 0 0012.003 22C17.523 22 22 17.521 22 12.003 22 6.479 17.523 2 12.003 2z"/></svg>
                 Chat via WhatsApp
               </a>
             {% else %}
-              <!-- Plans list: max 3 shown, rest via detail page -->
               <div class="mt-3 space-y-2">
                 {% for plan in product.plans.all %}
-                {% if plan.is_active %}
-                {% if forloop.counter <= 3 %}
-                <div class="flex items-center justify-between py-2 px-3 bg-cream/70 rounded-xl border border-ink-100/60 gap-2">
-                  <div class="flex-1 min-w-0">
-                    <span class="text-sm font-semibold text-ink-800 truncate">{{ plan.name }}</span>
-                    {% if plan.interval != "none" %}
-                    <span class="text-xs text-ink-400 ml-1">/ {{ plan.get_interval_display }}</span>
-                    {% endif %}
-                    {% if plan.seat_limit > 1 %}
-                    <span class="text-xs text-ink-400 ml-1">&middot; {{ plan.seat_limit }} seats</span>
-                    {% endif %}
+                {% if plan.is_active and forloop.counter <= 3 %}
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between py-2.5 px-3 bg-cream/70 rounded-xl border border-ink-100/60">
+                  <div class="min-w-0">
+                    <span class="text-sm font-semibold text-ink-800">{{ plan.name }}</span>
+                    {% if plan.interval != "none" %}<span class="text-xs text-ink-400 ml-1">/ {{ plan.get_interval_display|lower }}</span>{% endif %}
+                    {% if plan.seat_limit > 1 %}<span class="text-xs text-ink-400 ml-1">· {{ plan.seat_limit }} seats</span>{% endif %}
                   </div>
-                  <div class="flex items-center gap-2 shrink-0">
-                    <span class="font-bold text-ink-900 text-sm">
-                      {% if plan.price == 0 %}Free{% else %}{{ plan.price|rupiah }}{% endif %}
-                    </span>
+                  <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                    <span class="font-extrabold text-ink-900 text-sm">{% if plan.price == 0 %}Free{% else %}{{ plan.price|rupiah }}{% endif %}</span>
                     <a href="{% url 'storefront:checkout' plan.pk %}"
-                       class="theme-primary-bg text-white text-xs font-bold px-3 py-1.5 transition-opacity hover:opacity-90 theme-btn-shape">
+                       class="theme-primary-bg text-white text-xs font-bold px-4 py-2 transition-opacity hover:opacity-90 theme-btn-shape">
                       {% if plan.price == 0 %}Get free{% else %}Buy{% endif %}
                     </a>
                   </div>
                 </div>
                 {% endif %}
-                {% endif %}
                 {% endfor %}
               </div>
-              <!-- Always show view details link -->
-              <a href="{% url 'storefront:product' product.slug %}" class="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-primary-600 hover:underline">
+              <a href="{% url 'storefront:product' product.slug %}" class="inline-flex items-center gap-1 mt-2.5 text-xs font-bold theme-primary-text hover:underline">
                 View all plans &rarr;
               </a>
             {% endif %}

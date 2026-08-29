@@ -2,139 +2,242 @@
 {% block topbar_title %}{% block page_title %}Settings{% endblock %}{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl space-y-5">
+{# One <form> for every section so values in other sections aren't wiped on save. #}
+<form method="post" enctype="multipart/form-data" class="max-w-3xl mx-auto pb-24">
+  {% csrf_token %}
 
-  {# Single form so every section's values survive a save (some fields, e.g.
-     the QRIS toggle, would otherwise be cleared when another section posts). #}
-  <form method="post" enctype="multipart/form-data" class="space-y-5">
-    {% csrf_token %}
+  <!-- Page header -->
+  <div class="mb-6">
+    <h1 class="text-xl font-bold text-gray-900">Settings</h1>
+    <p class="text-sm text-gray-500 mt-1">Manage your store profile, payouts, and how buyers pay you.</p>
+  </div>
 
-    <!-- Profile -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 class="font-semibold text-gray-800 mb-1">Seller Profile</h2>
-      <p class="text-xs text-gray-400 mb-5">This info appears on your public store page.</p>
-      <div class="space-y-4">
-        {% for field in form %}
-        {% if field.name == "name" or field.name == "bio" or field.name == "logo_url" or field.name == "wa_number" %}
+  {% if form.non_field_errors %}
+  <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+    {{ form.non_field_errors.0 }}
+  </div>
+  {% endif %}
+
+  <div class="space-y-5">
+
+    <!-- ─────────────  Store profile  ───────────── -->
+    <section class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div class="flex items-start gap-3 px-6 pt-5 pb-4 border-b border-gray-100">
+        <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        </div>
         <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">
+          <h2 class="font-semibold text-gray-900">Store Profile</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Shown to customers on your public store page.</p>
+        </div>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-2">Store logo <span class="text-gray-400 font-normal">(optional)</span></label>
+          {% include "seller/_image_upload.html" with field=form.logo current=seller.logo shape="circle" hint="Logo persegi tampil paling rapi" %}
+        </div>
+        {% for field in form %}
+        {% if field.name == "name" or field.name == "bio" or field.name == "wa_number" %}
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1.5">
             {{ field.label }}{% if field.field.required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}
           </label>
           {{ field }}
+          {% if field.help_text %}<p class="text-xs text-gray-400 mt-1">{{ field.help_text }}</p>{% endif %}
           {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
         </div>
         {% endif %}
         {% endfor %}
       </div>
-    </div>
+    </section>
 
-    <!-- Payout bank details -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 class="font-semibold text-gray-800 mb-1">Payout Bank Account</h2>
-      <p class="text-xs text-gray-400 mb-5">Required to request earnings withdrawals.</p>
-      <div class="space-y-4">
+    <!-- ─────────────  Payout bank account  ───────────── -->
+    <section class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div class="flex items-start gap-3 px-6 pt-5 pb-4 border-b border-gray-100">
+        <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        </div>
+        <div>
+          <h2 class="font-semibold text-gray-900">Payout Bank Account</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Where the platform sends your withdrawals. Required before you can request a payout.</p>
+        </div>
+      </div>
+      <div class="px-6 py-5 space-y-4">
         {% for field in form %}
         {% if field.name == "payout_bank_name" or field.name == "payout_account_number" or field.name == "payout_account_name" %}
         <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
+          <label class="block text-xs font-semibold text-gray-700 mb-1.5">{{ field.label }}</label>
           {{ field }}
           {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
         </div>
         {% endif %}
         {% endfor %}
       </div>
-    </div>
+    </section>
 
-    <!-- QRIS Statis -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 class="font-semibold text-gray-800 mb-1">QRIS Statis Payment</h2>
-      <p class="text-xs text-gray-400 mb-5">
-        Let buyers pay directly to your own static QRIS. Orders wait for you to confirm the
-        payment before the product is delivered — the money goes straight to your account,
-        not the platform wallet.
-      </p>
-      <div class="space-y-4">
-        {% for field in form %}
-        {% if field.name == "qris_enabled" %}
-        <label class="flex items-center gap-2 cursor-pointer">
-          {{ field }}
-          <span class="text-sm font-medium text-gray-700">{{ field.label }}</span>
+    <!-- ─────────────  Static QRIS  ───────────── -->
+    <section id="qris-section" data-has-image="{% if seller.qris_image %}1{% else %}0{% endif %}"
+             class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div class="flex items-start gap-3 px-6 pt-5 pb-4 border-b border-gray-100">
+        <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 3h3m0 0h3m-3 0v3m0-3v-3"/></svg>
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <h2 class="font-semibold text-gray-900">Static QRIS payment</h2>
+            <span id="qris-status" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">NOT SET UP</span>
+          </div>
+          <p class="text-xs text-gray-500 mt-0.5">Let buyers pay straight to your own QRIS. You confirm each payment manually.</p>
+        </div>
+      </div>
+
+      <div class="px-6 py-5">
+
+        <!-- How it works -->
+        <div class="rounded-xl bg-amber-50/60 border border-amber-100 p-4 mb-5">
+          <p class="text-xs font-semibold text-amber-800 mb-2.5">How it works</p>
+          <ol class="space-y-2">
+            <li class="flex gap-2.5 text-xs text-amber-900/90">
+              <span class="flex-shrink-0 w-4 h-4 rounded-full bg-amber-200 text-amber-800 text-[10px] font-bold flex items-center justify-center">1</span>
+              Buyer picks <span class="font-semibold">Static QRIS</span> at checkout and scans your code.
+            </li>
+            <li class="flex gap-2.5 text-xs text-amber-900/90">
+              <span class="flex-shrink-0 w-4 h-4 rounded-full bg-amber-200 text-amber-800 text-[10px] font-bold flex items-center justify-center">2</span>
+              The order appears in <span class="font-semibold">Orders</span> as “Awaiting confirmation”.
+            </li>
+            <li class="flex gap-2.5 text-xs text-amber-900/90">
+              <span class="flex-shrink-0 w-4 h-4 rounded-full bg-amber-200 text-amber-800 text-[10px] font-bold flex items-center justify-center">3</span>
+              You check your QRIS balance, click <span class="font-semibold">Confirm</span>, and the product is delivered.
+            </li>
+          </ol>
+          <p class="text-[11px] text-amber-700/80 mt-3">The money goes directly to your account — the platform takes no cut and holds nothing.</p>
+        </div>
+
+        <!-- Enable toggle -->
+        {% for field in form %}{% if field.name == "qris_enabled" %}
+        <label class="flex items-center justify-between gap-4 py-2 cursor-pointer">
+          <span>
+            <span class="block text-sm font-semibold text-gray-800">Accept Static QRIS payments</span>
+            <span class="block text-xs text-gray-500 mt-0.5">Turn on to show this option at checkout.</span>
+          </span>
+          <input type="checkbox" name="{{ field.html_name }}" id="qris-toggle"
+                 class="sr-only peer" {% if field.value %}checked{% endif %}>
+          <span class="relative flex-shrink-0 w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-amber-500 transition-colors">
+            <span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></span>
+          </span>
         </label>
         {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
-        {% elif field.name == "qris_image" %}
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
-          {% if seller.qris_image %}
-          <img src="{{ seller.qris_image.url }}" alt="Current QRIS"
-               class="max-h-48 rounded-lg border border-gray-200 mb-2">
-          {% endif %}
-          {{ field }}
-          {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
-        </div>
-        {% elif field.name == "qris_instructions" %}
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
-          {{ field }}
-          {% if field.help_text %}<p class="text-xs text-gray-400 mt-0.5">{{ field.help_text }}</p>{% endif %}
-          {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
-        </div>
-        {% endif %}
-        {% endfor %}
-      </div>
-    </div>
+        {% endif %}{% endfor %}
 
-    <!-- Tracking & pixels -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 class="font-semibold text-gray-800 mb-1">Tracking &amp; Analytics</h2>
-      <p class="text-xs text-gray-400 mb-5">Injected into your public store page head.</p>
-      <div class="space-y-4">
+        <!-- Details, revealed when enabled -->
+        <div id="qris-details" class="mt-4 pt-4 border-t border-gray-100 space-y-5">
+
+          <!-- QRIS image -->
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-2">Your QRIS image <span class="text-red-400">*</span></label>
+            {% include "seller/_image_upload.html" with field=form.qris_image current=seller.qris_image hint="A screenshot of your static QRIS from your bank or e-wallet app" %}
+          </div>
+
+          <!-- Instructions -->
+          {% for field in form %}{% if field.name == "qris_instructions" %}
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Payment instructions for the buyer</label>
+            {{ field }}
+            <p class="text-xs text-gray-400 mt-1">Optional. Shown under the QR code on the checkout screen.</p>
+            {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+          </div>
+          {% endif %}{% endfor %}
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────  Tracking & analytics  ───────────── -->
+    <section class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div class="flex items-start gap-3 px-6 pt-5 pb-4 border-b border-gray-100">
+        <div class="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </div>
+        <div>
+          <h2 class="font-semibold text-gray-900">Tracking &amp; Analytics</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Optional. Injected into your public store page.</p>
+        </div>
+      </div>
+      <div class="px-6 py-5 space-y-4">
         {% for field in form %}
         {% if field.name == "custom_domain" or field.name == "ga_tracking_id" or field.name == "fb_pixel_id" %}
         <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
+          <label class="block text-xs font-semibold text-gray-700 mb-1.5">{{ field.label }}</label>
           {{ field }}
-          {% if field.help_text %}<p class="text-xs text-gray-400 mt-0.5">{{ field.help_text }}</p>{% endif %}
+          {% if field.help_text %}<p class="text-xs text-gray-400 mt-1">{{ field.help_text }}</p>{% endif %}
           {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
         </div>
         {% endif %}
         {% endfor %}
       </div>
-    </div>
+    </section>
 
-    <div>
+    <!-- ─────────────  Store info (read-only)  ───────────── -->
+    <section class="bg-white rounded-2xl border border-gray-200 px-6 py-5">
+      <h2 class="font-semibold text-gray-900 text-sm mb-4">Store Info</h2>
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+        <div class="flex justify-between col-span-2 sm:col-span-1">
+          <dt class="text-gray-400">Store slug</dt><dd><code class="text-indigo-600">{{ seller.slug }}</code></dd>
+        </div>
+        <div class="flex justify-between col-span-2 sm:col-span-1">
+          <dt class="text-gray-400">Public URL</dt>
+          <dd><a href="{{ seller.store_url }}" target="_blank" class="text-indigo-600 hover:underline">{{ seller.store_url }}</a></dd>
+        </div>
+        <div class="flex justify-between col-span-2 sm:col-span-1">
+          <dt class="text-gray-400">Seller plan</dt>
+          <dd class="font-medium {% if seller.plan == 'pro' %}text-indigo-600{% else %}text-gray-600{% endif %}">{{ seller.get_plan_display }}</dd>
+        </div>
+        <div class="flex justify-between col-span-2 sm:col-span-1">
+          <dt class="text-gray-400">Commission rate</dt><dd class="font-medium text-gray-800">{{ seller.commission_rate }}%</dd>
+        </div>
+        <div class="flex justify-between col-span-2 sm:col-span-1">
+          <dt class="text-gray-400">Status</dt>
+          <dd class="font-medium {% if seller.is_active %}text-green-600{% else %}text-red-500{% endif %}">{% if seller.is_active %}Active{% else %}Inactive{% endif %}</dd>
+        </div>
+      </dl>
+    </section>
+
+  </div>
+
+  <!-- Sticky save bar -->
+  <div class="fixed bottom-0 left-0 right-0 md:left-60 bg-white/90 backdrop-blur border-t border-gray-200 px-4 md:px-6 py-3 z-10">
+    <div class="max-w-3xl mx-auto flex items-center justify-between">
+      <p class="text-xs text-gray-400 hidden sm:block">Changes apply to your whole store.</p>
       <button type="submit" class="btn-primary">Save Settings</button>
     </div>
-  </form>
-
-  <!-- Store info -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <h3 class="font-semibold text-gray-800 mb-3 text-sm">Store Info</h3>
-    <div class="space-y-2 text-sm text-gray-600">
-      <div class="flex justify-between">
-        <span class="text-gray-400">Store slug</span>
-        <code class="text-indigo-600">{{ seller.slug }}</code>
-      </div>
-      <div class="flex justify-between">
-        <span class="text-gray-400">Public URL</span>
-        <a href="{{ seller.store_url }}" target="_blank" class="text-indigo-600 hover:underline">{{ seller.store_url }}</a>
-      </div>
-      <div class="flex justify-between">
-        <span class="text-gray-400">Seller Plan</span>
-        <span class="font-medium {% if seller.plan == 'pro' %}text-indigo-600{% else %}text-gray-600{% endif %}">
-          {{ seller.get_plan_display }}
-        </span>
-      </div>
-      <div class="flex justify-between">
-        <span class="text-gray-400">Commission Rate</span>
-        <span class="font-medium text-gray-800">{{ seller.commission_rate }}%</span>
-      </div>
-      <div class="flex justify-between">
-        <span class="text-gray-400">Status</span>
-        <span class="{% if seller.is_active %}text-green-600{% else %}text-red-500{% endif %} font-medium">
-          {% if seller.is_active %}Active{% else %}Inactive{% endif %}
-        </span>
-      </div>
-    </div>
   </div>
-</div>
+</form>
+
+<script>
+(function () {
+  var toggle  = document.getElementById('qris-toggle');
+  var details = document.getElementById('qris-details');
+  var status  = document.getElementById('qris-status');
+  var section = document.getElementById('qris-section');
+  if (!toggle) return;
+  var hasImage = section.dataset.hasImage === '1';
+
+  function sync() {
+    var on = toggle.checked;
+    details.style.display = on ? '' : 'none';
+    if (on && hasImage) {
+      status.textContent = 'ACTIVE';
+      status.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700';
+    } else if (on) {
+      status.textContent = 'NEEDS AN IMAGE';
+      status.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700';
+    } else {
+      status.textContent = 'NOT SET UP';
+      status.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500';
+    }
+  }
+  toggle.addEventListener('change', sync);
+  sync();
+})();
+</script>
 {% endblock %}

@@ -30,11 +30,9 @@
       <a href="{% url 'storefront:search' %}" class="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-full border border-ink-100 text-ink-700 hover:border-primary-300 transition-colors" aria-label="Search">
         <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
       </a>
-      <a href="{% url 'storefront:cart' %}" class="relative inline-flex items-center justify-center w-10 h-10 rounded-full border border-ink-100 text-ink-700 hover:border-primary-300 transition-colors" aria-label="Cart">
+      <a href="{% url 'storefront:cart' %}" data-open-cart class="relative inline-flex items-center justify-center w-10 h-10 rounded-full border border-ink-100 text-ink-700 hover:border-primary-300 transition-colors" aria-label="Cart">
         <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-        {% if nav_cart_count %}
-        <span class="absolute -top-1 -right-1 bg-primary-500 text-white text-[10px] font-bold rounded-full w-4.5 h-4.5 flex items-center justify-center">{{ nav_cart_count }}</span>
-        {% endif %}
+        <span data-cart-count class="absolute -top-1 -right-1 bg-primary-500 text-white text-[10px] font-bold rounded-full w-4.5 h-4.5 flex items-center justify-center" {% if not nav_cart_count %}hidden style="display:none"{% endif %}>{{ nav_cart_count }}</span>
       </a>
       {% if user.is_authenticated %}
         <a href="{% url 'dashboard:wallet' %}"
@@ -49,10 +47,17 @@
       {% endif %}
     </div>
 
-    <button type="button" data-mobile-nav-toggle aria-expanded="false" aria-label="Toggle menu"
-            class="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-full border border-ink-100 text-ink-700">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-    </button>
+    <div class="md:hidden flex items-center gap-2">
+      <a href="{% url 'storefront:cart' %}" data-open-cart aria-label="Cart"
+         class="relative inline-flex items-center justify-center w-10 h-10 rounded-full border border-ink-100 text-ink-700">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        <span data-cart-count class="absolute -top-1 -right-1 bg-primary-500 text-white text-[10px] font-bold rounded-full w-4.5 h-4.5 flex items-center justify-center" {% if not nav_cart_count %}hidden style="display:none"{% endif %}>{{ nav_cart_count }}</span>
+      </a>
+      <button type="button" data-mobile-nav-toggle aria-expanded="false" aria-label="Toggle menu"
+              class="inline-flex items-center justify-center w-10 h-10 rounded-full border border-ink-100 text-ink-700">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
   </div>
 
   <div data-mobile-nav-panel hidden class="md:hidden border-t border-ink-900/5 bg-cream px-5 py-4 space-y-3">

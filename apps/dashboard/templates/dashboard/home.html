@@ -22,6 +22,34 @@
 </div>
 {% endif %}
 
+<!-- Unpaid orders -->
+{% if unpaid_orders %}
+<section class="mb-8">
+  <h2 class="text-lg font-bold mb-3 flex items-center gap-2">
+    Unpaid orders
+    <span class="text-xs font-bold bg-gold-100 text-gold-700 rounded-full px-2 py-0.5">{{ unpaid_orders|length }}</span>
+  </h2>
+  <div class="bg-white rounded-2xl border border-gold-200 divide-y divide-ink-100">
+    {% for order in unpaid_orders %}
+    <div class="flex items-center justify-between gap-3 px-5 py-3.5">
+      <div class="min-w-0">
+        <p class="font-semibold text-sm text-ink-900 truncate">{{ order.plan.product.name }} &middot; {{ order.plan.name }}</p>
+        <p class="text-xs text-ink-500 mt-0.5">
+          {{ order.amount|rupiah }} &middot;
+          {% if order.awaiting_seller_confirmation %}waiting for the seller to confirm{% else %}payment not completed{% endif %}
+          &middot; {{ order.created_at|date:"d M Y" }}
+        </p>
+      </div>
+      <a href="{% url 'storefront:order_status' order.public_id %}"
+         class="shrink-0 text-xs font-bold bg-gold-500 hover:bg-gold-600 text-ink-900 px-3.5 py-2 rounded-full transition-colors">
+        {% if order.awaiting_seller_confirmation %}View QRIS{% else %}Complete payment{% endif %}
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <!-- Balance card -->
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
   <div class="bg-white rounded-2xl border border-ink-100 p-5">

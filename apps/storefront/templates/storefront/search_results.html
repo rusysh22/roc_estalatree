@@ -32,8 +32,8 @@
     <a href="{% url 'storefront:product' product.slug %}"
        class="landing-card group block overflow-hidden transition-transform hover:-translate-y-1">
       <div class="relative h-40 bg-gradient-to-br from-primary-100 to-moss-100 overflow-hidden">
-        {% if product.cover_image_url %}
-        <img src="{{ product.cover_image_url }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+        {% if product.cover_image %}
+        <img src="{{ product.cover_image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover">
         {% else %}
         <div class="w-full h-full flex items-center justify-center">
           <span class="text-4xl font-extrabold text-primary-500/40">{{ product.name|slice:":1"|upper }}</span>
