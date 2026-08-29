@@ -317,10 +317,14 @@ Legenda kanal: **P** = kirim ke kanal pilihan pelanggan (`resolve_channel`); **E
 - [ ] Ajukan template ke kirim.chat/Meta (lihat daftar di bawah) — **butuh waktu approval, mulai awal**.
 - [ ] `KirimChatBackend.send()` dukung `message_type="template"` + variabel.
 
-### Fase N.6 — Notifikasi baru (Tier 1)
-- [ ] Reminder invoice pending + expired.
-- [ ] Reminder kedaluwarsa lisensi non-auto-renew (H-7/H-3/H-1) + "berakhir hari ini".
-- [ ] Grace countdown H-2/H-1.
+### Fase N.6 — Notifikasi baru (Tier 1) ✅ (2026-08-30)
+- [x] `reminders.py` di-refactor: helper `_send_once()` + `_window()`; `dispatch_all_reminders()` dipanggil task hourly `send_renewal_reminders`.
+- [x] **Expiry reminder** untuk sub non-auto-renew — `dispatch_expiry_reminders()` D-7 / D-3 / D-1 (tanpa syarat saldo; "berakhir hari ini" sudah ditangani `subscription.cancelled` dari `cancel_expired_subscriptions`).
+- [x] **Grace countdown** — `dispatch_grace_countdown()` D-2 / D-1 sebelum suspend (`period_end + SUBSCRIPTION_GRACE_DAYS`).
+- [x] **Pending-payment nudge** — `dispatch_pending_order_reminders()` untuk order `PENDING` + `qris_static`, umur ~2h / ~24h.
+- [x] Tes: `tests/test_lifecycle_reminders.py` (8).
+- [ ] Auto-expire order QRIS Statis + notifikasi "order expired" — **ditunda**: butuh keputusan billing (tidak ada `Order.expires_at`; order QRIS Statis sekarang PENDING selamanya sampai seller konfirmasi/tolak).
+- [ ] Saldo rendah proaktif, welcome message → digeser ke N.7.
 - [ ] `subscription.renewed` + email.
 
 ### Fase N.7 — Tier 2 & 3

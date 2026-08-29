@@ -223,16 +223,17 @@ def deliver_topup_confirmation_email(self, to_email: str, amount: int, bonus: in
     acks_late=True,
 )
 def send_renewal_reminders(self):
-    """Dispatch H-3 and H-1 renewal reminder notifications.
+    """Dispatch all lifecycle reminders (hourly beat).
 
-    H-3: subscriptions renewing in 2.5–3.5 hours.
-    H-1: subscriptions renewing in 0.5–1.5 hours.
-    Schedule via django-celery-beat: every hour.
+    - renewal reminders (auto-renew, insufficient balance) at H-3 / H-1
+    - expiry reminders (non-renewing subs) at D-7 / D-3 / D-1
+    - grace countdown (suspension approaching) at D-2 / D-1
+    - pending-payment nudges (QRIS Statis orders) at ~2h / ~24h old
     """
-    from apps.notifications.reminders import dispatch_renewal_reminders
+    from apps.notifications.reminders import dispatch_all_reminders
 
     try:
-        dispatch_renewal_reminders()
+        dispatch_all_reminders()
     except Exception as exc:
         logger.error("send_renewal_reminders task error: %s", exc)
         raise self.retry(exc=exc)
