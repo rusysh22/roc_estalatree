@@ -1,4 +1,6 @@
 """Root URL configuration."""
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
@@ -21,3 +23,8 @@ urlpatterns = [
     path("seller/", include("apps.seller.urls", namespace="seller")),
     path("", include("apps.storefront.urls")),
 ]
+
+if settings.DEBUG:
+    # Dev-only: serve user-uploaded media (QRIS images, payment proofs).
+    # Production must serve MEDIA_ROOT via the web server / object storage.
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -441,6 +441,9 @@ def checkout_plan(request, plan_pk):
         gateway_fee = estimate_fee(charge_amount) if gateway_charge else 0
         gateway_total = charge_amount + gateway_fee
 
+        seller = getattr(product, "seller", None)
+        qris_seller = seller if seller and seller.qris_ready else None
+
         _emit_event(request, "checkout_start", product=product, plan=plan)
         return render(request, "storefront/checkout.html", {
             "plan": plan,
@@ -463,6 +466,7 @@ def checkout_plan(request, plan_pk):
             "duration_discount_pct": duration_discount_pct,
             "duration_discount_amount": duration_discount_amount,
             "direct_pay_active": direct_pay_active,
+            "qris_seller": qris_seller,
         })
 
     # POST — run checkout
@@ -471,6 +475,7 @@ def checkout_plan(request, plan_pk):
         CheckoutIdempotencyError,
         CouponLimitError,
         PaymentMethodRequiredError,
+        QrisNotAvailableError,
     )
     from apps.billing.sumopod import SumopodError
     from apps.billing.models import Coupon
@@ -530,8 +535,10 @@ def checkout_plan(request, plan_pk):
             messages.warning(request, "Coupon code not found.")
 
     payment_method = request.POST.get("payment_method", "").strip() or None
+    is_qris_static = payment_method == "qris_static"
+    payment_proof = request.FILES.get("payment_proof") if is_qris_static else None
 
-    if payment_method and was_already_authenticated:
+    if payment_method and not is_qris_static and was_already_authenticated:
         from allauth.account.models import EmailAddress
         if not EmailAddress.objects.filter(user=request.user, verified=True).exists():
             messages.error(request, "Please verify your email before paying via a payment method — this protects your order confirmation and license delivery.")
@@ -549,7 +556,11 @@ def checkout_plan(request, plan_pk):
             callback_url=_callback_url(request),
             return_url=return_url,
             payment_method=payment_method,
+            payment_proof=payment_proof,
         )
+    except QrisNotAvailableError:
+        messages.error(request, "QRIS Statis is not available for this product.")
+        return redirect("storefront:checkout", plan_pk=plan.pk)
     except CheckoutIdempotencyError:
         messages.error(request, "Duplicate checkout — please try again.")
         return redirect("storefront:product", slug=product.slug)
@@ -567,8 +578,11 @@ def checkout_plan(request, plan_pk):
     if payment_url:
         return redirect(payment_url)
 
-    _emit_event(request, "order_paid", product=product, plan=plan)
-    _record_affiliate_commission(request, order)
+    if order.status == order.Status.PAID:
+        _emit_event(request, "order_paid", product=product, plan=plan)
+        _record_affiliate_commission(request, order)
+    elif is_qris_static:
+        messages.info(request, "Order placed. Complete the QRIS payment — the seller will confirm it shortly.")
     return redirect("storefront:order_status", public_id=order.public_id)
 
 
@@ -832,6 +846,7 @@ def cart_update(request, item_pk):
 def cart_checkout_view(request):
     from apps.billing.sumopod import SumopodError
     from apps.billing.cart_service import (
+        CartError,
         CartPaymentMethodRequiredError,
         EmptyCartError,
         checkout_cart,
@@ -856,6 +871,10 @@ def cart_checkout_view(request):
         total += price
     shortfall = max(0, total - wallet_balance)
 
+    seller_ids = {item.plan.product.seller_id for item in items}
+    single_seller = items[0].plan.product.seller if len(seller_ids) == 1 else None
+    qris_seller = single_seller if single_seller and single_seller.qris_ready else None
+
     if request.method == "GET":
         if shortfall > 0:
             from allauth.account.models import EmailAddress
@@ -871,11 +890,14 @@ def cart_checkout_view(request):
             "shortfall": shortfall,
             "gateway_fee": gateway_fee,
             "gateway_total": shortfall + gateway_fee,
+            "qris_seller": qris_seller,
         })
 
     payment_method = request.POST.get("payment_method", "").strip() or None
+    is_qris_static = payment_method == "qris_static"
+    payment_proof = request.FILES.get("payment_proof") if is_qris_static else None
 
-    if payment_method and shortfall > 0:
+    if payment_method and not is_qris_static and shortfall > 0:
         from allauth.account.models import EmailAddress
         if not EmailAddress.objects.filter(user=request.user, verified=True).exists():
             messages.error(request, "Please verify your email before paying via a payment method.")
@@ -888,6 +910,7 @@ def cart_checkout_view(request):
             callback_url=_callback_url(request),
             return_url=request.build_absolute_uri("/orders/pending/"),
             payment_method=payment_method,
+            payment_proof=payment_proof,
         )
     except CartPaymentMethodRequiredError:
         messages.error(request, "Please choose a payment method.")
@@ -898,6 +921,9 @@ def cart_checkout_view(request):
     except SumopodError as exc:
         logger.error("Sumopod payment initiation failed at cart checkout: %s", exc)
         messages.error(request, "Payment is unavailable right now. Please try again in a moment.")
+        return redirect("storefront:cart_checkout")
+    except CartError as exc:
+        messages.error(request, str(exc))
         return redirect("storefront:cart_checkout")
 
     if payment_url:
@@ -912,10 +938,13 @@ def cart_checkout_receipt(request, public_id):
 
     customer, _ = _get_or_create_customer(request.user)
     cart_checkout = get_object_or_404(CartCheckout, public_id=public_id, customer=customer)
-    orders = cart_checkout.orders.select_related("plan__product").prefetch_related("grants")
+    orders = list(
+        cart_checkout.orders.select_related("plan__product__seller").prefetch_related("grants")
+    )
 
     return render(request, "storefront/cart_checkout_receipt.html", {
         "cart_checkout": cart_checkout,
         "orders": orders,
+        "total": sum(o.amount for o in orders),
     })
 

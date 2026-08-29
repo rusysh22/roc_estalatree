@@ -142,12 +142,35 @@ class Order(TimestampedModel):
         help_text="Set when this Order was created as one line of a multi-item cart checkout",
     )
 
+    class PaymentChannel(models.TextChoices):
+        WALLET = "wallet", "Wallet"
+        GATEWAY = "gateway", "Payment Gateway"
+        QRIS_STATIC = "qris_static", "QRIS Statis"
+
+    payment_channel = models.CharField(
+        max_length=20, choices=PaymentChannel.choices, default=PaymentChannel.WALLET,
+        help_text="How the buyer paid. 'qris_static' orders stay PENDING until the "
+                  "seller manually confirms receipt.",
+    )
+    payment_proof = models.ImageField(
+        upload_to="payment_proofs/", blank=True, null=True,
+        help_text="Optional payment receipt uploaded by the buyer (QRIS Statis).",
+    )
+
     class Meta:
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["customer", "status"])]
 
     def __str__(self) -> str:
         return f"{self.public_id} {self.plan} [{self.status}]"
+
+    @property
+    def awaiting_seller_confirmation(self) -> bool:
+        """PENDING QRIS Statis order — the seller must confirm payment received."""
+        return (
+            self.status == self.Status.PENDING
+            and self.payment_channel == self.PaymentChannel.QRIS_STATIC
+        )
 
     def save(self, *args, **kwargs):
         if not self.public_id:

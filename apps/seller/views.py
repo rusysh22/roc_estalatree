@@ -474,6 +474,48 @@ def order_detail(request, pk):
     })
 
 
+def _seller_manual_order(seller, pk):
+    """A QRIS Statis order belonging to this seller and still awaiting confirmation."""
+    order = get_object_or_404(
+        Order.objects.select_related("plan__product", "customer", "cart_checkout"),
+        pk=pk,
+        plan__product__in=_seller_products(seller),
+    )
+    if not order.awaiting_seller_confirmation:
+        raise Http404("Order is not awaiting payment confirmation.")
+    return order
+
+
+@seller_required
+@require_POST
+def order_confirm_payment(request, pk):
+    from apps.billing.checkout import confirm_cart_manual_payment, confirm_manual_payment
+
+    order = _seller_manual_order(request.seller, pk)
+    if order.cart_checkout_id:
+        confirm_cart_manual_payment(order.cart_checkout)
+    else:
+        confirm_manual_payment(order)
+    messages.success(request, "Payment confirmed — the order has been fulfilled.")
+    return redirect("seller:order_detail", pk=pk)
+
+
+@seller_required
+@require_POST
+def order_reject_payment(request, pk):
+    from apps.billing.checkout import reject_manual_payment
+
+    order = _seller_manual_order(request.seller, pk)
+    reason = request.POST.get("reason", "").strip()
+    if order.cart_checkout_id:
+        for line in order.cart_checkout.orders.filter(status=Order.Status.PENDING):
+            reject_manual_payment(line, reason=reason)
+    else:
+        reject_manual_payment(order, reason=reason)
+    messages.info(request, "Payment marked as not received. The order was cancelled.")
+    return redirect("seller:order_detail", pk=pk)
+
+
 # ── Store (StorePage editor) ──────────────────────────────────────────────────
 
 def _get_or_create_store_page(seller):
@@ -787,7 +829,7 @@ def analytics(request):
 def settings(request):
     seller = request.seller
     if request.method == "POST":
-        form = SellerProfileForm(request.POST, instance=seller)
+        form = SellerProfileForm(request.POST, request.FILES, instance=seller)
         if form.is_valid():
             form.save()
             messages.success(request, "Settings saved.")

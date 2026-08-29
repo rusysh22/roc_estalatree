@@ -71,6 +71,10 @@ class PaymentMethodRequiredError(Exception):
     """A TopUp is needed to cover the checkout but no payment_method was given."""
 
 
+class QrisNotAvailableError(Exception):
+    """QRIS Statis was requested but the plan's seller has not enabled/uploaded one."""
+
+
 def _assign_invoice_number(order: Order) -> None:
     """Assign the next sequential invoice number. Must be called inside transaction.atomic()."""
     if order.invoice_number:
@@ -186,6 +190,81 @@ def complete_pending_order(order: Order) -> list[Grant]:
         return []
 
 
+# ── QRIS Statis manual confirmation (called from the Seller Dashboard) ────────
+
+def _increment_coupon_usage(order: Order) -> None:
+    """Bump the order's coupon used_count, respecting its usage_limit. Atomic-safe."""
+    if not (order.coupon_id and order.discount):
+        return
+    from django.db.models import F, Q
+    from apps.billing.models import Coupon as CouponModel
+    CouponModel.objects.filter(
+        Q(usage_limit=0) | Q(used_count__lt=F("usage_limit")),
+        pk=order.coupon_id,
+    ).update(used_count=F("used_count") + 1)
+
+
+def confirm_manual_payment(order: Order) -> list[Grant]:
+    """Mark a QRIS Statis order PAID and fulfill it. Idempotent.
+
+    The seller has verified the payment landed in their own QRIS account. No
+    wallet debit and no SellerEarning — the money went straight to the seller.
+    """
+    with transaction.atomic():
+        locked = Order.objects.select_for_update().get(pk=order.pk)
+        if not locked.awaiting_seller_confirmation:
+            logger.info(
+                "confirm_manual_payment: order %s not awaiting confirmation (status=%s "
+                "channel=%s) — skipping", locked.public_id, locked.status, locked.payment_channel,
+            )
+            return list(Grant.objects.filter(order=locked).order_by("-created_at"))
+
+        locked.status = Order.Status.PAID
+        _assign_invoice_number(locked)
+        _increment_coupon_usage(locked)
+
+        subscription = None
+        if locked.plan.interval != Plan.Interval.NONE:
+            subscription = _create_subscription(
+                locked.customer, locked.plan, locked,
+                duration_multiplier=locked.duration_multiplier,
+            )
+            locked.subscription = subscription
+
+        locked.save(update_fields=["status", "subscription", "invoice_number", "updated_at"])
+
+        grants = _provision_order(locked, subscription=subscription)
+        emit("order.paid", customer_id=locked.customer_id, order_id=locked.pk,
+             plan_name=str(locked.plan))
+
+    return grants
+
+
+def reject_manual_payment(order: Order, *, reason: str = "") -> None:
+    """Mark a QRIS Statis order FAILED — the seller could not verify the payment."""
+    with transaction.atomic():
+        locked = Order.objects.select_for_update().get(pk=order.pk)
+        if not locked.awaiting_seller_confirmation:
+            return
+        locked.status = Order.Status.FAILED
+        locked.save(update_fields=["status", "updated_at"])
+    emit("order.payment_rejected", customer_id=order.customer_id, order_id=order.pk,
+         plan_name=str(order.plan), reason=reason)
+
+
+def confirm_cart_manual_payment(cart_checkout) -> list[Grant]:
+    """Confirm every pending QRIS Statis Order under a cart checkout, then complete it."""
+    from apps.billing.models import CartCheckout
+
+    grants: list[Grant] = []
+    for order in cart_checkout.orders.filter(status=Order.Status.PENDING):
+        grants.extend(confirm_manual_payment(order))
+    CartCheckout.objects.filter(pk=cart_checkout.pk).update(
+        status=CartCheckout.Status.COMPLETED
+    )
+    return grants
+
+
 # ── Main checkout entrypoint ──────────────────────────────────────────────────
 
 def checkout(
@@ -201,6 +280,7 @@ def checkout(
     callback_url: str = "",
     return_url: str,
     payment_method: str | None = None,
+    payment_proof=None,
 ) -> tuple[Order, list[Grant], str | None]:
     """Purchase a plan for a customer.
 
@@ -287,6 +367,40 @@ def checkout(
             discount = coupon.compute_discount(base_price)
 
     effective_price = max(0, base_price - discount)
+
+    # ── QRIS Statis — buyer pays the seller's own static QR directly ──────────
+    # Money never touches the platform wallet or Duitku. The Order stays PENDING
+    # until the seller confirms receipt (confirm_manual_payment), which is what
+    # runs provisioning + coupon usage + subscription creation.
+    if payment_method == Order.PaymentChannel.QRIS_STATIC:
+        seller = getattr(product, "seller", None)
+        if seller is None or not seller.qris_ready:
+            raise QrisNotAvailableError(
+                "This seller has not enabled QRIS Statis payments."
+            )
+        with transaction.atomic():
+            try:
+                order = Order.objects.create(
+                    customer=customer,
+                    plan=plan,
+                    amount=effective_price,
+                    discount=discount,
+                    coupon=coupon if discount > 0 else None,
+                    status=Order.Status.PENDING,
+                    payment_channel=Order.PaymentChannel.QRIS_STATIC,
+                    payment_proof=payment_proof,
+                    idempotency_key=checkout_key,
+                    custom_fields=custom_fields or {},
+                    duration_multiplier=dm,
+                )
+            except IntegrityError:
+                order = Order.objects.get(idempotency_key=checkout_key)
+                grants = list(Grant.objects.filter(order=order).order_by("-created_at"))
+                return order, grants, None
+
+        emit("order.awaiting_confirmation", customer_id=order.customer_id,
+             order_id=order.pk, plan_name=str(order.plan))
+        return order, [], None
 
     # ── Paid plan — check balance ─────────────────────────────────────────────
     wallet = customer.wallet

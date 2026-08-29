@@ -41,13 +41,37 @@
     {% endif %}
   </div>
 
-  <form method="post" action="{% url 'storefront:cart_checkout' %}">
+  <form method="post" action="{% url 'storefront:cart_checkout' %}" enctype="multipart/form-data">
     {% csrf_token %}
 
     {% if shortfall > 0 %}
-    <div class="landing-card p-5 mb-5">
+    <div class="landing-card p-5 mb-5" data-gateway-picker>
       <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-3">Payment Method</p>
       {% include "storefront/partials/_payment_method_picker.html" %}
+    </div>
+    {% endif %}
+
+    {% if qris_seller %}
+    <div class="landing-card p-5 mb-5" data-qris-card>
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" name="payment_method" value="qris_static" class="mt-0.5 shrink-0" data-qris-toggle>
+        <span>
+          <span class="block text-sm font-bold text-ink-800">Pay with QRIS Statis</span>
+          <span class="block text-xs text-ink-500 mt-0.5">
+            Pay {{ qris_seller.name }} directly. Orders are delivered once the seller confirms payment.
+          </span>
+        </span>
+      </label>
+      <div class="mt-4 hidden" data-qris-detail>
+        <div class="bg-cream border border-ink-100 rounded-xl p-4 text-center">
+          <img src="{{ qris_seller.qris_image.url }}" alt="QRIS {{ qris_seller.name }}" class="mx-auto max-h-64 rounded-lg">
+        </div>
+        {% if qris_seller.qris_instructions %}
+        <p class="text-xs text-ink-500 mt-3 whitespace-pre-line">{{ qris_seller.qris_instructions }}</p>
+        {% endif %}
+        <label class="block text-xs font-semibold text-ink-600 mt-3 mb-1">Payment proof <span class="text-ink-400 font-normal">(optional)</span></label>
+        <input type="file" name="payment_proof" accept="image/*" class="block w-full text-xs text-ink-600">
+      </div>
     </div>
     {% endif %}
 
@@ -55,6 +79,28 @@
       {% if shortfall > 0 %}Pay {{ gateway_total|rupiah }}{% else %}Complete purchase{% endif %}
     </button>
   </form>
+
+  {% if qris_seller %}
+  <script>
+  (function () {
+    var toggle = document.querySelector('[data-qris-toggle]');
+    var detail = document.querySelector('[data-qris-detail]');
+    var gateway = document.querySelector('[data-gateway-picker]');
+    if (!toggle) return;
+    function sync() {
+      if (detail) detail.classList.toggle('hidden', !toggle.checked);
+      if (gateway) gateway.querySelectorAll('[name="payment_method"]').forEach(function (r) {
+        if (toggle.checked) { r.checked = false; r.required = false; } else { r.required = true; }
+      });
+    }
+    toggle.addEventListener('change', sync);
+    if (gateway) gateway.querySelectorAll('[name="payment_method"]').forEach(function (r) {
+      r.addEventListener('change', function () { if (r.checked) { toggle.checked = false; sync(); } });
+    });
+    sync();
+  })();
+  </script>
+  {% endif %}
 
   <a href="{% url 'storefront:cart' %}" class="block text-center text-sm text-ink-400 hover:text-ink-600 mt-4">
     Back to cart
