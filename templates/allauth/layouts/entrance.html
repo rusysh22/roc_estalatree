@@ -3,19 +3,6 @@
 {% block body %}
 {% include "storefront/partials/_nav.html" %}
 
-{% if messages %}
-<div class="max-w-md mx-auto px-4 pt-6 space-y-2">
-  {% for msg in messages %}
-  <div class="px-4 py-3 rounded-xl text-sm border
-    {% if msg.tags == 'error' %}bg-primary-50 text-primary-700 border-primary-200
-    {% elif msg.tags == 'success' %}bg-moss-50 text-moss-700 border-moss-200
-    {% else %}bg-white text-ink-600 border-ink-200{% endif %}">
-    {{ msg }}
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
-
 <div class="flex items-center justify-center min-h-[calc(100vh-80px)] py-10 px-4">
   <div class="max-w-md w-full">
     <div class="landing-card p-8">

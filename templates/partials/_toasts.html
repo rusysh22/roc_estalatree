@@ -1,0 +1,37 @@
+{% comment %}
+Site-wide flash notifications — the ONE notification style, used by every layout
+(storefront, dashboard, seller, console, allauth). Fixed above everything, saturated
+colour, icon, dismiss button. Errors / warnings stay until dismissed; success / info
+auto-dismiss after a few seconds.
+{% endcomment %}
+{% if messages %}
+<div id="app-toasts"
+     class="fixed inset-x-0 top-3 z-[200] flex flex-col items-center gap-2 px-3 pointer-events-none sm:items-end sm:right-4 sm:left-auto sm:px-0">
+  {% for msg in messages %}
+  {% if msg.tags == 'error' %}{% with tone='bg-primary-600' icon='M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z' sticky=1 %}{% include "partials/_toast_item.html" %}{% endwith %}
+  {% elif msg.tags == 'warning' %}{% with tone='bg-amber-500' icon='M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z' sticky=1 %}{% include "partials/_toast_item.html" %}{% endwith %}
+  {% elif msg.tags == 'success' %}{% with tone='bg-moss-600' icon='M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z' sticky=0 %}{% include "partials/_toast_item.html" %}{% endwith %}
+  {% else %}{% with tone='bg-ink-900' icon='M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z' sticky=0 %}{% include "partials/_toast_item.html" %}{% endwith %}
+  {% endif %}
+  {% endfor %}
+</div>
+<script>
+(function () {
+  var box = document.getElementById('app-toasts');
+  if (!box) return;
+  box.querySelectorAll('[data-toast]').forEach(function (el, i) {
+    requestAnimationFrame(function () {
+      el.style.transform = 'translateY(0)';
+      el.style.opacity = '1';
+    });
+    function dismiss() {
+      el.style.transform = 'translateY(-8px)';
+      el.style.opacity = '0';
+      setTimeout(function () { el.remove(); }, 250);
+    }
+    el.querySelector('[data-toast-close]').addEventListener('click', dismiss);
+    if (el.dataset.toast === 'auto') setTimeout(dismiss, 5000 + i * 400);
+  });
+})();
+</script>
+{% endif %}

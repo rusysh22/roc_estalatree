@@ -13,23 +13,34 @@
   <div class="bg-white rounded-2xl border border-ink-100 divide-y divide-ink-100">
     {% for order in orders %}
     <div class="p-4 sm:px-5">
-      <div class="flex items-start justify-between gap-3">
+      <a href="{% url 'dashboard:invoice_detail' order.public_id %}" class="flex items-start justify-between gap-3 group">
         <div class="min-w-0">
-          <p class="text-sm font-bold text-ink-900 line-clamp-1">{{ order.plan.product.name }}</p>
+          <p class="text-sm font-bold text-ink-900 line-clamp-1 group-hover:text-primary-700 transition-colors">{{ order.plan.product.name }}</p>
           <p class="text-[11px] text-ink-400 mt-0.5">
             {{ order.plan.name }} &middot; {{ order.created_at|date:"d M Y" }}
             {% if order.invoice_number %} &middot; INV-{{ order.invoice_number|stringformat:"05d" }}{% endif %}
           </p>
         </div>
-        <span class="text-sm font-extrabold text-ink-900 shrink-0">{{ order.amount|rupiah }}</span>
-      </div>
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5 text-xs font-semibold">
-        <a href="{% url 'dashboard:invoice_detail' order.public_id %}" class="text-primary-600 hover:text-primary-700">View invoice</a>
-        <a href="{% url 'storefront:product' order.plan.product.slug %}" class="text-ink-400 hover:text-ink-600">Product</a>
+        <span class="flex items-center gap-2 shrink-0">
+          <span class="text-sm font-extrabold text-ink-900">{{ order.amount|rupiah }}</span>
+          <svg class="w-4 h-4 text-ink-300 group-hover:text-primary-500 transition-colors" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </span>
+      </a>
+      <div class="flex flex-wrap items-center gap-1.5 mt-2.5">
+        <a href="{% url 'storefront:product' order.plan.product.slug %}" class="chip-link">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          Product
+        </a>
         {% if order.subscription_id %}
-        <a href="{% url 'dashboard:subscriptions' %}" class="text-ink-400 hover:text-ink-600">Subscription</a>
+        <a href="{% url 'dashboard:subscriptions' %}" class="chip-link">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Subscription
+        </a>
         {% endif %}
-        <a href="{% url 'dashboard:refund_request' order.public_id %}" class="text-ink-400 hover:text-ink-600">Request refund</a>
+        <a href="{% url 'dashboard:refund_request' order.public_id %}" class="chip-link">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+          Request refund
+        </a>
       </div>
     </div>
     {% endfor %}

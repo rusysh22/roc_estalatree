@@ -59,25 +59,23 @@
 {% else %}
 <div class="bg-white rounded-2xl border border-ink-100 divide-y divide-ink-100">
   {% for item in queue %}
-  <div class="flex items-center justify-between px-5 py-3">
-    <div>
+  <a href="{{ item.url }}" class="flex items-center justify-between gap-3 px-5 py-3 hover:bg-ink-900/[.02] transition-colors group">
+    <div class="min-w-0">
       <div class="flex items-center gap-2 mb-0.5">
         <span class="text-xs px-1.5 py-0.5 rounded-lg font-bold
           {% if item.type == 'lead' %}bg-primary-100 text-primary-700
           {% elif item.type == 'refund' %}bg-primary-100 text-primary-700
           {% elif item.type == 'stuck_topup' %}bg-gold-100 text-gold-700
-          {% else %}bg-ink-100 text-ink-600{% endif %}">
-          {{ item.type|title|cut:"_" }}
-        </span>
-        <span class="text-sm font-medium text-ink-800">{{ item.label }}</span>
+          {% else %}bg-ink-100 text-ink-600{% endif %}">{{ item.type|title|cut:"_" }}</span>
+        <span class="text-sm font-medium text-ink-800 truncate group-hover:text-primary-700 transition-colors">{{ item.label }}</span>
       </div>
       <p class="text-xs text-ink-400">{{ item.sub }}</p>
     </div>
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-2 shrink-0">
       <span class="text-xs text-ink-400">{{ item.created_at|timesince }} ago</span>
-      <a href="{{ item.url }}" class="text-xs text-primary-600 hover:underline">Action</a>
+      <svg class="w-4 h-4 text-ink-300 group-hover:text-primary-500 transition-colors" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
     </div>
-  </div>
+  </a>
   {% endfor %}
 </div>
 {% endif %}

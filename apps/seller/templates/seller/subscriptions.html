@@ -145,10 +145,7 @@
             <td class="px-4 py-3 text-xs text-gray-400">{{ sub.created_at|date:"d M Y" }}</td>
 
             <td class="px-4 py-3 text-right">
-              <a href="{% url 'seller:subscription_detail' pk=sub.pk %}"
-                 class="text-xs text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap">
-                View →
-              </a>
+              <a href="{% url 'seller:subscription_detail' pk=sub.pk %}" class="s-icon-btn ml-auto" aria-label="Open subscription" title="Open subscription"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></a>
             </td>
 
           </tr>
@@ -174,7 +171,7 @@
       {% if status_filter or search %}
       <p class="text-gray-500 font-medium text-sm">No subscriptions found</p>
       <p class="text-gray-400 text-xs mt-1">Try adjusting your filters or search term</p>
-      <a href="{% url 'seller:subscriptions' %}" class="mt-4 text-sm text-indigo-600 hover:underline">Clear filters</a>
+      <a href="{% url 'seller:subscriptions' %}" class="s-chip-link mt-4">Clear filters</a>
       {% else %}
       <p class="text-gray-500 font-medium text-sm">No subscriptions yet</p>
       <p class="text-gray-400 text-xs mt-1">Subscriptions will appear here once customers subscribe to a recurring plan</p>

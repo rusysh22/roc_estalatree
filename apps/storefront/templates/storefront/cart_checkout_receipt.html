@@ -136,11 +136,9 @@
 
   <div class="flex flex-col gap-3">
     <a href="{% url 'dashboard:products' %}" class="block text-center bg-primary-500 hover:bg-primary-600 text-white font-bold px-6 py-3 rounded-full transition-colors">
-      View my products &rarr;
+      View my products <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
     </a>
-    <a href="{% url 'storefront:page' %}" class="block text-center text-sm text-ink-400 hover:text-ink-600">
-      Back to marketplace
-    </a>
+    <a href="{% url 'storefront:page' %}" class="back-link mx-auto"><svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Back to marketplace</a>
   </div>
 </div>
 {% endblock %}

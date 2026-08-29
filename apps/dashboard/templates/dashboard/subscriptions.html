@@ -3,9 +3,12 @@
 {% block page_title %}Subscriptions{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-xl sm:text-2xl font-extrabold text-ink-900 tracking-tight">My Subscriptions</h1>
-  <a href="/" class="text-sm text-primary-600 hover:underline">Browse plans &rarr;</a>
+<div class="flex items-center justify-between gap-3 mb-6">
+  <h1 class="text-xl sm:text-2xl font-extrabold text-ink-900 tracking-tight">My subscriptions</h1>
+  <a href="{% url 'storefront:page' %}" class="chip-link">
+    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+    Browse plans
+  </a>
 </div>
 
 {% if subs_with_shortfall %}
@@ -96,25 +99,34 @@
     {% elif sub.status == 'cancelled' %}
     <p class="text-xs text-ink-500 bg-cream border border-ink-100 rounded-xl px-3 py-2 mb-3">
       This subscription was cancelled.
-      <a href="{% url 'storefront:product' sub.plan.product.slug %}" class="text-primary-500 hover:underline ml-1">Re-subscribe &rarr;</a>
+      <a href="{% url 'storefront:product' sub.plan.product.slug %}" class="chip-link ml-1 align-middle">Re-subscribe
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      </a>
     </p>
     {% endif %}
 
-    <!-- Cross-links: product / license / invoice -->
-    <div class="pt-3 border-t border-ink-100 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs mb-3">
-      <a href="{% url 'storefront:product' sub.plan.product.slug %}" class="text-primary-500 hover:underline">View product</a>
+    <!-- Cross-links -->
+    <div class="pt-3 border-t border-ink-100 flex flex-wrap items-center gap-1.5 mb-3">
+      <a href="{% url 'storefront:product' sub.plan.product.slug %}" class="chip-link">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        Product
+      </a>
       {% if sub_license %}
-      <a href="{% url 'dashboard:products' %}" class="text-primary-500 hover:underline">View license</a>
+      <a href="{% url 'dashboard:products' %}" class="chip-link">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+        License
+      </a>
       {% endif %}
       {% if latest_order %}
-      <a href="{% url 'dashboard:invoice_detail' latest_order.public_id %}" class="text-primary-500 hover:underline">Latest invoice</a>
+      <a href="{% url 'dashboard:invoice_detail' latest_order.public_id %}" class="chip-link">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        Latest invoice
+      </a>
       {% endif %}
-    </div>
-
-    <!-- Wallet summary row -->
-    <div class="pt-3 border-t border-ink-100 flex items-center justify-between text-xs text-ink-400">
-      <span>Current wallet: <strong class="text-ink-700">{{ wallet.balance|rupiah }}</strong></span>
-      <a href="{% url 'dashboard:wallet' %}" class="text-primary-500 hover:underline">View wallet</a>
+      <a href="{% url 'dashboard:wallet' %}" class="chip-link">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        Wallet · {{ wallet.balance|rupiah }}
+      </a>
     </div>
 
   </div>
