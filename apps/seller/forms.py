@@ -2,7 +2,7 @@
 from django import forms
 
 from apps.accounts.models import SellerProfile
-from apps.core.forms import ImageUploadField
+from apps.core.forms import ImageUploadField, RupiahInput
 from apps.billing.models import AffiliateLink, Coupon, SellerPayout
 from apps.catalog.models import CourseLesson, CourseModule, Plan, Product, ProductQuestion
 from apps.provisioning.models import Deliverable, Entitlement
@@ -74,11 +74,11 @@ class PlanForm(forms.ModelForm):
                   "direct_pay"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input-field"}),
-            "price": forms.NumberInput(attrs={"class": "input-field", "data-format-idr": ""}),
+            "price": RupiahInput(attrs={"class": "input-field"}),
             "interval": forms.Select(attrs={"class": "input-field"}),
             "seat_limit": forms.NumberInput(attrs={"class": "input-field"}),
-            "sale_price": forms.NumberInput(attrs={"class": "input-field", "data-format-idr": ""}),
-            "min_price": forms.NumberInput(attrs={"class": "input-field", "data-format-idr": ""}),
+            "sale_price": RupiahInput(attrs={"class": "input-field"}),
+            "min_price": RupiahInput(attrs={"class": "input-field"}),
             "stock_quantity": forms.NumberInput(attrs={"class": "input-field"}),
         }
 
@@ -131,7 +131,7 @@ class OnboardingProductForm(forms.Form):
     )
     price = forms.IntegerField(
         min_value=0,
-        widget=forms.NumberInput(attrs={"class": "input-field", "placeholder": "e.g. 50000", "data-format-idr": ""}),
+        widget=RupiahInput(attrs={"class": "input-field", "placeholder": "e.g. 50000"}),
         help_text="Whole IDR, no decimals. Set to 0 for a free product.",
     )
 
@@ -218,8 +218,8 @@ class CouponForm(forms.ModelForm):
             "code": forms.TextInput(attrs={"class": "input-field uppercase"}),
             "discount_type": forms.Select(attrs={"class": "input-field"}),
             "value": forms.NumberInput(attrs={"class": "input-field"}),
-            "min_order": forms.NumberInput(attrs={"class": "input-field", "data-format-idr": ""}),
-            "max_discount": forms.NumberInput(attrs={"class": "input-field", "data-format-idr": ""}),
+            "min_order": RupiahInput(attrs={"class": "input-field"}),
+            "max_discount": RupiahInput(attrs={"class": "input-field"}),
             "usage_limit": forms.NumberInput(attrs={"class": "input-field"}),
             "valid_from": forms.DateTimeInput(attrs={"class": "input-field", "type": "datetime-local"}),
             "valid_until": forms.DateTimeInput(attrs={"class": "input-field", "type": "datetime-local"}),
@@ -274,7 +274,7 @@ class PayoutRequestForm(forms.Form):
     amount = forms.IntegerField(
         min_value=50000,
         label="Withdrawal amount (Rp)",
-        widget=forms.NumberInput(attrs={"class": "input-field", "placeholder": "Minimum Rp50,000", "data-format-idr": ""}),
+        widget=RupiahInput(attrs={"class": "input-field", "placeholder": "Minimum Rp50,000"}),
     )
 
 

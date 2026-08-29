@@ -537,12 +537,12 @@ def checkout_plan(request, plan_pk):
     # PWYW price override
     price_override = None
     if plan.pwyw:
-        raw = request.POST.get("pwyw_price", "").strip()
-        if raw:
-            try:
-                price_override = max(int(raw), plan.min_price or 0)
-            except (ValueError, TypeError):
-                price_override = plan.min_price or plan.price
+        from apps.core.forms import clean_rupiah
+        amount = clean_rupiah(request.POST.get("pwyw_price", ""))
+        if amount:
+            price_override = max(amount, plan.min_price or 0)
+        else:
+            price_override = plan.min_price or plan.price
 
     # Collect custom question answers
     custom_fields = {}
@@ -787,10 +787,8 @@ def topup(request):
             messages.error(request, "Please verify your email before topping up — this protects your balance and receipts.")
             return redirect("account_email")
 
-        try:
-            amount = int(request.POST.get("amount", 0))
-        except (ValueError, TypeError):
-            amount = 0
+        from apps.core.forms import clean_rupiah
+        amount = clean_rupiah(request.POST.get("amount", ""))
         payment_method = request.POST.get("payment_method", "").strip() or PAYMENT_METHOD
 
         if amount < MIN_TOPUP:

@@ -321,8 +321,16 @@ def checkout(
         existing_grants = list(Grant.objects.filter(order=existing).order_by("-created_at"))
         return existing, existing_grants, None
 
+    # PWYW: the buyer's named price (never below the plan minimum). Resolved here so
+    # a $0 PWYW plan with a paid-for amount does NOT fall into the free-plan branch.
+    pwyw_price = (
+        max(int(price_override), plan.min_price or 0)
+        if price_override is not None and plan.pwyw
+        else 0
+    )
+
     # ── FREE plan (M1 + H1: IntegrityError guard + provision inside atomic) ──
-    if plan.price == 0 or product.type == Product.Type.FREE:
+    if product.type == Product.Type.FREE or (plan.price == 0 and not pwyw_price):
         with transaction.atomic():
             try:
                 order = Order.objects.create(
@@ -347,10 +355,7 @@ def checkout(
         return order, grants, None
 
     # ── Paid plan — determine base price (PWYW or fixed) ─────────────────────
-    if price_override is not None and plan.pwyw:
-        base_price = max(int(price_override), plan.min_price or 0)
-    else:
-        base_price = plan.price
+    base_price = pwyw_price if pwyw_price else plan.price
 
     # ── Apply duration multiplier (recurring plans only) ──────────────────────
     dm = max(1, int(duration_multiplier)) if plan.interval != Plan.Interval.NONE else 1
