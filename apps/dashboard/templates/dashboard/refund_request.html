@@ -3,7 +3,11 @@
 {% block page_title %}Refund Request{% endblock %}
 
 {% block content %}
-<h1 class="text-xl sm:text-2xl font-extrabold text-ink-900 mb-5 sm:mb-6 tracking-tight">Refund Request</h1>
+<a href="{% url 'dashboard:invoices' %}" class="back-link mb-4">
+  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+  Invoices
+</a>
+<h1 class="text-xl sm:text-2xl font-extrabold text-ink-900 mb-5 sm:mb-6 tracking-tight">Refund request</h1>
 
 <div class="bg-white rounded-2xl border border-ink-100 p-6 max-w-lg">
   <!-- Order summary -->
@@ -18,7 +22,10 @@
       {% if existing.status == 'pending' %}We'll notify you once reviewed.{% endif %}
       {% if existing.admin_note %}<p class="mt-1 text-xs">Note: {{ existing.admin_note }}</p>{% endif %}
     </div>
-    <a href="{% url 'dashboard:invoices' %}" class="text-sm text-primary-500 hover:underline">Back to invoices</a>
+    <a href="{% url 'dashboard:invoices' %}" class="chip-link">
+      <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      Back to invoices
+    </a>
   {% else %}
     <form method="post">
       {% csrf_token %}

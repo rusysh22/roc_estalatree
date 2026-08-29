@@ -93,6 +93,51 @@
   }
 }
 
+/* ── Shared click affordances (dashboard / console / storefront + seller) ──── */
+@layer components {
+  /* Icon-only action button — table & list rows. Always give it aria-label/title. */
+  .icon-btn {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg text-ink-400
+           hover:text-ink-800 hover:bg-ink-900/[.06] transition-colors cursor-pointer;
+  }
+  .icon-btn-danger {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg text-ink-400
+           hover:text-primary-600 hover:bg-primary-50 transition-colors cursor-pointer;
+  }
+  /* Small labelled chip with a leading icon — cross-link clusters. */
+  .chip-link {
+    @apply inline-flex items-center gap-1.5 text-xs font-semibold text-ink-600 bg-white
+           border border-ink-200 rounded-full px-2.5 py-1
+           hover:border-primary-300 hover:text-primary-700 transition-colors;
+  }
+  /* Back-navigation pill (‹ Back to X). */
+  .back-link {
+    @apply inline-flex items-center gap-1.5 text-sm font-semibold text-ink-500
+           hover:text-ink-800 transition-colors;
+  }
+  /* A row/card whose whole surface is a link — pairs with a trailing chevron. */
+  .row-link {
+    @apply flex items-center gap-3 transition-colors hover:bg-ink-900/[.02];
+  }
+  /* Seller area keeps its indigo/gray palette. */
+  .s-icon-btn {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400
+           hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer;
+  }
+  .s-icon-btn-danger {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400
+           hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer;
+  }
+  .s-chip-link {
+    @apply inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-white
+           border border-gray-200 rounded-full px-2.5 py-1
+           hover:border-indigo-300 hover:text-indigo-700 transition-colors;
+  }
+  .s-back-link {
+    @apply inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-gray-700 transition-colors;
+  }
+}
+
 /* ── Landing page (marketplace home) ──────────────────────────────────────── */
 @layer components {
   .landing-btn-primary {
