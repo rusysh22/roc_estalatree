@@ -49,12 +49,20 @@
             </span>
           </td>
           <td class="px-5 py-3 text-right">
-            <div class="flex items-center justify-end gap-2">
-              <a href="{% url 'seller:voucher_edit' coupon.pk %}" class="btn-row-edit">Edit</a>
+            <div class="flex items-center justify-end gap-1">
+              <a href="{% url 'seller:voucher_edit' coupon.pk %}" class="s-icon-btn" aria-label="Edit voucher" title="Edit voucher">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </a>
               <form method="post" action="{% url 'seller:voucher_toggle' coupon.pk %}">
                 {% csrf_token %}
-                <button type="submit" class="{% if coupon.is_active %}btn-row-deactivate{% else %}btn-row-activate{% endif %}">
-                  {% if coupon.is_active %}Deactivate{% else %}Activate{% endif %}
+                <button type="submit" class="{% if coupon.is_active %}s-icon-btn{% else %}s-icon-btn{% endif %}"
+                        aria-label="{% if coupon.is_active %}Deactivate{% else %}Activate{% endif %} voucher"
+                        title="{% if coupon.is_active %}Deactivate{% else %}Activate{% endif %} voucher">
+                  {% if coupon.is_active %}
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                  {% else %}
+                  <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  {% endif %}
                 </button>
               </form>
             </div>

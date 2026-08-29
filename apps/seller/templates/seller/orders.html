@@ -170,11 +170,10 @@
               <span class="block text-gray-300">{{ order.created_at|date:"H:i" }}</span>
             </td>
 
-            <!-- View link -->
+            <!-- View -->
             <td class="px-4 py-3 text-right">
-              <a href="{% url 'seller:order_detail' pk=order.pk %}"
-                 class="text-xs text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap">
-                View →
+              <a href="{% url 'seller:order_detail' pk=order.pk %}" class="s-icon-btn ml-auto" aria-label="Open order" title="Open order">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
               </a>
             </td>
 
@@ -201,7 +200,7 @@
       {% if status_filter or search %}
       <p class="text-gray-500 font-medium text-sm">No orders found</p>
       <p class="text-gray-400 text-xs mt-1">Try adjusting your filters or search term</p>
-      <a href="{% url 'seller:orders' %}" class="mt-4 text-sm text-indigo-600 hover:underline">
+      <a href="{% url 'seller:orders' %}" class="s-chip-link mt-4">
         Clear filters
       </a>
       {% else %}
