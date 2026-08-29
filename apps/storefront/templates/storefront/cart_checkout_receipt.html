@@ -18,8 +18,23 @@
     <div class="w-16 h-16 bg-gold-100 rounded-full flex items-center justify-center mx-auto mb-4">
       <svg class="w-8 h-8 text-gold-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
     </div>
+    {% with first=orders|first %}
+    {% if first.awaiting_seller_confirmation %}
+    <h1 class="text-xl font-extrabold text-gold-800 tracking-tight">Selesaikan pembayaran QRIS</h1>
+    <p class="text-ink-500 text-sm mt-1">Total {{ total|rupiah }} &middot; menunggu penjual mengonfirmasi.</p>
+    {% with seller=first.plan.product.seller %}
+    {% if seller.qris_image %}
+    <img src="{{ seller.qris_image.url }}" alt="QRIS {{ seller.name }}" class="mx-auto max-h-64 rounded-xl border border-ink-100 mt-4">
+    {% endif %}
+    {% if seller.qris_instructions %}
+    <p class="text-xs text-ink-500 mt-3 whitespace-pre-line">{{ seller.qris_instructions }}</p>
+    {% endif %}
+    {% endwith %}
+    {% else %}
     <h1 class="text-xl font-extrabold text-gold-800 tracking-tight">Payment pending</h1>
     <p class="text-ink-500 text-sm mt-1">Your items will activate automatically once payment is confirmed.</p>
+    {% endif %}
+    {% endwith %}
   </div>
   {% endif %}
 

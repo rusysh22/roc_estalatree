@@ -123,11 +123,27 @@ class SellerProfile(TimestampedModel):
     ga_tracking_id = models.CharField(max_length=30, blank=True, help_text="e.g. G-XXXXXXXXXX")
     fb_pixel_id = models.CharField(max_length=20, blank=True)
 
+    # QRIS Statis — buyer pays the seller's own static QRIS directly (money never
+    # touches the platform wallet or Duitku). Orders wait for the seller to
+    # manually confirm receipt before provisioning runs. See ADR / checkout.py.
+    qris_enabled = models.BooleanField(default=False)
+    qris_image = models.ImageField(upload_to="qris/", blank=True, null=True)
+    qris_instructions = models.TextField(
+        blank=True,
+        help_text="Shown to the buyer on the payment screen — e.g. transfer the exact "
+                  "amount, then upload your receipt.",
+    )
+
     class Meta:
         verbose_name = "Seller Profile"
 
     def __str__(self) -> str:
         return self.name
+
+    @property
+    def qris_ready(self) -> bool:
+        """True when this seller can actually accept QRIS Statis payments."""
+        return bool(self.qris_enabled and self.qris_image)
 
     @property
     def store_url(self) -> str:

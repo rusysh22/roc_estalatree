@@ -4,71 +4,107 @@
 {% block content %}
 <div class="max-w-2xl space-y-5">
 
-  <!-- Profile -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <h2 class="font-semibold text-gray-800 mb-1">Seller Profile</h2>
-    <p class="text-xs text-gray-400 mb-5">This info appears on your public store page.</p>
-    <form method="post" class="space-y-4">
-      {% csrf_token %}
-      {% for field in form %}
-      {% if field.name == "name" or field.name == "bio" or field.name == "logo_url" or field.name == "wa_number" %}
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">
-          {{ field.label }}{% if field.field.required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}
+  {# Single form so every section's values survive a save (some fields, e.g.
+     the QRIS toggle, would otherwise be cleared when another section posts). #}
+  <form method="post" enctype="multipart/form-data" class="space-y-5">
+    {% csrf_token %}
+
+    <!-- Profile -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="font-semibold text-gray-800 mb-1">Seller Profile</h2>
+      <p class="text-xs text-gray-400 mb-5">This info appears on your public store page.</p>
+      <div class="space-y-4">
+        {% for field in form %}
+        {% if field.name == "name" or field.name == "bio" or field.name == "logo_url" or field.name == "wa_number" %}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">
+            {{ field.label }}{% if field.field.required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}
+          </label>
+          {{ field }}
+          {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Payout bank details -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="font-semibold text-gray-800 mb-1">Payout Bank Account</h2>
+      <p class="text-xs text-gray-400 mb-5">Required to request earnings withdrawals.</p>
+      <div class="space-y-4">
+        {% for field in form %}
+        {% if field.name == "payout_bank_name" or field.name == "payout_account_number" or field.name == "payout_account_name" %}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- QRIS Statis -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="font-semibold text-gray-800 mb-1">QRIS Statis Payment</h2>
+      <p class="text-xs text-gray-400 mb-5">
+        Let buyers pay directly to your own static QRIS. Orders wait for you to confirm the
+        payment before the product is delivered — the money goes straight to your account,
+        not the platform wallet.
+      </p>
+      <div class="space-y-4">
+        {% for field in form %}
+        {% if field.name == "qris_enabled" %}
+        <label class="flex items-center gap-2 cursor-pointer">
+          {{ field }}
+          <span class="text-sm font-medium text-gray-700">{{ field.label }}</span>
         </label>
-        {{ field }}
         {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+        {% elif field.name == "qris_image" %}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
+          {% if seller.qris_image %}
+          <img src="{{ seller.qris_image.url }}" alt="Current QRIS"
+               class="max-h-48 rounded-lg border border-gray-200 mb-2">
+          {% endif %}
+          {{ field }}
+          {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% elif field.name == "qris_instructions" %}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<p class="text-xs text-gray-400 mt-0.5">{{ field.help_text }}</p>{% endif %}
+          {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
       </div>
-      {% endif %}
-      {% endfor %}
-      <div class="pt-2">
-        <button type="submit" class="btn-primary">Save Profile</button>
-      </div>
-    </form>
-  </div>
+    </div>
 
-  <!-- Payout bank details -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <h2 class="font-semibold text-gray-800 mb-1">Payout Bank Account</h2>
-    <p class="text-xs text-gray-400 mb-5">Required to request earnings withdrawals.</p>
-    <form method="post" class="space-y-4">
-      {% csrf_token %}
-      {% for field in form %}
-      {% if field.name == "payout_bank_name" or field.name == "payout_account_number" or field.name == "payout_account_name" %}
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
-        {{ field }}
-        {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+    <!-- Tracking & pixels -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="font-semibold text-gray-800 mb-1">Tracking &amp; Analytics</h2>
+      <p class="text-xs text-gray-400 mb-5">Injected into your public store page head.</p>
+      <div class="space-y-4">
+        {% for field in form %}
+        {% if field.name == "custom_domain" or field.name == "ga_tracking_id" or field.name == "fb_pixel_id" %}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<p class="text-xs text-gray-400 mt-0.5">{{ field.help_text }}</p>{% endif %}
+          {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
       </div>
-      {% endif %}
-      {% endfor %}
-      <div class="pt-2">
-        <button type="submit" class="btn-primary">Save Bank Details</button>
-      </div>
-    </form>
-  </div>
+    </div>
 
-  <!-- Tracking & pixels -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <h2 class="font-semibold text-gray-800 mb-1">Tracking & Analytics</h2>
-    <p class="text-xs text-gray-400 mb-5">Injected into your public store page head.</p>
-    <form method="post" class="space-y-4">
-      {% csrf_token %}
-      {% for field in form %}
-      {% if field.name == "custom_domain" or field.name == "ga_tracking_id" or field.name == "fb_pixel_id" %}
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">{{ field.label }}</label>
-        {{ field }}
-        {% if field.help_text %}<p class="text-xs text-gray-400 mt-0.5">{{ field.help_text }}</p>{% endif %}
-        {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors.0 }}</p>{% endif %}
-      </div>
-      {% endif %}
-      {% endfor %}
-      <div class="pt-2">
-        <button type="submit" class="btn-primary">Save Tracking</button>
-      </div>
-    </form>
-  </div>
+    <div>
+      <button type="submit" class="btn-primary">Save Settings</button>
+    </div>
+  </form>
 
   <!-- Store info -->
   <div class="bg-white rounded-xl border border-gray-200 p-6">

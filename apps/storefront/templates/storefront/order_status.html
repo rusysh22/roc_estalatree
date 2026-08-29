@@ -147,6 +147,53 @@
     View wallet balance
   </a>
 
+  {% elif order.awaiting_seller_confirmation %}
+  <!-- QRIS Statis — waiting for the seller to confirm payment -->
+  <div class="text-center mb-6">
+    <div class="w-16 h-16 bg-gold-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-gold-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h.01M4 4h4v4H4V4zm12 0h4v4h-4V4zM4 16h4v4H4v-4z"/></svg>
+    </div>
+    <h1 class="text-xl font-extrabold text-gold-800 tracking-tight">Selesaikan pembayaran QRIS</h1>
+    <p class="text-ink-500 text-sm mt-1">Order <span class="font-mono text-xs">{{ order.public_id }}</span></p>
+  </div>
+
+  {% with seller=order.plan.product.seller %}
+  <div class="landing-card p-5 mb-5">
+    {% if seller.qris_image %}
+    <img src="{{ seller.qris_image.url }}" alt="QRIS {{ seller.name }}"
+         class="mx-auto max-h-72 rounded-xl border border-ink-100">
+    {% endif %}
+    <div class="flex justify-between text-sm mt-4">
+      <span class="text-ink-500">Bayar tepat sejumlah</span>
+      <span class="font-bold text-gold-700">{{ order.amount|rupiah }}</span>
+    </div>
+    <div class="flex justify-between text-sm mt-1">
+      <span class="text-ink-500">Produk</span>
+      <span class="font-semibold text-ink-900">{{ order.plan.product.name }} &middot; {{ order.plan.name }}</span>
+    </div>
+    {% if seller.qris_instructions %}
+    <p class="text-xs text-ink-500 mt-3 whitespace-pre-line border-t border-ink-100 pt-3">{{ seller.qris_instructions }}</p>
+    {% endif %}
+  </div>
+  {% endwith %}
+
+  <p class="text-ink-500 text-sm text-center mb-2">
+    {% if order.payment_proof %}Bukti pembayaran sudah terkirim. {% endif %}Menunggu penjual mengonfirmasi pembayaran kamu.
+  </p>
+  <p class="text-ink-400 text-xs text-center mb-5">
+    Kamu akan menerima notifikasi WhatsApp setelah pembayaran dikonfirmasi.
+  </p>
+
+  <div class="flex flex-col gap-3 items-center">
+    <button onclick="location.reload()"
+       class="w-full bg-gold-500 hover:bg-gold-600 text-ink-900 font-bold px-6 py-3 rounded-full transition-colors cursor-pointer">
+      Cek status pembayaran
+    </button>
+    <a href="{% url 'dashboard:support' %}" class="text-sm text-ink-400 hover:underline">
+      Contact support
+    </a>
+  </div>
+
   {% else %}
   <!-- Pending state -->
   <div class="text-center mb-6">

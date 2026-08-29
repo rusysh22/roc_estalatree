@@ -26,7 +26,11 @@
         </span>
         {% endif %}
         <!-- Status badge -->
-        {% if order.status == 'paid' %}
+        {% if order.awaiting_seller_confirmation %}
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Awaiting confirmation
+        </span>
+        {% elif order.status == 'paid' %}
         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
           <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Paid
         </span>
@@ -47,6 +51,46 @@
       <p class="text-sm text-gray-400 mt-1">{{ order.created_at|date:"d F Y, H:i" }}</p>
     </div>
   </div>
+
+  {% if order.awaiting_seller_confirmation %}
+  <!-- QRIS Statis — manual payment confirmation -->
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
+    <h2 class="font-semibold text-amber-900 mb-1">Confirm QRIS Statis payment</h2>
+    <p class="text-xs text-amber-800 mb-4">
+      The buyer says they paid <strong>{{ order.amount|rupiah }}</strong> to your QRIS.
+      Check your QRIS account, then confirm — this delivers the product immediately.
+      The money is not held by the platform.
+    </p>
+
+    {% if order.payment_proof %}
+    <a href="{{ order.payment_proof.url }}" target="_blank" class="inline-block mb-4">
+      <img src="{{ order.payment_proof.url }}" alt="Payment proof"
+           class="max-h-56 rounded-lg border border-amber-300">
+      <span class="block text-[11px] text-amber-700 mt-1">Buyer's payment proof — click to enlarge</span>
+    </a>
+    {% else %}
+    <p class="text-xs text-amber-700 mb-4">No payment proof was uploaded by the buyer.</p>
+    {% endif %}
+
+    <div class="flex gap-3">
+      <form method="post" action="{% url 'seller:order_confirm_payment' order.pk %}">
+        {% csrf_token %}
+        <button type="submit"
+                class="text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg px-4 py-2 transition-colors">
+          Confirm payment received
+        </button>
+      </form>
+      <form method="post" action="{% url 'seller:order_reject_payment' order.pk %}"
+            onsubmit="return confirm('Mark this payment as not received and cancel the order?');">
+        {% csrf_token %}
+        <button type="submit"
+                class="text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50 rounded-lg px-4 py-2 transition-colors">
+          Reject
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Two-column layout -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -133,7 +177,9 @@
               <span class="font-bold text-gray-900 text-base">{{ order.amount|rupiah }}</span>
             </div>
             {% if order.status == 'paid' %}
-            <p class="text-xs text-gray-400 mt-1">Paid via wallet debit</p>
+            <p class="text-xs text-gray-400 mt-1">
+              {% if order.payment_channel == 'qris_static' %}Paid via QRIS Statis (seller-confirmed){% else %}Paid via wallet debit{% endif %}
+            </p>
             {% endif %}
           </div>
         </div>

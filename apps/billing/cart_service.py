@@ -170,7 +170,8 @@ def _increment_coupon_usage(coupon: Coupon) -> None:
 
 
 def checkout_cart(customer, cart: Cart, *, callback_url: str, return_url: str,
-                   payment_method: str | None = None, duitku_client=None):
+                   payment_method: str | None = None, duitku_client=None,
+                   payment_proof=None):
     """Check out every line in the cart. Returns (cart_checkout, grants, payment_url) —
     payment_url is None when fully paid from wallet balance (cart_checkout.status is
     already COMPLETED in that case); grants is [] when a TopUp is needed (orders stay
@@ -187,6 +188,33 @@ def checkout_cart(customer, cart: Cart, *, callback_url: str, return_url: str,
 
     lines = [(item, *compute_cart_line(item)) for item in items]
     total = sum(price for _item, price, _discount, _coupon, _base in lines)
+
+    # ── QRIS Statis — one seller, buyer pays the seller's static QR directly ──
+    if payment_method == Order.PaymentChannel.QRIS_STATIC:
+        seller_ids = {item.plan.product.seller_id for item, *_ in lines}
+        seller = items[0].plan.product.seller
+        if len(seller_ids) != 1 or seller is None or not seller.qris_ready:
+            raise CartError("QRIS Statis is only available when every item is from one seller who accepts it.")
+        cart_checkout = CartCheckout.objects.create(customer=customer, status=CartCheckout.Status.PENDING)
+        with transaction.atomic():
+            for i, (item, price, discount, coupon_obj, _base) in enumerate(lines):
+                Order.objects.create(
+                    customer=customer,
+                    plan=item.plan,
+                    amount=price,
+                    discount=discount,
+                    coupon=coupon_obj if discount > 0 else None,
+                    status=Order.Status.PENDING,
+                    payment_channel=Order.PaymentChannel.QRIS_STATIC,
+                    payment_proof=payment_proof if i == 0 else None,
+                    duration_multiplier=item.duration_multiplier,
+                    cart_checkout=cart_checkout,
+                    idempotency_key=f"cart:{cart.pk}:item:{item.pk}",
+                )
+            cart.items.all().delete()
+        emit("order.awaiting_confirmation", customer_id=customer.pk,
+             order_id=cart_checkout.orders.first().pk, plan_name="cart checkout")
+        return cart_checkout, [], None
 
     wallet = customer.wallet
     wallet.refresh_from_db()

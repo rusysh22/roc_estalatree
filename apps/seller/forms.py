@@ -15,6 +15,7 @@ class SellerProfileForm(forms.ModelForm):
             "name", "bio", "logo_url", "wa_number",
             "payout_bank_name", "payout_account_number", "payout_account_name",
             "custom_domain", "ga_tracking_id", "fb_pixel_id",
+            "qris_enabled", "qris_image", "qris_instructions",
         ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input-field"}),
@@ -27,7 +28,20 @@ class SellerProfileForm(forms.ModelForm):
             "custom_domain": forms.TextInput(attrs={"class": "input-field", "placeholder": "shop.example.com"}),
             "ga_tracking_id": forms.TextInput(attrs={"class": "input-field", "placeholder": "G-XXXXXXXXXX"}),
             "fb_pixel_id": forms.TextInput(attrs={"class": "input-field", "placeholder": "123456789012345"}),
+            "qris_image": forms.ClearableFileInput(attrs={"class": "input-field", "accept": "image/*"}),
+            "qris_instructions": forms.Textarea(attrs={
+                "class": "input-field", "rows": 3,
+                "placeholder": "e.g. Transfer the exact amount, then upload your receipt below.",
+            }),
         }
+
+    def clean(self):
+        cleaned = super().clean()
+        enabled = cleaned.get("qris_enabled")
+        has_image = cleaned.get("qris_image") or getattr(self.instance, "qris_image", None)
+        if enabled and not has_image:
+            self.add_error("qris_image", "Upload a QRIS image to enable QRIS Statis payments.")
+        return cleaned
 
 
 class ProductForm(forms.ModelForm):
