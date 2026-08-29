@@ -25,6 +25,7 @@ urlpatterns = [
     path("store/", views.store, name="store"),
     path("store/publish/", views.store_publish_toggle, name="store_publish_toggle"),
     path("store/blocks/add/", views.block_add, name="block_add"),
+    path("store/blocks/reorder/", views.block_reorder, name="block_reorder"),
     path("store/blocks/<int:block_pk>/remove/", views.block_remove, name="block_remove"),
     path("store/blocks/<int:block_pk>/visibility/", views.block_toggle_visibility, name="block_toggle_visibility"),
     path("vouchers/", views.vouchers, name="vouchers"),

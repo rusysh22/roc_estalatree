@@ -53,9 +53,9 @@
   </div>
 
   {% if order.awaiting_seller_confirmation %}
-  <!-- QRIS Statis — manual payment confirmation -->
+  <!-- Static QRIS — manual payment confirmation -->
   <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
-    <h2 class="font-semibold text-amber-900 mb-1">Confirm QRIS Statis payment</h2>
+    <h2 class="font-semibold text-amber-900 mb-1">Confirm Static QRIS payment</h2>
     <p class="text-xs text-amber-800 mb-4">
       The buyer says they paid <strong>{{ order.amount|rupiah }}</strong> to your QRIS.
       Check your QRIS account, then confirm — this delivers the product immediately.
@@ -178,7 +178,7 @@
             </div>
             {% if order.status == 'paid' %}
             <p class="text-xs text-gray-400 mt-1">
-              {% if order.payment_channel == 'qris_static' %}Paid via QRIS Statis (seller-confirmed){% else %}Paid via wallet debit{% endif %}
+              {% if order.payment_channel == 'qris_static' %}Paid via Static QRIS (seller-confirmed){% else %}Paid via wallet debit{% endif %}
             </p>
             {% endif %}
           </div>

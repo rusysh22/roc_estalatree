@@ -72,7 +72,7 @@ class PaymentMethodRequiredError(Exception):
 
 
 class QrisNotAvailableError(Exception):
-    """QRIS Statis was requested but the plan's seller has not enabled/uploaded one."""
+    """Static QRIS was requested but the plan's seller has not enabled/uploaded one."""
 
 
 def _assign_invoice_number(order: Order) -> None:
@@ -190,7 +190,7 @@ def complete_pending_order(order: Order) -> list[Grant]:
         return []
 
 
-# ── QRIS Statis manual confirmation (called from the Seller Dashboard) ────────
+# ── Static QRIS manual confirmation (called from the Seller Dashboard) ────────
 
 def _increment_coupon_usage(order: Order) -> None:
     """Bump the order's coupon used_count, respecting its usage_limit. Atomic-safe."""
@@ -205,7 +205,7 @@ def _increment_coupon_usage(order: Order) -> None:
 
 
 def confirm_manual_payment(order: Order) -> list[Grant]:
-    """Mark a QRIS Statis order PAID and fulfill it. Idempotent.
+    """Mark a Static QRIS order PAID and fulfill it. Idempotent.
 
     The seller has verified the payment landed in their own QRIS account. No
     wallet debit and no SellerEarning — the money went straight to the seller.
@@ -241,7 +241,7 @@ def confirm_manual_payment(order: Order) -> list[Grant]:
 
 
 def reject_manual_payment(order: Order, *, reason: str = "") -> None:
-    """Mark a QRIS Statis order FAILED — the seller could not verify the payment."""
+    """Mark a Static QRIS order FAILED — the seller could not verify the payment."""
     with transaction.atomic():
         locked = Order.objects.select_for_update().get(pk=order.pk)
         if not locked.awaiting_seller_confirmation:
@@ -253,7 +253,7 @@ def reject_manual_payment(order: Order, *, reason: str = "") -> None:
 
 
 def confirm_cart_manual_payment(cart_checkout) -> list[Grant]:
-    """Confirm every pending QRIS Statis Order under a cart checkout, then complete it."""
+    """Confirm every pending Static QRIS Order under a cart checkout, then complete it."""
     from apps.billing.models import CartCheckout
 
     grants: list[Grant] = []
@@ -368,7 +368,7 @@ def checkout(
 
     effective_price = max(0, base_price - discount)
 
-    # ── QRIS Statis — buyer pays the seller's own static QR directly ──────────
+    # ── Static QRIS — buyer pays the seller's own static QR directly ──────────
     # Money never touches the platform wallet or Duitku. The Order stays PENDING
     # until the seller confirms receipt (confirm_manual_payment), which is what
     # runs provisioning + coupon usage + subscription creation.
@@ -376,7 +376,7 @@ def checkout(
         seller = getattr(product, "seller", None)
         if seller is None or not seller.qris_ready:
             raise QrisNotAvailableError(
-                "This seller has not enabled QRIS Statis payments."
+                "This seller has not enabled Static QRIS payments."
             )
         with transaction.atomic():
             try:

@@ -81,7 +81,7 @@ def test_full_onboarding_wizard_reaches_dashboard(verified_user):
 
     # Step 1: identity
     resp = client.post(reverse("seller:onboarding"), {
-        "title": "Wizard Store", "description": "", "avatar_url": "",
+        "title": "Wizard Store", "description": "",
     })
     assert resp.status_code == 302
     seller.refresh_from_db()

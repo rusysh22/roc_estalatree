@@ -10,6 +10,7 @@ import logging
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -87,6 +88,12 @@ def home(request):
         .order_by("-created_at")[:5]
     )
 
+    unpaid_orders = (
+        Order.objects.filter(customer=customer, status=Order.Status.PENDING)
+        .select_related("plan__product")
+        .order_by("-created_at")
+    )
+
     return render(request, "dashboard/home.html", {
         "customer": customer,
         "wallet": customer.wallet,
@@ -95,6 +102,7 @@ def home(request):
         "shortfall": shortfall,
         "active_subs": active_subs,
         "recent_grants": recent_grants,
+        "unpaid_orders": unpaid_orders,
     })
 
 
@@ -277,11 +285,18 @@ def invoices(request):
 def profile(request):
     customer = _customer(request)
     if request.method == "POST":
-        wa = request.POST.get("wa_number", "").strip()
-        customer.wa_number = wa
-        customer.notif_wa = bool(request.POST.get("notif_wa"))
-        customer.notif_email = bool(request.POST.get("notif_email"))
-        customer.save(update_fields=["wa_number", "notif_wa", "notif_email", "updated_at"])
+        from apps.core.models import NotificationChannel
+
+        channel = request.POST.get("notification_channel", NotificationChannel.EMAIL)
+        if channel not in NotificationChannel.values:
+            channel = NotificationChannel.EMAIL
+        # Can't select WhatsApp until the number is verified.
+        if channel == NotificationChannel.WHATSAPP and not customer.wa_verified:
+            channel = NotificationChannel.EMAIL
+            messages.warning(request, "Verify your WhatsApp number first to receive notifications there.")
+        customer.notification_channel = channel
+        customer.notif_promo = bool(request.POST.get("notif_promo"))
+        customer.save(update_fields=["notification_channel", "notif_promo", "updated_at"])
         messages.success(request, "Profile updated.")
         return redirect("dashboard:profile")
 
@@ -293,10 +308,48 @@ def profile(request):
     except Exception:
         email_verified = True
 
+    from django.utils import timezone as _tz
+    pending_otp = (
+        customer.wa_otps.filter(consumed_at__isnull=True, expires_at__gt=_tz.now())
+        .order_by("-created_at")
+        .first()
+    )
+
     return render(request, "dashboard/profile.html", {
         "customer": customer,
         "email_verified": email_verified,
+        "pending_wa_number": pending_otp.number if pending_otp else "",
     })
+
+
+@login_required
+@require_POST
+def wa_send_otp(request):
+    from apps.notifications.otp import OtpError, request_code
+
+    customer = _customer(request)
+    number = request.POST.get("wa_number", "").strip() or customer.wa_number
+    try:
+        request_code(customer, number)
+        messages.success(request, "Verification code sent to your WhatsApp.")
+    except OtpError as e:
+        messages.error(request, str(e))
+    return redirect("dashboard:profile")
+
+
+@login_required
+@require_POST
+def wa_verify_otp(request):
+    from apps.notifications.otp import OtpError, verify_code
+
+    customer = _customer(request)
+    number = request.POST.get("wa_number", "").strip() or customer.wa_number
+    try:
+        verify_code(customer, number, request.POST.get("code", ""))
+        messages.success(request, "WhatsApp number verified.")
+    except OtpError as e:
+        messages.error(request, str(e))
+    return redirect("dashboard:profile")
 
 
 @login_required

@@ -17,7 +17,7 @@ from django.contrib.auth.views import redirect_to_login
 from django.core import signing
 from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
 from django.db.models.functions import Coalesce
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
@@ -266,7 +266,7 @@ def product_detail(request, slug):
         Product, slug=slug,
         visibility__in=[Product.Visibility.PUBLIC, Product.Visibility.UNLISTED],
     )
-    plans = product.plans.filter(is_active=True).order_by("sort_order", "price")
+    plans = list(product.plans.filter(is_active=True).order_by("sort_order", "price"))
     sold_count = Order.objects.filter(
         plan__product=product, status=Order.Status.PAID
     ).count()
@@ -278,11 +278,17 @@ def product_detail(request, slug):
     if ref_code:
         request.session["affiliate_ref"] = ref_code
 
+    # Sticky mobile CTA: one plan → buy straight; many → "from <cheapest>".
+    single_plan = plans[0] if len(plans) == 1 else None
+    cheapest_price = min((p.price for p in plans), default=0)
+
     return render(request, "storefront/product.html", {
         "product": product,
         "plans": plans,
         "sold_count": sold_count,
         "reviews": reviews,
+        "single_plan": single_plan,
+        "cheapest_price": cheapest_price,
     })
 
 
@@ -312,6 +318,44 @@ def product_quotation_pdf(request, slug):
 # ── Checkout ──────────────────────────────────────────────────────────────────
 
 
+def _intercept_guest_checkout(request):
+    """Promote an anonymous POSTer into a real (unverified) account from `guest_email`.
+
+    Returns an HttpResponse to short-circuit with (missing/invalid email, or an
+    existing account that must log in), or None when the guest was signed in and
+    the caller should continue. On success `request.user` is set.
+    """
+    email = request.POST.get("guest_email", "").strip().lower()
+    if not email:
+        messages.error(request, "Email is required to checkout.")
+        return redirect(request.get_full_path())
+
+    from django.core.exceptions import ValidationError
+    from django.core.validators import validate_email
+    try:
+        validate_email(email)
+    except ValidationError:
+        messages.error(request, "Please enter a valid email address.")
+        return redirect(request.get_full_path())
+
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    if User.objects.filter(email__iexact=email).exists():
+        from urllib.parse import urlencode
+        messages.info(request, "An account with this email exists. Please log in to complete your purchase.")
+        return redirect(f"{reverse('account_login')}?{urlencode({'next': request.path, 'login_hint': email})}")
+
+    user = User.objects.create_user(email=email)
+    user.set_unusable_password()
+    user.save()
+    from allauth.account.models import EmailAddress
+    EmailAddress.objects.create(user=user, email=email, primary=True, verified=False)
+    from allauth.account.utils import perform_login
+    perform_login(request, user, email_verification="none")
+    request.user = user
+    return None
+
+
 def checkout_plan(request, plan_pk):
     plan = get_object_or_404(Plan, pk=plan_pk, is_active=True)
     product = plan.product
@@ -328,36 +372,9 @@ def checkout_plan(request, plan_pk):
 
     # Guest Checkout interception on POST
     if not request.user.is_authenticated and request.method == "POST":
-        email = request.POST.get("guest_email", "").strip().lower()
-        if not email:
-            messages.error(request, "Email is required to checkout.")
-            return redirect(request.path)
-
-        from django.core.exceptions import ValidationError
-        from django.core.validators import validate_email
-        try:
-            validate_email(email)
-        except ValidationError:
-            messages.error(request, "Please enter a valid email address.")
-            return redirect(request.path)
-
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        user = User.objects.filter(email__iexact=email).first()
-        if user:
-            messages.info(request, "An account with this email exists. Please log in to complete your purchase.")
-            from django.urls import reverse
-            from urllib.parse import urlencode
-            return redirect(f"{reverse('account_login')}?{urlencode({'next': request.path, 'login_hint': email})}")
-        else:
-            user = User.objects.create_user(email=email)
-            user.set_unusable_password()
-            user.save()
-            from allauth.account.models import EmailAddress
-            EmailAddress.objects.create(user=user, email=email, primary=True, verified=False)
-            from allauth.account.utils import perform_login
-            perform_login(request, user, email_verification="none")
-            request.user = user
+        guest_redirect = _intercept_guest_checkout(request)
+        if guest_redirect is not None:
+            return guest_redirect
 
     if request.user.is_authenticated:
         customer, _ = _get_or_create_customer(request.user)
@@ -435,14 +452,33 @@ def checkout_plan(request, plan_pk):
         # Direct pay always charges the full amount via gateway; top-up-and-buy
         # only charges the shortfall.
         charge_amount = effective_price if direct_pay_active else shortfall
-        gateway_charge = charge_amount > 0
         # Fee passthrough: the customer pays charge_amount + gateway fee at Sumopod.
-        from apps.billing.sumopod import estimate_fee
+        from apps.billing.sumopod import estimate_fee, is_configured
+        gateway_online = is_configured()
+        gateway_charge = charge_amount > 0 and gateway_online
+        gateway_unavailable = charge_amount > 0 and not gateway_online
         gateway_fee = estimate_fee(charge_amount) if gateway_charge else 0
         gateway_total = charge_amount + gateway_fee
 
         seller = getattr(product, "seller", None)
         qris_seller = seller if seller and seller.qris_ready else None
+
+        # Which method is pre-selected, and the amount shown on the sticky CTA.
+        wallet_covers = not direct_pay_active and shortfall == 0 and effective_price > 0
+        no_payment_method = (
+            effective_price > 0 and not wallet_covers and not gateway_charge and not qris_seller
+        )
+        subtotal_amount = plan.price * duration_multiplier if duration_multiplier > 1 else plan.price
+        if effective_price == 0:
+            checkout_total, checkout_btn_label = 0, "Confirm order"
+        elif wallet_covers:
+            checkout_total, checkout_btn_label = effective_price, "Confirm & pay"
+        elif gateway_charge:
+            checkout_total, checkout_btn_label = gateway_total, "Pay now"
+        elif qris_seller:
+            checkout_total, checkout_btn_label = effective_price, "Place order"
+        else:  # nothing available right now
+            checkout_total, checkout_btn_label = effective_price, "Payment unavailable"
 
         _emit_event(request, "checkout_start", product=product, plan=plan)
         return render(request, "storefront/checkout.html", {
@@ -457,16 +493,22 @@ def checkout_plan(request, plan_pk):
             "coupon_error": coupon_error,
             "discount": discount,
             "effective_price": effective_price,
+            "subtotal_amount": subtotal_amount,
             "questions": questions,
             "gateway_charge": gateway_charge,
             "gateway_charge_amount": charge_amount,
             "gateway_fee": gateway_fee,
             "gateway_total": gateway_total,
+            "gateway_unavailable": gateway_unavailable,
+            "no_payment_method": no_payment_method,
             "duration_multiplier": duration_multiplier,
             "duration_discount_pct": duration_discount_pct,
             "duration_discount_amount": duration_discount_amount,
             "direct_pay_active": direct_pay_active,
             "qris_seller": qris_seller,
+            "wallet_covers": wallet_covers,
+            "checkout_total": checkout_total,
+            "checkout_btn_label": checkout_btn_label,
         })
 
     # POST — run checkout
@@ -559,7 +601,7 @@ def checkout_plan(request, plan_pk):
             payment_proof=payment_proof,
         )
     except QrisNotAvailableError:
-        messages.error(request, "QRIS Statis is not available for this product.")
+        messages.error(request, "Static QRIS is not available for this product.")
         return redirect("storefront:checkout", plan_pk=plan.pk)
     except CheckoutIdempotencyError:
         messages.error(request, "Duplicate checkout — please try again.")
@@ -572,7 +614,7 @@ def checkout_plan(request, plan_pk):
         return redirect("storefront:checkout", plan_pk=plan.pk)
     except SumopodError as exc:
         logger.error("Sumopod payment initiation failed at checkout: %s", exc)
-        messages.error(request, "Payment is unavailable right now. Please try again in a moment.")
+        messages.error(request, "Online payment is unavailable right now — please try again in a moment.")
         return redirect("storefront:checkout", plan_pk=plan.pk)
 
     if payment_url:
@@ -617,12 +659,11 @@ def order_pending(request):
     return redirect("storefront:page")
 
 
-def order_status(request, public_id):
-    """Order receipt page — reachable either by an owner's login session, or by a
-    long-lived signed ?token= (see build_order_receipt_token) so the confirmation
-    email link works even when the visitor's guest session is long gone.
+def _resolve_receipt_order(request, public_id):
+    """Return (order, token) for a receipt view — owner session OR signed ?token=.
+
+    Returns (None, "") when neither grants access (caller redirects to login).
     """
-    order = None
     token = request.GET.get("token", "")
     if token:
         try:
@@ -630,31 +671,104 @@ def order_status(request, public_id):
         except signing.BadSignature:
             data = None
         if data and data.get("public_id") == public_id:
-            order = get_object_or_404(
-                Order.objects.select_related("plan__product", "customer__user"),
+            return get_object_or_404(
+                Order.objects.select_related(
+                    "plan__product__seller", "customer__user", "coupon", "subscription"
+                ),
                 public_id=public_id,
-            )
+            ), token
 
-    if order is None:
-        if not request.user.is_authenticated:
-            return redirect_to_login(request.get_full_path(), reverse("account_login"))
+    if request.user.is_authenticated:
         customer, _ = _get_or_create_customer(request.user)
-        order = get_object_or_404(
-            Order.objects.select_related("plan__product", "customer__user"),
+        return get_object_or_404(
+            Order.objects.select_related(
+                "plan__product__seller", "customer__user", "coupon", "subscription"
+            ),
             public_id=public_id,
             customer=customer,
-        )
+        ), ""
+
+    return None, ""
+
+
+def order_status(request, public_id):
+    """Order receipt page — reachable either by an owner's login session, or by a
+    long-lived signed ?token= (see build_order_receipt_token) so the confirmation
+    email link works even when the visitor's guest session is long gone.
+    """
+    order, token = _resolve_receipt_order(request, public_id)
+    if order is None:
+        return redirect_to_login(request.get_full_path(), reverse("account_login"))
 
     grants = []
     if order.status == Order.Status.PAID:
         from apps.provisioning.models import Grant
         grants = list(Grant.objects.filter(order=order))
 
+    dm = order.duration_multiplier or 1
+    subtotal = order.plan.price * dm
+    duration_discount_pct = int(order.plan.duration_discounts.get(str(dm), 0)) if dm > 1 else 0
+    duration_discount_amount = subtotal * duration_discount_pct // 100 if duration_discount_pct else 0
+
     return render(request, "storefront/order_status.html", {
         "order": order,
         "customer": order.customer,
         "grants": grants,
+        "receipt_token": token,
+        "dm": dm,
+        "subtotal": subtotal,
+        "duration_discount_pct": duration_discount_pct,
+        "duration_discount_amount": duration_discount_amount,
     })
+
+
+def qris_download(request, slug):
+    """Serve a seller's static QRIS as a fresh PNG (scannable, universally openable).
+
+    The stored file may be WebP (photo pipeline) or PNG — this always hands the
+    buyer a PNG named after the store, so it saves cleanly to a phone gallery.
+    """
+    seller = get_object_or_404(SellerProfile, slug=slug)
+    if not seller.qris_ready:
+        raise Http404("No QRIS available.")
+
+    from io import BytesIO
+
+    from django.utils.text import slugify
+    from PIL import Image
+
+    try:
+        seller.qris_image.open("rb")
+        img = Image.open(seller.qris_image).convert("RGB")
+        seller.qris_image.close()
+    except Exception:
+        logger.exception("qris_download: cannot read QRIS for seller %s", seller.pk)
+        raise Http404("QRIS image is unavailable.")
+
+    buf = BytesIO()
+    img.save(buf, format="PNG", optimize=True)
+    response = HttpResponse(buf.getvalue(), content_type="image/png")
+    response["Content-Disposition"] = f'attachment; filename="QRIS-{slugify(seller.name) or seller.slug}.png"'
+    return response
+
+
+def order_invoice_pdf(request, public_id):
+    """Download the paid invoice as PDF — same access rules as the receipt page."""
+    order, _token = _resolve_receipt_order(request, public_id)
+    if order is None:
+        return redirect_to_login(request.get_full_path(), reverse("account_login"))
+    if order.status != Order.Status.PAID:
+        raise Http404("Invoice is only available once the order is paid.")
+
+    from apps.billing.invoice_service import render_invoice_pdf
+
+    pdf_bytes = render_invoice_pdf(order)
+    if not pdf_bytes:
+        raise Http404("Could not generate the invoice PDF.")
+    label = f"INV-{order.invoice_number:06d}" if order.invoice_number else order.public_id
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{label}.pdf"'
+    return response
 
 
 # ── Top-up ────────────────────────────────────────────────────────────────────
@@ -781,21 +895,43 @@ def privacy(request):
 # to a session-bound cart; checkout itself requires login (matches top-up).
 # PWYW plans and plans with required intake questions are not addable to cart.
 
+def _cart_lines(cart):
+    from apps.billing.cart_service import compute_cart_line
+
+    lines, total = [], 0
+    for item in cart.items.select_related("plan__product__seller").all():
+        price, discount, coupon_obj, base_price = compute_cart_line(item)
+        lines.append({"item": item, "price": price, "discount": discount,
+                      "coupon": coupon_obj, "base_price": base_price})
+        total += price
+    return lines, total
+
+
+def _cart_ajax_response(request, cart, *, status=200):
+    """JSON payload the cart drawer JS expects: live count + freshly rendered drawer."""
+    lines, total = _cart_lines(cart)
+    html = render(request, "storefront/partials/_cart_drawer.html",
+                  {"lines": lines, "total": total}).content.decode()
+    return JsonResponse({"count": len(lines), "total": total, "html": html}, status=status)
+
+
 def cart_view(request):
-    from apps.billing.cart_service import compute_cart_line, get_or_create_cart
+    from apps.billing.cart_service import get_or_create_cart
 
     cart = get_or_create_cart(request)
-    items = list(cart.items.select_related("plan__product__seller").all())
-    lines = []
-    for item in items:
-        price, discount, coupon_obj, base_price = compute_cart_line(item)
-        lines.append({"item": item, "price": price, "discount": discount, "coupon": coupon_obj, "base_price": base_price})
-    total = sum(line["price"] for line in lines)
+    lines, total = _cart_lines(cart)
+    return render(request, "storefront/cart.html", {"lines": lines, "total": total})
 
-    return render(request, "storefront/cart.html", {
-        "lines": lines,
-        "total": total,
-    })
+
+def cart_drawer(request):
+    """Slide-over cart contents. JSON for cart.js, plain partial as a fallback."""
+    from apps.billing.cart_service import get_or_create_cart
+
+    cart = get_or_create_cart(request)
+    if request.headers.get("X-Requested-With") == "fetch":
+        return _cart_ajax_response(request, cart)
+    lines, total = _cart_lines(cart)
+    return render(request, "storefront/partials/_cart_drawer.html", {"lines": lines, "total": total})
 
 
 @require_POST
@@ -804,6 +940,7 @@ def cart_add(request, plan_pk):
 
     plan = get_object_or_404(Plan, pk=plan_pk, is_active=True)
     cart = get_or_create_cart(request)
+    ajax = request.headers.get("X-Requested-With") == "fetch"
     try:
         duration_multiplier = int(request.POST.get("duration", 1))
     except (TypeError, ValueError):
@@ -811,11 +948,15 @@ def cart_add(request, plan_pk):
 
     try:
         add_to_cart(cart, plan, duration_multiplier=duration_multiplier)
-        messages.success(request, f"Added '{plan.product.name}' to your cart.")
     except CartError as exc:
+        if ajax:
+            return JsonResponse({"error": str(exc)}, status=400)
         messages.error(request, str(exc))
         return redirect("storefront:product", slug=plan.product.slug)
 
+    if ajax:
+        return _cart_ajax_response(request, cart)
+    messages.success(request, f"Added '{plan.product.name}' to your cart.")
     return redirect("storefront:cart")
 
 
@@ -825,6 +966,8 @@ def cart_remove(request, item_pk):
 
     cart = get_or_create_cart(request)
     remove_from_cart(cart, item_pk)
+    if request.headers.get("X-Requested-With") == "fetch":
+        return _cart_ajax_response(request, cart)
     messages.info(request, "Removed from cart.")
     return redirect("storefront:cart")
 
@@ -839,57 +982,68 @@ def cart_update(request, item_pk):
     except (TypeError, ValueError):
         duration_multiplier = 1
     update_cart_item(cart, item_pk, duration_multiplier=duration_multiplier)
+    if request.headers.get("X-Requested-With") == "fetch":
+        return _cart_ajax_response(request, cart)
     return redirect("storefront:cart")
 
 
-@login_required
 def cart_checkout_view(request):
-    from apps.billing.sumopod import SumopodError
+    from apps.billing.sumopod import SumopodError, estimate_fee
     from apps.billing.cart_service import (
         CartError,
         CartPaymentMethodRequiredError,
         EmptyCartError,
         checkout_cart,
-        compute_cart_line,
         get_or_create_cart,
     )
 
+    was_already_authenticated = request.user.is_authenticated
+
+    # Guest checkout: promote from `guest_email` on POST, then re-resolve the cart
+    # (this merges the session cart into the new customer's cart).
+    if not request.user.is_authenticated and request.method == "POST":
+        guest_redirect = _intercept_guest_checkout(request)
+        if guest_redirect is not None:
+            return guest_redirect
+
     cart = get_or_create_cart(request)
-    items = list(cart.items.select_related("plan__product").all())
-    if not items:
+    lines, total = _cart_lines(cart)
+    if not lines:
         messages.info(request, "Your cart is empty.")
         return redirect("storefront:cart")
 
-    customer, _ = _get_or_create_customer(request.user)
-    wallet_balance = customer.wallet.balance
+    if request.user.is_authenticated:
+        customer, _ = _get_or_create_customer(request.user)
+        wallet_balance = customer.wallet.balance
+    else:
+        customer, wallet_balance = None, 0
 
-    lines = []
-    total = 0
-    for item in items:
-        price, discount, coupon_obj, _base = compute_cart_line(item)
-        lines.append({"item": item, "price": price, "discount": discount, "coupon": coupon_obj})
-        total += price
     shortfall = max(0, total - wallet_balance)
-
-    seller_ids = {item.plan.product.seller_id for item in items}
-    single_seller = items[0].plan.product.seller if len(seller_ids) == 1 else None
+    seller_ids = {ln["item"].plan.product.seller_id for ln in lines}
+    single_seller = lines[0]["item"].plan.product.seller if len(seller_ids) == 1 else None
     qris_seller = single_seller if single_seller and single_seller.qris_ready else None
 
     if request.method == "GET":
-        if shortfall > 0:
+        if request.user.is_authenticated and shortfall > 0:
             from allauth.account.models import EmailAddress
             if not EmailAddress.objects.filter(user=request.user, verified=True).exists():
                 messages.warning(request, "Your email is not verified. Please verify it to ensure order notifications reach you.")
 
-        from apps.billing.sumopod import estimate_fee
-        gateway_fee = estimate_fee(shortfall) if shortfall > 0 else 0
+        from apps.billing.sumopod import is_configured
+        gateway_online = is_configured()
+        gateway_fee = estimate_fee(shortfall) if shortfall > 0 and gateway_online else 0
+        wallet_covers = request.user.is_authenticated and shortfall == 0
         return render(request, "storefront/cart_checkout.html", {
             "lines": lines,
             "total": total,
             "wallet_balance": wallet_balance,
-            "shortfall": shortfall,
+            "wallet_covers": wallet_covers,
+            "shortfall": shortfall if gateway_online else 0,
             "gateway_fee": gateway_fee,
+            "gateway_charge_amount": shortfall,
             "gateway_total": shortfall + gateway_fee,
+            "gateway_unavailable": shortfall > 0 and not gateway_online,
+            "no_payment_method": shortfall > 0 and not gateway_online and not qris_seller and not wallet_covers,
             "qris_seller": qris_seller,
         })
 
@@ -897,7 +1051,7 @@ def cart_checkout_view(request):
     is_qris_static = payment_method == "qris_static"
     payment_proof = request.FILES.get("payment_proof") if is_qris_static else None
 
-    if payment_method and not is_qris_static and shortfall > 0:
+    if payment_method and not is_qris_static and shortfall > 0 and was_already_authenticated:
         from allauth.account.models import EmailAddress
         if not EmailAddress.objects.filter(user=request.user, verified=True).exists():
             messages.error(request, "Please verify your email before paying via a payment method.")
@@ -920,7 +1074,7 @@ def cart_checkout_view(request):
         return redirect("storefront:cart")
     except SumopodError as exc:
         logger.error("Sumopod payment initiation failed at cart checkout: %s", exc)
-        messages.error(request, "Payment is unavailable right now. Please try again in a moment.")
+        messages.error(request, "Online payment is unavailable right now — your cart is saved, please try again in a moment.")
         return redirect("storefront:cart_checkout")
     except CartError as exc:
         messages.error(request, str(exc))

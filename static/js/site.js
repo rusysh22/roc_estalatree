@@ -50,6 +50,17 @@
       delete btn.dataset.loadingActive;
     }
 
+    // The slide-over cart (cart.js) intercepts these controls with fetch instead of
+    // navigating — starting the bar for them would leave it stuck at 80%.
+    var cartDrawerActive = !!document.getElementById("cart-drawer");
+    function isCartDrawerControl(el) {
+      if (!cartDrawerActive || !el) return false;
+      return !!(
+        (el.closest && el.closest("[data-open-cart],[data-close-cart],[data-cart-form]")) ||
+        /\/cart\/(add|remove|update|drawer)\//.test(el.getAttribute && el.getAttribute("action") || "")
+      );
+    }
+
     // Full-page navigation: same-origin link clicks (skip new tabs, downloads,
     // in-page anchors, and modified clicks that open in a new tab).
     document.addEventListener("click", function (e) {
@@ -57,6 +68,7 @@
       if (!link || isHtmxElement(link)) return;
       if (link.target && link.target !== "_self") return;
       if (link.hasAttribute("download")) return;
+      if (link.hasAttribute("data-no-loading") || isCartDrawerControl(link)) return;
       var href = link.getAttribute("href") || "";
       if (!href || href.charAt(0) === "#" || href.indexOf("mailto:") === 0 || href.indexOf("tel:") === 0) return;
       if (link.origin !== window.location.origin) return;
@@ -68,6 +80,7 @@
     document.addEventListener("submit", function (e) {
       var form = e.target;
       if (!form || isHtmxElement(form) || form.hasAttribute("data-no-loading")) return;
+      if (isCartDrawerControl(form)) return;
       start();
       setButtonLoading(form.querySelector('button[type="submit"]:not([disabled])'));
     }, true);

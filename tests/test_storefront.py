@@ -199,6 +199,31 @@ def test_product_detail_returns_200(public_product):
     resp = Client().get(reverse("storefront:product", args=[public_product.slug]))
     assert resp.status_code == 200
     assert public_product.name.encode() in resp.content
+    # harmonized layout: plans anchor, no stale payment-gateway chips
+    assert b'id="plans"' in resp.content
+    for stale in (b"GoPay", b"ShopeePay", b"Virtual Account"):
+        assert stale not in resp.content
+
+
+@pytest.mark.django_db
+def test_product_detail_multi_plan_sticky_cta(db):
+    product = ProductFactory(type=Product.Type.RECURRING, visibility=Product.Visibility.PUBLIC)
+    PlanFactory(product=product, price=50_000, interval=Plan.Interval.MONTHLY, name="A")
+    PlanFactory(product=product, price=90_000, interval=Plan.Interval.MONTHLY, name="B", sort_order=1)
+    resp = Client().get(reverse("storefront:product", args=[product.slug]))
+    assert resp.status_code == 200
+    assert b"Choose a plan" in resp.content        # sticky CTA for >1 plan
+    assert b"Rp50.000" in resp.content              # "from cheapest"
+
+
+@pytest.mark.django_db
+def test_store_page_keeps_seller_theme(store_page):
+    store_page.theme = {"primary_color": "#0ea5e9", "layout": "grid", "button_style": "pill"}
+    store_page.save()
+    resp = Client().get(reverse("storefront:store_page", args=[store_page.slug]))
+    assert resp.status_code == 200
+    assert b"--color-primary: #0ea5e9" in resp.content
+    assert b"theme-card-shape" in resp.content
 
 
 @pytest.mark.django_db
@@ -223,7 +248,8 @@ def test_checkout_get_200_when_logged_in(authed_client, public_product):
     plan = public_product.plans.first()
     resp = authed_client.get(reverse("storefront:checkout", args=[plan.pk]))
     assert resp.status_code == 200
-    assert b"Order Summary" in resp.content
+    assert b"Order total" in resp.content
+    assert b"Payment method" in resp.content
 
 
 # ── 5. Checkout POST: balance sufficient → PAID ───────────────────────────────
@@ -327,6 +353,66 @@ def test_order_status_anonymous_with_valid_token_shows_receipt(funded_customer, 
     resp = Client().get(f"{url}?token={token}")
     assert resp.status_code == 200
     assert b"complete" in resp.content
+    # enriched receipt details + invoice download
+    assert b"Ordered by" in resp.content
+    assert b"Download invoice (PDF)" in resp.content
+
+
+@pytest.mark.django_db
+def test_order_invoice_pdf_via_token(funded_customer, public_product):
+    from apps.storefront.views import build_order_receipt_token
+
+    plan = public_product.plans.first()
+    order = Order.objects.create(
+        customer=funded_customer, plan=plan, amount=plan.price, status=Order.Status.PAID,
+        invoice_number=4242, idempotency_key="ck:test:invoice:token",
+    )
+    token = build_order_receipt_token(order)
+    url = reverse("storefront:order_invoice_pdf", args=[order.public_id])
+    resp = Client().get(f"{url}?token={token}")
+    assert resp.status_code == 200
+    assert resp["Content-Type"] == "application/pdf"
+    assert "attachment" in resp["Content-Disposition"]
+    assert resp.content[:4] == b"%PDF"
+
+
+@pytest.mark.django_db
+def test_order_invoice_pdf_owner_login(funded_authed_client, funded_customer, public_product):
+    plan = public_product.plans.first()
+    order = Order.objects.create(
+        customer=funded_customer, plan=plan, amount=plan.price, status=Order.Status.PAID,
+        idempotency_key="ck:test:invoice:owner",
+    )
+    resp = funded_authed_client.get(reverse("storefront:order_invoice_pdf", args=[order.public_id]))
+    assert resp.status_code == 200
+    assert resp.content[:4] == b"%PDF"
+
+
+@pytest.mark.django_db
+def test_order_invoice_pdf_pending_is_404(funded_customer, public_product):
+    from apps.storefront.views import build_order_receipt_token
+
+    plan = public_product.plans.first()
+    order = Order.objects.create(
+        customer=funded_customer, plan=plan, amount=plan.price, status=Order.Status.PENDING,
+        idempotency_key="ck:test:invoice:pending",
+    )
+    token = build_order_receipt_token(order)
+    url = reverse("storefront:order_invoice_pdf", args=[order.public_id])
+    resp = Client().get(f"{url}?token={token}")
+    assert resp.status_code == 404
+
+
+@pytest.mark.django_db
+def test_order_invoice_pdf_no_access_redirects(funded_customer, public_product):
+    plan = public_product.plans.first()
+    order = Order.objects.create(
+        customer=funded_customer, plan=plan, amount=plan.price, status=Order.Status.PAID,
+        idempotency_key="ck:test:invoice:noauth",
+    )
+    resp = Client().get(reverse("storefront:order_invoice_pdf", args=[order.public_id]))
+    assert resp.status_code == 302
+    assert "login" in resp["Location"]
 
 
 @pytest.mark.django_db

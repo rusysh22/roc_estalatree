@@ -230,14 +230,25 @@ def test_deactivate_device_htmx_returns_row(authed_client, funded_customer, lice
 # ── 6. Profile update ─────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
-def test_profile_saves_wa_number(authed_client, customer):
+def test_profile_saves_channel_and_promo(authed_client, customer):
     resp = authed_client.post(
         reverse("dashboard:profile"),
-        data={"wa_number": "081234567890"},
+        data={"notification_channel": "email", "notif_promo": "1"},
     )
     assert resp.status_code == 302
     customer.refresh_from_db()
-    assert customer.wa_number == "081234567890"
+    assert customer.notification_channel == "email"
+    assert customer.notif_promo is True
+
+
+@pytest.mark.django_db
+def test_profile_wa_channel_blocked_until_verified(authed_client, customer):
+    authed_client.post(
+        reverse("dashboard:profile"),
+        data={"notification_channel": "whatsapp"},
+    )
+    customer.refresh_from_db()
+    assert customer.notification_channel == "email"  # not verified → forced back
 
 
 # ── 7. Refund request ─────────────────────────────────────────────────────────

@@ -26,7 +26,7 @@ class Product(SellerScopedModel):
         max_length=20, choices=Visibility.choices, default=Visibility.DRAFT
     )
     description = models.TextField(blank=True)
-    cover_image_url = models.URLField(blank=True, default="", help_text="Cover image URL shown on the storefront (optional)")
+    cover_image = models.ImageField(upload_to="product/cover/", blank=True, null=True, help_text="Cover image shown on the storefront (optional)")
     wa_number = models.CharField(max_length=20, blank=True, help_text="WhatsApp for contact-type products")
     purchase_button_label = models.CharField(
         max_length=60, blank=True, default="",

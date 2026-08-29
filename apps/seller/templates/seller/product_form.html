@@ -15,7 +15,7 @@
   <div class="lg:col-span-3">
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <h2 class="font-semibold text-gray-800 mb-5">{{ title }}</h2>
-      <form method="post" class="space-y-6">
+      <form method="post" class="space-y-6" enctype="multipart/form-data">
         {% csrf_token %}
 
         {# Product Name #}
@@ -150,29 +150,10 @@
           {% if form.description.errors %}<p class="text-xs text-red-500 mt-1">{{ form.description.errors.0 }}</p>{% endif %}
         </div>
 
-        {# Cover Image with live preview #}
+        {# Cover image upload #}
         <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Cover Image URL <span class="text-gray-400 font-normal">(optional)</span></label>
-          <div class="flex items-start gap-3">
-            <div class="w-14 h-14 rounded-xl border-2 border-gray-200 bg-gray-50 flex-shrink-0 overflow-hidden flex items-center justify-center">
-              {% if form.cover_image_url.value %}
-              <img id="cover-preview" src="{{ form.cover_image_url.value }}" alt="" class="w-full h-full object-cover"
-                   onerror="this.style.display='none';document.getElementById('cover-ph').style.display='flex'">
-              <span id="cover-ph" style="display:none" class="w-full h-full items-center justify-center">
-              {% else %}
-              <img id="cover-preview" src="" alt="" class="w-full h-full object-cover hidden"
-                   onerror="this.style.display='none';document.getElementById('cover-ph').style.display='flex'">
-              <span id="cover-ph" class="w-full h-full flex items-center justify-center">
-              {% endif %}
-                <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              </span>
-            </div>
-            <div class="flex-1 min-w-0">
-              {{ form.cover_image_url }}
-              <p class="text-[10px] text-gray-400 mt-1">Paste an image URL. Recommended 800×600px or 4:3 ratio.</p>
-              {% if form.cover_image_url.errors %}<p class="text-xs text-red-500 mt-1">{{ form.cover_image_url.errors.0 }}</p>{% endif %}
-            </div>
-          </div>
+          <label class="block text-xs font-medium text-gray-600 mb-2">Cover Image <span class="text-gray-400 font-normal">(optional)</span></label>
+          {% include "seller/_image_upload.html" with field=form.cover_image current=product.cover_image shape="wide" hint="Ratio 4:3 tampil paling rapi" %}
         </div>
 
         {# WhatsApp — only shown for contact type #}
@@ -347,28 +328,6 @@
 
 <script>
 (function() {
-  // Cover image live preview
-  var inp = document.getElementById('{{ form.cover_image_url.id_for_label }}');
-  var prev = document.getElementById('cover-preview');
-  var ph = document.getElementById('cover-ph');
-  if (inp && prev) {
-    prev.addEventListener('error', function() {
-      prev.style.display = 'none';
-      if (ph) ph.style.display = 'flex';
-    });
-    function apply(url) {
-      if (url) {
-        prev.src = url; prev.classList.remove('hidden'); prev.style.display = '';
-        if (ph) ph.style.display = 'none';
-      } else {
-        prev.classList.add('hidden'); prev.style.display = 'none';
-        if (ph) ph.style.display = 'flex';
-      }
-    }
-    inp.addEventListener('change', function() { apply(this.value.trim()); });
-    inp.addEventListener('blur',   function() { apply(this.value.trim()); });
-  }
-
   // Show/hide WhatsApp field based on product type
   var waField = document.getElementById('wa-field');
   if (waField) {

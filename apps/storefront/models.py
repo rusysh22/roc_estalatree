@@ -16,7 +16,8 @@ class StorePage(TimestampedModel):
     slug = models.SlugField(unique=True, max_length=100)
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    avatar_url = models.URLField(blank=True)
+    avatar = models.ImageField(upload_to="store/avatar/", blank=True, null=True)
+    banner = models.ImageField(upload_to="store/banner/", blank=True, null=True)
     is_published = models.BooleanField(default=False)
     theme = models.JSONField(default=dict, blank=True)
     seller = models.OneToOneField(

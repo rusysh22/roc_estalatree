@@ -33,29 +33,31 @@
         {% endif %}
       </div>
 
-      <div class="mb-5">
-        <label for="wa_number" class="block text-sm font-medium text-ink-700 mb-1">WhatsApp Number</label>
-        <input type="tel" id="wa_number" name="wa_number"
-               value="{{ customer.wa_number }}"
-               placeholder="628123456789"
-               class="w-full px-3 py-2 border border-ink-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-        <p class="text-xs text-ink-400 mt-1">Used for renewal reminders and order confirmations.</p>
+      <!-- Notification channel (one channel, ADR-022) -->
+      <div class="mb-5 space-y-2">
+        <p class="text-sm font-medium text-ink-700">Notification channel</p>
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="radio" name="notification_channel" value="email"
+                 {% if customer.notification_channel == "email" %}checked{% endif %}
+                 class="w-4 h-4 text-primary-600 border-ink-300 focus:ring-primary-500">
+          <span class="text-sm text-ink-700">Email</span>
+        </label>
+        <label class="flex items-center gap-3 cursor-pointer {% if not customer.wa_verified %}opacity-50{% endif %}">
+          <input type="radio" name="notification_channel" value="whatsapp"
+                 {% if customer.notification_channel == "whatsapp" %}checked{% endif %}
+                 {% if not customer.wa_verified %}disabled{% endif %}
+                 class="w-4 h-4 text-primary-600 border-ink-300 focus:ring-primary-500">
+          <span class="text-sm text-ink-700">WhatsApp {% if not customer.wa_verified %}(verify number first){% endif %}</span>
+        </label>
+        <p class="text-xs text-ink-400">Receipts and invoices are always emailed regardless of this choice.</p>
       </div>
 
-      <!-- Notification preferences -->
-      <div class="mb-5 space-y-2">
-        <p class="text-sm font-medium text-ink-700">Notification channels</p>
+      <div class="mb-5">
         <label class="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" name="notif_wa" value="1"
-                 {% if customer.notif_wa %}checked{% endif %}
+          <input type="checkbox" name="notif_promo" value="1"
+                 {% if customer.notif_promo %}checked{% endif %}
                  class="w-4 h-4 text-primary-600 rounded-lg border-ink-300 focus:ring-primary-500">
-          <span class="text-sm text-ink-700">WhatsApp notifications</span>
-        </label>
-        <label class="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" name="notif_email" value="1"
-                 {% if customer.notif_email %}checked{% endif %}
-                 class="w-4 h-4 text-primary-600 rounded-lg border-ink-300 focus:ring-primary-500">
-          <span class="text-sm text-ink-700">Email notifications</span>
+          <span class="text-sm text-ink-700">Send me promotions and product news (email)</span>
         </label>
       </div>
 
@@ -64,6 +66,59 @@
         Save
       </button>
     </form>
+  </div>
+
+  <!-- WhatsApp number + verification -->
+  <div class="bg-white rounded-2xl border border-ink-100 p-6">
+    <h2 class="font-bold text-ink-800 mb-1">WhatsApp number</h2>
+    <p class="text-xs text-ink-400 mb-4">Verify your number to receive notifications on WhatsApp. Verification is required before you can pick WhatsApp as your channel.</p>
+
+    {% if customer.wa_verified %}
+    <div class="flex items-center justify-between px-4 py-3 border border-moss-100 bg-moss-50 rounded-xl">
+      <div>
+        <p class="text-sm font-medium text-ink-800">{{ customer.wa_number }}</p>
+        <p class="text-xs text-moss-600">Verified</p>
+      </div>
+      <form method="post" action="{% url 'dashboard:wa_send_otp' %}">
+        {% csrf_token %}
+        <input type="hidden" name="wa_number" value="{{ customer.wa_number }}">
+        <button type="submit" class="text-xs font-semibold text-primary-600 hover:text-primary-700 underline">Re-verify</button>
+      </form>
+    </div>
+    {% else %}
+    <form method="post" action="{% url 'dashboard:wa_send_otp' %}" class="mb-4">
+      {% csrf_token %}
+      <label for="wa_number" class="block text-sm font-medium text-ink-700 mb-1">Number</label>
+      <div class="flex gap-2">
+        <input type="tel" id="wa_number" name="wa_number"
+               value="{{ pending_wa_number|default:customer.wa_number }}"
+               placeholder="628123456789"
+               class="flex-1 px-3 py-2 border border-ink-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+        <button type="submit"
+                class="bg-primary-500 hover:bg-primary-600 text-white font-semibold px-4 py-2 rounded-xl text-sm whitespace-nowrap">
+          Send code
+        </button>
+      </div>
+    </form>
+
+    {% if pending_wa_number %}
+    <form method="post" action="{% url 'dashboard:wa_verify_otp' %}">
+      {% csrf_token %}
+      <input type="hidden" name="wa_number" value="{{ pending_wa_number }}">
+      <label for="code" class="block text-sm font-medium text-ink-700 mb-1">Enter the 6-digit code sent to {{ pending_wa_number }}</label>
+      <div class="flex gap-2">
+        <input type="text" id="code" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+               placeholder="123456"
+               class="flex-1 px-3 py-2 border border-ink-300 rounded-xl text-sm tracking-widest focus:outline-none focus:ring-2 focus:ring-primary-500">
+        <button type="submit"
+                class="bg-ink-800 hover:bg-ink-900 text-white font-semibold px-4 py-2 rounded-xl text-sm">
+          Verify
+        </button>
+      </div>
+      <p class="text-xs text-ink-400 mt-1">Code expires in 5 minutes.</p>
+    </form>
+    {% endif %}
+    {% endif %}
   </div>
 
   <!-- Account security links -->

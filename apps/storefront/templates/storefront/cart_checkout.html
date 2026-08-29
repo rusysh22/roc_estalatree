@@ -1,109 +1,206 @@
-{% extends "storefront/base.html" %}
-{% load money %}
-{% block page_title %}Checkout{% endblock %}
+{% extends "base.html" %}
+{% load static money %}
+{% block page_title %}Checkout · Cart{% endblock %}
+{% block body_class %}bg-cream text-ink-900 min-h-screen{% endblock %}
+{% block body_attrs %}style="font-family: var(--font-sans);"{% endblock %}
 
-{% block content %}
-<div class="max-w-md mx-auto">
-  <h1 class="text-2xl font-extrabold text-ink-900 mb-2 tracking-tight">Checkout</h1>
-  <p class="text-ink-500 text-sm mb-6">
-    Wallet balance: <strong class="text-ink-800">{{ wallet_balance|rupiah }}</strong>
-  </p>
+{% block body %}
+<div class="min-h-screen flex flex-col">
 
-  <div class="landing-card overflow-hidden mb-5">
-    {% for line in lines %}
-    <div class="flex items-center justify-between px-5 py-3 {% if not forloop.last %}border-b border-ink-100{% endif %} text-sm">
-      <span class="text-ink-700">{{ line.item.plan.product.name }} &middot; {{ line.item.plan.name }}
-        {% if line.item.duration_multiplier > 1 %}(&times;{{ line.item.duration_multiplier }}){% endif %}</span>
-      <span class="font-semibold text-ink-900">{{ line.price|rupiah }}</span>
+  <header class="sticky top-0 z-30 bg-cream/90 backdrop-blur border-b border-ink-900/5">
+    <div class="max-w-md mx-auto px-4 h-14 flex items-center gap-2">
+      <a href="{% url 'storefront:cart' %}" class="-ml-1.5 p-1.5 rounded-full text-ink-500 hover:bg-ink-900/5 transition-colors" aria-label="Back">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      </a>
+      <h1 class="flex-1 text-sm font-extrabold text-ink-900 tracking-tight">Checkout</h1>
+      <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-400">
+        <svg class="w-3.5 h-3.5 text-moss-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+        Secure
+      </span>
     </div>
-    {% endfor %}
-    <div class="flex items-center justify-between px-5 py-3 bg-cream text-sm">
-      <span class="font-bold text-ink-800">Total</span>
-      <span class="font-extrabold text-ink-900">{{ total|rupiah }}</span>
-    </div>
-    {% if shortfall > 0 %}
-    <div class="flex items-center justify-between px-5 py-3 border-t border-ink-100 text-sm">
-      <span class="text-ink-500">From wallet</span>
-      <span class="text-ink-700">{{ wallet_balance|rupiah }}</span>
-    </div>
-    <div class="flex items-center justify-between px-5 py-3 text-sm">
-      <span class="text-ink-500">Top-up needed</span>
-      <span class="text-ink-700">{{ shortfall|rupiah }}</span>
-    </div>
-    <div class="flex items-center justify-between px-5 py-3 text-sm">
-      <span class="text-ink-500">Payment fee (est.)</span>
-      <span class="text-ink-700">{{ gateway_fee|rupiah }}</span>
-    </div>
-    <div class="flex items-center justify-between px-5 py-3 text-sm border-t border-ink-100">
-      <span class="font-bold text-gold-700">To pay now</span>
-      <span class="font-extrabold text-gold-700">{{ gateway_total|rupiah }}</span>
-    </div>
-    {% endif %}
-  </div>
+  </header>
 
-  <form method="post" action="{% url 'storefront:cart_checkout' %}" enctype="multipart/form-data">
-    {% csrf_token %}
+  {% include "storefront/partials/_toasts.html" %}
 
-    {% if shortfall > 0 %}
-    <div class="landing-card p-5 mb-5" data-gateway-picker>
-      <p class="text-xs text-ink-400 uppercase tracking-wide font-bold mb-3">Payment Method</p>
-      {% include "storefront/partials/_payment_method_picker.html" %}
-    </div>
-    {% endif %}
+  <main class="flex-1 max-w-md mx-auto w-full px-4 py-4 pb-48 space-y-3">
 
-    {% if qris_seller %}
-    <div class="landing-card p-5 mb-5" data-qris-card>
-      <label class="flex items-start gap-3 cursor-pointer">
-        <input type="checkbox" name="payment_method" value="qris_static" class="mt-0.5 shrink-0" data-qris-toggle>
-        <span>
-          <span class="block text-sm font-bold text-ink-800">Pay with QRIS Statis</span>
-          <span class="block text-xs text-ink-500 mt-0.5">
-            Pay {{ qris_seller.name }} directly. Orders are delivered once the seller confirms payment.
-          </span>
-        </span>
-      </label>
-      <div class="mt-4 hidden" data-qris-detail>
-        <div class="bg-cream border border-ink-100 rounded-xl p-4 text-center">
-          <img src="{{ qris_seller.qris_image.url }}" alt="QRIS {{ qris_seller.name }}" class="mx-auto max-h-64 rounded-lg">
-        </div>
-        {% if qris_seller.qris_instructions %}
-        <p class="text-xs text-ink-500 mt-3 whitespace-pre-line">{{ qris_seller.qris_instructions }}</p>
+    {# ── Items ── #}
+    <section class="bg-white rounded-2xl border border-ink-100 divide-y divide-ink-100">
+      {% for line in lines %}
+      <div class="flex gap-3 items-center p-4">
+        {% if line.item.plan.product.cover_image %}
+        <img src="{{ line.item.plan.product.cover_image.url }}" alt="" class="w-11 h-11 rounded-lg object-cover shrink-0">
+        {% else %}
+        <div class="w-11 h-11 rounded-lg bg-cream flex items-center justify-center shrink-0 text-sm font-extrabold text-ink-300">{{ line.item.plan.product.name|slice:':1'|upper }}</div>
         {% endif %}
-        <label class="block text-xs font-semibold text-ink-600 mt-3 mb-1">Payment proof <span class="text-ink-400 font-normal">(optional)</span></label>
-        <input type="file" name="payment_proof" accept="image/*" class="block w-full text-xs text-ink-600">
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-bold text-ink-900 leading-tight line-clamp-1">{{ line.item.plan.product.name }}</p>
+          <p class="text-[11px] text-ink-500">{{ line.item.plan.name }}{% if line.item.duration_multiplier > 1 %} · {{ line.item.duration_multiplier }}×{% endif %}</p>
+        </div>
+        <span class="text-sm font-bold text-ink-900 shrink-0">{{ line.price|rupiah }}</span>
       </div>
-    </div>
+      {% endfor %}
+    </section>
+
+    {# ── Order total ── #}
+    <section class="bg-white rounded-2xl border border-ink-100 p-4 text-sm">
+      <div class="flex justify-between font-extrabold text-ink-900">
+        <span>Order total</span><span>{{ total|rupiah }}</span>
+      </div>
+    </section>
+
+    {# ── Guest email ── #}
+    {% if not user.is_authenticated %}
+    <section class="bg-white rounded-2xl border border-ink-100 p-4">
+      <label for="guest_email" class="block text-xs font-semibold text-ink-600 mb-1">
+        Email for your receipt &amp; access <span class="text-primary-500">*</span>
+      </label>
+      <input type="email" name="guest_email" id="guest_email" required form="cart-checkout-form" placeholder="you@email.com"
+             class="w-full border border-ink-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200">
+      <p class="text-[11px] text-ink-400 mt-1.5">Already have an account?
+        <a href="{% url 'account_login' %}?next={{ request.path }}" class="text-primary-600 font-semibold hover:underline">Sign in</a>
+      </p>
+    </section>
     {% endif %}
 
-    <button type="submit" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 rounded-full cursor-pointer transition-colors">
-      {% if shortfall > 0 %}Pay {{ gateway_total|rupiah }}{% else %}Complete purchase{% endif %}
-    </button>
+    {# ── Payment method ── #}
+    <section id="payment-methods">
+      <p class="text-[11px] font-bold text-ink-400 uppercase tracking-wide mb-2 px-1">Payment method</p>
+      <div class="space-y-2">
+
+        {% if wallet_covers %}
+        <label class="flex items-center gap-3 bg-white border-2 border-ink-100 rounded-2xl p-3.5 cursor-pointer
+                      has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50 transition-colors">
+          <input type="radio" name="payment_method" value="" form="cart-checkout-form" class="sr-only peer" checked
+                 data-pay-amount="{{ total }}" data-pay-label="Confirm & pay">
+          <span class="w-9 h-9 rounded-xl bg-moss-100 text-moss-600 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+          </span>
+          <span class="flex-1 min-w-0">
+            <span class="block text-sm font-bold text-ink-900">Balance</span>
+            <span class="block text-[11px] text-ink-500">Balance {{ wallet_balance|rupiah }}</span>
+          </span>
+          <span class="block text-base font-extrabold text-ink-900 shrink-0">{{ total|rupiah }}</span>
+        </label>
+        {% endif %}
+
+        {% if qris_seller %}
+        <label class="flex items-center gap-3 bg-white border-2 border-ink-100 rounded-2xl p-3.5 cursor-pointer
+                      has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50 transition-colors">
+          <input type="radio" name="payment_method" value="qris_static" form="cart-checkout-form" class="sr-only peer"
+                 data-qris-toggle data-pay-amount="{{ total }}" data-pay-label="Place order"
+                 {% if not wallet_covers and not shortfall %}checked{% endif %}>
+          <span class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 3h3m0 0h3m-3 0v3m0-3v-3"/></svg>
+          </span>
+          <span class="flex-1 min-w-0">
+            <span class="block text-sm font-bold text-ink-900">Static QRIS
+              <span class="ml-1 align-middle text-[9px] font-bold bg-moss-100 text-moss-700 px-1.5 py-0.5 rounded-full">NO ADMIN FEE</span>
+            </span>
+            <span class="block text-[11px] text-ink-500">Pay {{ qris_seller.name }} directly · seller confirms manually</span>
+          </span>
+          <span class="block text-base font-extrabold text-ink-900 shrink-0">{{ total|rupiah }}</span>
+        </label>
+
+        <div class="hidden" data-qris-detail>
+          <div class="mt-1 rounded-2xl border-2 border-amber-200 bg-amber-50/60 p-4">
+            <div class="bg-white border border-ink-100 rounded-xl p-3 text-center">
+              <img src="{{ qris_seller.qris_image.url }}" alt="QRIS {{ qris_seller.name }}" class="mx-auto max-h-52 rounded">
+            </div>
+            <div class="flex items-center justify-between gap-3 mt-3 text-sm">
+              <span class="text-ink-500">Amount to transfer</span>
+              <span class="font-extrabold text-ink-900">{{ total|rupiah }}</span>
+            </div>
+            <a href="{% url 'storefront:qris_download' qris_seller.slug %}"
+               class="mt-3 flex items-center justify-center gap-1.5 w-full text-xs font-bold text-amber-800 border border-amber-300 rounded-xl px-3 py-2 hover:bg-amber-100 transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              Download QRIS
+            </a>
+            {% if qris_seller.qris_instructions %}
+            <p class="text-[11px] text-ink-600 mt-3 whitespace-pre-line border-t border-amber-200 pt-3">{{ qris_seller.qris_instructions }}</p>
+            {% endif %}
+            <label class="block text-xs font-semibold text-ink-600 mt-3 mb-1">Payment proof <span class="text-ink-400 font-normal">(optional)</span></label>
+            <input type="file" name="payment_proof" accept="image/*" form="cart-checkout-form"
+                   class="block w-full text-xs text-ink-600 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-100 file:px-3 file:py-1.5 file:text-amber-800 file:font-semibold file:cursor-pointer">
+          </div>
+        </div>
+        {% endif %}
+
+        {% if shortfall > 0 %}
+        <div data-gateway-picker>
+          {% if qris_seller or wallet_covers %}<p class="text-[11px] font-bold text-ink-400 uppercase tracking-wide mt-3 mb-2">Or pay online</p>{% endif %}
+          <label class="flex items-center gap-3 bg-white border-2 border-ink-100 rounded-2xl p-3.5 cursor-pointer
+                        has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50 transition-colors">
+            <input type="radio" name="payment_method" value="QRIS" form="cart-checkout-form" class="sr-only peer" checked
+                   data-pay-amount="{{ gateway_total }}" data-pay-label="Pay now">
+            <span class="w-9 h-9 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center shrink-0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 3h3m0 0h3m-3 0v3m0-3v-3"/></svg>
+            </span>
+            <span class="flex-1 min-w-0">
+              <span class="block text-sm font-bold text-ink-900">QRIS Online</span>
+              <span class="block text-[11px] text-ink-500">
+                {{ gateway_charge_amount|rupiah }} + admin fee {{ gateway_fee|rupiah }}{% if wallet_covers or wallet_balance %} · + {{ wallet_balance|rupiah }} from balance{% endif %}
+              </span>
+            </span>
+            <span class="block text-base font-extrabold text-ink-900 shrink-0">{{ gateway_total|rupiah }}</span>
+          </label>
+          <p class="text-[11px] text-ink-400 mt-1.5 px-1">Other methods (bank transfer, e-wallet) are temporarily unavailable — QRIS only for now.</p>
+        </div>
+        {% endif %}
+
+        {% if gateway_unavailable %}
+        <div class="flex gap-2.5 rounded-2xl border-2 border-amber-200 bg-amber-50 p-3.5">
+          <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+          <p class="text-[11px] text-amber-900 leading-snug">
+            Online payment (QRIS) is temporarily unavailable.
+            {% if qris_seller %}Choose <span class="font-semibold">Static QRIS</span> above to pay this seller directly.{% else %}Please try again in a little while — your cart is saved.{% endif %}
+          </p>
+        </div>
+        {% endif %}
+
+      </div>
+    </section>
+
+  </main>
+
+  {# ── Sticky bottom CTA (the form) ── #}
+  <form method="post" action="{% url 'storefront:cart_checkout' %}" id="cart-checkout-form" enctype="multipart/form-data"
+        class="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-ink-100 shadow-[0_-10px_30px_-12px_rgba(22,19,15,.18)]">
+    {% csrf_token %}
+    <div class="max-w-md mx-auto px-4 pt-3 pb-4">
+      <div class="flex items-center justify-between mb-2.5">
+        <span class="text-xs font-semibold text-ink-500">Total to pay</span>
+        <span class="text-xl font-extrabold text-ink-900" data-total-display>{% if wallet_covers %}{{ total|rupiah }}{% else %}{{ gateway_total|rupiah }}{% endif %}</span>
+      </div>
+      <button type="submit" data-pay-btn {% if no_payment_method %}disabled{% endif %}
+              class="w-full py-3.5 rounded-full font-bold text-sm bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white transition-colors disabled:bg-ink-200 disabled:text-ink-400 disabled:cursor-not-allowed">
+        {% if no_payment_method %}Payment unavailable{% elif wallet_covers %}Confirm & pay{% else %}Pay now{% endif %}
+      </button>
+      <p class="text-[11px] text-center text-ink-400 mt-2">Secure payment · instant access</p>
+    </div>
   </form>
-
-  {% if qris_seller %}
-  <script>
-  (function () {
-    var toggle = document.querySelector('[data-qris-toggle]');
-    var detail = document.querySelector('[data-qris-detail]');
-    var gateway = document.querySelector('[data-gateway-picker]');
-    if (!toggle) return;
-    function sync() {
-      if (detail) detail.classList.toggle('hidden', !toggle.checked);
-      if (gateway) gateway.querySelectorAll('[name="payment_method"]').forEach(function (r) {
-        if (toggle.checked) { r.checked = false; r.required = false; } else { r.required = true; }
-      });
-    }
-    toggle.addEventListener('change', sync);
-    if (gateway) gateway.querySelectorAll('[name="payment_method"]').forEach(function (r) {
-      r.addEventListener('change', function () { if (r.checked) { toggle.checked = false; sync(); } });
-    });
-    sync();
-  })();
-  </script>
-  {% endif %}
-
-  <a href="{% url 'storefront:cart' %}" class="block text-center text-sm text-ink-400 hover:text-ink-600 mt-4">
-    Back to cart
-  </a>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/site.js' %}" defer></script>
+<script>
+(function () {
+  var scope   = document.getElementById('payment-methods');
+  var totalEl = document.querySelector('[data-total-display]');
+  var btnEl   = document.querySelector('[data-pay-btn]');
+  var detail  = document.querySelector('[data-qris-detail]');
+  function idr(n) { return 'Rp' + Number(n || 0).toLocaleString('id-ID'); }
+  function sync() {
+    var r = document.querySelector('[name="payment_method"]:checked');
+    if (r) {
+      if (totalEl && r.dataset.payAmount != null) totalEl.textContent = idr(r.dataset.payAmount);
+      if (btnEl && r.dataset.payLabel) btnEl.textContent = r.dataset.payLabel;
+    }
+    if (detail) detail.classList.toggle('hidden', !(r && r.value === 'qris_static'));
+  }
+  if (scope) scope.querySelectorAll('[name="payment_method"]').forEach(function (el) { el.addEventListener('change', sync); });
+  sync();
+})();
+</script>
 {% endblock %}

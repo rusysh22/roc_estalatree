@@ -130,14 +130,12 @@ class Command(BaseCommand):
             defaults={
                 "title": "Dani Digital Store",
                 "description": "Template premium, tools SaaS, dan kursus copywriting terbaik untuk bisnis digital kamu.",
-                "avatar_url": "https://ui-avatars.com/api/?name=Dani&background=4f46e5&color=fff&size=128",
                 "is_published": True,
                 "seller": seller,
                 "theme": {
                     "primary_color": "#4f46e5",
                     "background_color": "#f5f3ff",
                     "layout": "grid",
-                    "banner_url": "",
                 },
             },
         )
@@ -164,7 +162,6 @@ class Command(BaseCommand):
                     "Platform analitik real-time untuk bisnis digital. "
                     "Pantau traffic, konversi, dan revenue dalam satu dashboard."
                 ),
-                "cover_image_url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=640&q=80",
             },
         )
         products["analytics"] = analytics
@@ -189,7 +186,6 @@ class Command(BaseCommand):
                 "description": (
                     "500+ template Canva & Figma siap pakai untuk konten media sosial, pitch deck, dan landing page."
                 ),
-                "cover_image_url": "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=640&q=80",
                 "purchase_button_label": "Dapatkan Sekarang",
             },
         )
@@ -220,7 +216,6 @@ class Command(BaseCommand):
                 "type": Product.Type.ONE_TIME,
                 "visibility": Product.Visibility.PUBLIC,
                 "description": "100 template caption Instagram + TikTok. Bayar sesuai kemampuan kamu!",
-                "cover_image_url": "https://images.unsplash.com/photo-1611926653458-09294b3142bf?w=640&q=80",
                 "purchase_button_label": "Pilih Hargamu",
             },
         )
@@ -245,7 +240,6 @@ class Command(BaseCommand):
                     "Kuasai seni menulis copy yang menjual. "
                     "Dari hook yang kuat hingga CTA yang konversi — 6 modul video + teks."
                 ),
-                "cover_image_url": "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=640&q=80",
                 "purchase_button_label": "Mulai Belajar",
             },
         )

@@ -1,6 +1,6 @@
-"""Tests for QRIS Statis manual payment + Duration Plan optional discount.
+"""Tests for Static QRIS manual payment + Duration Plan optional discount.
 
-QRIS Statis: buyer pays the seller's own static QR directly (no wallet debit,
+Static QRIS: buyer pays the seller's own static QR directly (no wallet debit,
 no Duitku). The Order stays PENDING until the seller confirms receipt, which is
 what runs provisioning. No SellerEarning is recorded (money went to the seller).
 """
@@ -37,11 +37,21 @@ def customer(db):
     return CustomerFactory()
 
 
+def _png_bytes(size=(300, 300)):
+    import io
+
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", size, "white").save(buf, format="PNG")
+    return buf.getvalue()
+
+
 def _qris_seller(slug="qris-seller", ready=True):
     seller = SellerProfile.objects.create(name="QRIS Seller", slug=slug, is_approved=True)
     if ready:
         seller.qris_enabled = True
-        seller.qris_image = SimpleUploadedFile("qr.png", b"\x89PNG\r\n\x1a\n fake", content_type="image/png")
+        seller.qris_image = SimpleUploadedFile("qr.png", _png_bytes(), content_type="image/png")
         seller.qris_instructions = "Transfer exact amount."
         seller.save()
     return seller
@@ -63,7 +73,7 @@ def _fund(customer, amount):
     customer.wallet.refresh_from_db()
 
 
-# ── QRIS Statis checkout ─────────────────────────────────────────────────────
+# ── Static QRIS checkout ─────────────────────────────────────────────────────
 
 @pytest.mark.django_db(transaction=True)
 def test_qris_checkout_creates_pending_order_no_debit(customer, qris_plan):
@@ -188,6 +198,111 @@ def test_seller_cannot_confirm_another_sellers_order(customer, qris_plan):
     assert resp.status_code == 404
     order.refresh_from_db()
     assert order.status == Order.Status.PENDING
+
+
+# ── Checkout page layout ────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_checkout_page_shows_qris_inside_payment_card(qris_plan):
+    client = Client()
+    resp = client.get(reverse("storefront:checkout", args=[qris_plan.pk]))
+    assert resp.status_code == 200
+    html = resp.content.decode()
+    # QRIS option lives in the single unified payment-methods card
+    assert 'id="payment-methods"' in html
+    card = html.split('id="payment-methods"', 1)[1]
+    assert 'value="qris_static"' in card
+    assert "Static QRIS" in card
+    # exactly one payment_method control for qris
+    assert html.count('value="qris_static"') == 1
+    # buyer can download the static QRIS from the checkout page
+    assert "Download QRIS" in html
+    assert reverse("storefront:qris_download", args=[qris_plan.product.seller.slug]) in html
+
+
+@pytest.mark.django_db(transaction=True)
+def test_order_status_qris_page_has_download_link(customer, qris_plan):
+    order, _, _ = checkout(
+        customer=customer, plan=qris_plan, checkout_key="ck_qris_dl",
+        callback_url=CALLBACK_URL, return_url=RETURN_URL, payment_method="qris_static",
+    )
+    c = Client()
+    c.force_login(customer.user)
+    html = c.get(reverse("storefront:order_status", args=[order.public_id])).content.decode()
+    assert "Complete your QRIS payment" in html
+    assert "Download QRIS" in html
+    assert reverse("storefront:qris_download", args=[qris_plan.product.seller.slug]) in html
+
+
+@pytest.mark.django_db
+def test_qris_download_serves_png(qris_plan):
+    seller = qris_plan.product.seller
+    resp = Client().get(reverse("storefront:qris_download", args=[seller.slug]))
+    assert resp.status_code == 200
+    assert resp["Content-Type"] == "image/png"
+    assert resp.content[:8] == b"\x89PNG\r\n\x1a\n"
+    assert 'attachment; filename="QRIS-' in resp["Content-Disposition"]
+
+
+@pytest.mark.django_db
+def test_qris_download_404_when_not_ready(db):
+    seller = _qris_seller(slug="no-qris", ready=False)
+    resp = Client().get(reverse("storefront:qris_download", args=[seller.slug]))
+    assert resp.status_code == 404
+
+
+# ── Seller settings page ────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_settings_page_renders_and_saves_qris(db):
+    seller = SellerProfile.objects.create(
+        name="Store", slug="settings-store", is_approved=True,
+        onboarding_completed=True, user=UserFactory(),
+    )
+    client = Client()
+    client.force_login(seller.user)
+
+    resp = client.get(reverse("seller:settings"))
+    assert resp.status_code == 200
+    assert b"Static QRIS payment" in resp.content
+
+    import io
+
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (240, 240), "white").save(buf, format="PNG")
+    img = SimpleUploadedFile("qr.png", buf.getvalue(), content_type="image/png")
+    resp = client.post(reverse("seller:settings"), {
+        "name": "Store", "bio": "", "wa_number": "",
+        "payout_bank_name": "", "payout_account_number": "", "payout_account_name": "",
+        "custom_domain": "", "ga_tracking_id": "", "fb_pixel_id": "",
+        "qris_enabled": "on", "qris_instructions": "Pay the exact amount",
+        "qris_image": img,
+    })
+    assert resp.status_code == 302
+    seller.refresh_from_db()
+    assert seller.qris_enabled is True
+    assert seller.qris_ready is True
+
+
+@pytest.mark.django_db
+def test_settings_rejects_qris_enabled_without_image(db):
+    seller = SellerProfile.objects.create(
+        name="Store2", slug="settings-store-2", is_approved=True,
+        onboarding_completed=True, user=UserFactory(),
+    )
+    client = Client()
+    client.force_login(seller.user)
+    resp = client.post(reverse("seller:settings"), {
+        "name": "Store2", "bio": "", "wa_number": "",
+        "payout_bank_name": "", "payout_account_number": "", "payout_account_name": "",
+        "custom_domain": "", "ga_tracking_id": "", "fb_pixel_id": "",
+        "qris_enabled": "on",
+    })
+    assert resp.status_code == 200  # re-rendered with error
+    seller.refresh_from_db()
+    assert seller.qris_enabled is False
 
 
 # ── Duration Plan — discount is optional ─────────────────────────────────────

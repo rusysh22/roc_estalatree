@@ -30,6 +30,12 @@ class SellerProfileAdmin(admin.ModelAdmin):
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ["user", "wa_number", "created_at"]
+    list_display = ["user", "wa_number", "notification_channel", "wa_verified", "notif_promo", "created_at"]
+    list_filter = ["notification_channel", "notif_promo"]
     search_fields = ["user__email", "wa_number"]
     raw_id_fields = ["user"]
+    readonly_fields = ["wa_number_verified_at"]
+
+    @admin.display(boolean=True, description="WA verified")
+    def wa_verified(self, obj):
+        return obj.wa_verified

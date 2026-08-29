@@ -77,6 +77,34 @@ def cart_item_count(context):
         return 0
 
 
+@register.inclusion_tag("storefront/partials/_cart_drawer.html", takes_context=True)
+def cart_drawer_content(context):
+    """Pre-render the slide-over cart into every storefront page so opening it is
+    instant (no fetch). cart.js re-fetches this partial only after add/remove."""
+    request = context.get("request")
+    lines, total = [], 0
+    if request is not None:
+        try:
+            from apps.billing.cart_service import compute_cart_line
+            from apps.billing.models import Cart
+
+            if request.user.is_authenticated:
+                cart = Cart.objects.filter(customer__user=request.user).first()
+            else:
+                session_key = request.session.session_key
+                cart = (Cart.objects.filter(session_key=session_key, customer__isnull=True).first()
+                        if session_key else None)
+            if cart is not None:
+                for item in cart.items.select_related("plan__product__seller"):
+                    price, discount, coupon_obj, base_price = compute_cart_line(item)
+                    lines.append({"item": item, "price": price, "discount": discount,
+                                  "coupon": coupon_obj, "base_price": base_price})
+                    total += price
+        except Exception:
+            lines, total = [], 0
+    return {"lines": lines, "total": total}
+
+
 @register.filter
 def dict_get(d, key):
     """Lookup d[key] in a template. Works for integer keys unlike dot notation."""

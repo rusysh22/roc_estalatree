@@ -137,7 +137,7 @@ def products(request):
 def product_create(request):
     seller = request.seller
     if request.method == "POST":
-        form = ProductForm(request.POST)
+        form = ProductForm(request.POST, request.FILES)
         if form.is_valid():
             product = form.save(commit=False)
             product.seller = seller if not seller.user.is_superuser else None
@@ -161,7 +161,7 @@ def product_edit(request, pk):
     seller = request.seller
     product = get_object_or_404(_seller_products(seller), pk=pk)
     if request.method == "POST":
-        form = ProductForm(request.POST, instance=product)
+        form = ProductForm(request.POST, request.FILES, instance=product)
         if form.is_valid():
             form.save()
             messages.success(request, "Product updated.")
@@ -475,7 +475,7 @@ def order_detail(request, pk):
 
 
 def _seller_manual_order(seller, pk):
-    """A QRIS Statis order belonging to this seller and still awaiting confirmation."""
+    """A Static QRIS order belonging to this seller and still awaiting confirmation."""
     order = get_object_or_404(
         Order.objects.select_related("plan__product", "customer", "cart_checkout"),
         pk=pk,
@@ -545,14 +545,16 @@ def store(request):
     store_page = _get_or_create_store_page(seller)
 
     if request.method == "POST":
-        form = StorePageForm(request.POST, instance=store_page)
-        theme_form = ThemeForm(request.POST)
+        form = StorePageForm(request.POST, request.FILES, instance=store_page)
+        theme_form = ThemeForm(request.POST, request.FILES)
         if form.is_valid() and theme_form.is_valid():
             store_page = form.save(commit=False)
+            banner = theme_form.cleaned_data.get("banner")
+            if banner:
+                store_page.banner = banner
             store_page.theme = {
                 "primary_color": theme_form.cleaned_data.get("primary_color") or "#4f46e5",
                 "background_color": theme_form.cleaned_data.get("background_color") or "#f9fafb",
-                "banner_url": theme_form.cleaned_data.get("banner_url") or "",
                 "layout": theme_form.cleaned_data.get("layout") or "default",
                 "button_style": theme_form.cleaned_data.get("button_style") or "rounded",
                 "instagram": theme_form.cleaned_data.get("instagram") or "",
@@ -568,7 +570,7 @@ def store(request):
         form = StorePageForm(instance=store_page)
         theme_form = ThemeForm(initial=store_page.theme)
 
-    blocks = store_page.blocks.select_related("product").order_by("position")
+    blocks = store_page.blocks.select_related("product").order_by("position", "pk")
     already_blocked_pks = store_page.blocks.values_list("product_id", flat=True)
     available_products = _seller_products(seller).exclude(pk__in=already_blocked_pks).order_by("name")
 
@@ -633,6 +635,10 @@ def block_remove(request, block_pk):
     return redirect("seller:store")
 
 
+def _is_ajax(request):
+    return request.headers.get("X-Requested-With") == "fetch"
+
+
 @seller_required
 @require_POST
 def block_toggle_visibility(request, block_pk):
@@ -642,8 +648,34 @@ def block_toggle_visibility(request, block_pk):
     block = get_object_or_404(Block, pk=block_pk, store_page=store_page)
     block.is_visible = not block.is_visible
     block.save(update_fields=["is_visible", "updated_at"])
-    status = "visible" if block.is_visible else "hidden"
-    messages.success(request, f"Block is now {status}.")
+    if _is_ajax(request):
+        return JsonResponse({"is_visible": block.is_visible})
+    messages.success(request, f"Block is now {'visible' if block.is_visible else 'hidden'}.")
+    return redirect("seller:store")
+
+
+@seller_required
+@require_POST
+def block_reorder(request):
+    """Persist a new block order. Body: order=<pk>,<pk>,… (all of the store's blocks)."""
+    seller = request.seller
+    store_page = _get_or_create_store_page(seller)
+    raw = request.POST.get("order", "")
+    try:
+        ids = [int(x) for x in raw.split(",") if x.strip()]
+    except ValueError:
+        return JsonResponse({"error": "bad order"}, status=400)
+
+    owned = set(store_page.blocks.values_list("pk", flat=True))
+    if set(ids) != owned:
+        return JsonResponse({"error": "order must list every block exactly once"}, status=400)
+
+    for position, pk in enumerate(ids, start=1):
+        Block.objects.filter(pk=pk, store_page=store_page).update(position=position)
+
+    if _is_ajax(request):
+        return JsonResponse({"ok": True})
+    messages.success(request, "Block order updated.")
     return redirect("seller:store")
 
 
@@ -921,7 +953,7 @@ def onboarding(request):
 
     if step == SellerProfile.OnboardingStep.IDENTITY:
         if request.method == "POST":
-            form = StorePageForm(request.POST, instance=store_page)
+            form = StorePageForm(request.POST, request.FILES, instance=store_page)
             if form.is_valid():
                 form.save()
                 seller.onboarding_step = SellerProfile.OnboardingStep.PRODUCT
@@ -930,7 +962,7 @@ def onboarding(request):
         else:
             form = StorePageForm(instance=store_page)
         return render(request, "seller/onboarding.html", {
-            "seller": seller, "step": step, "form": form,
+            "seller": seller, "step": step, "form": form, "store_page": store_page,
         })
 
     if step == SellerProfile.OnboardingStep.PRODUCT:
@@ -957,7 +989,7 @@ def onboarding(request):
         else:
             form = OnboardingProductForm()
         return render(request, "seller/onboarding.html", {
-            "seller": seller, "step": step, "form": form,
+            "seller": seller, "step": step, "form": form, "store_page": store_page,
         })
 
     # step == PUBLISH

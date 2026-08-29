@@ -7,7 +7,7 @@
 | Tier | Store | Changes need | Editable by | Examples |
 |------|-------|--------------|-------------|----------|
 | **1. Environment** | `.env` / env vars | Deploy + restart | DevOps (deploy) | `SECRET_KEY`, `DATABASE_URL`, `REDIS_URL`, `ALLOWED_HOSTS`, `DEBUG`, signing key, Sentry DSN, **gateway secrets** |
-| **2. DB Setting** | `Setting` model | None (runtime) | Superadmin (UI) | token TTL, grace days, min top-up, bonus rules, default auto-renew, maintenance mode, panic global-grace, notification templates, suggested top-up packages, platform fee |
+| **2. DB Setting** | `Setting` model | None (runtime) | Superadmin (UI) | token TTL, grace days, min top-up, bonus rules, default auto-renew, maintenance mode, panic global-grace, notification templates, suggested top-up packages, platform fee, `WA_BACKEND`, `WA_TEMPLATE_MODE` (off/on/strict), `WA_QUIET_START` / `WA_QUIET_END` (0 = disabled) |
 | **3. Per-record config** | model JSON fields | None (per record) | Operator (UI) | `Plan.config`, `Deliverable.config`, `StorePage.theme`, `Block.config` |
 
 ### Why Tier 1 cannot move to the DB
@@ -61,6 +61,8 @@ SUMOPOD_WEBHOOK_TOKEN=
 SUMOPOD_SANDBOX=True
 GOOGLE_OAUTH_CLIENT_ID=
 GOOGLE_OAUTH_CLIENT_SECRET=
-WA_GATEWAY_API_KEY=
+WA_BACKEND=kirimchat
+WA_TOKEN=
+KIRIMCHAT_WEBHOOK_SECRET=
 LICENSE_TOKEN_SIGNING_KEY=
 ```
