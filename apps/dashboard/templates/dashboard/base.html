@@ -44,9 +44,27 @@
         + Top up
       </a>
       {# desktop-only account menu #}
-      <a href="{% url 'dashboard:profile' %}" class="hidden md:inline-flex w-8 h-8 items-center justify-center rounded-full bg-white border border-ink-100 text-ink-500 hover:border-primary-300 transition-colors" aria-label="Profile">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-      </a>
+      <details class="hidden md:block relative" data-menu>
+        <summary class="list-none w-8 h-8 inline-flex items-center justify-center rounded-full bg-white border border-ink-100 text-ink-500 hover:border-primary-300 transition-colors cursor-pointer marker:hidden" aria-label="Account">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        </summary>
+        <div class="absolute right-0 mt-2 w-52 bg-white border border-ink-100 rounded-2xl shadow-[0_18px_40px_-12px_rgba(22,19,15,.25)] p-1.5 z-50">
+          <p class="px-3 pt-2 pb-1 text-[11px] text-ink-400 truncate">{{ request.user.email }}</p>
+          <a href="{% url 'dashboard:profile' %}" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-ink-700 hover:bg-cream transition-colors">
+            <svg class="w-4 h-4 text-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            Profile &amp; settings
+          </a>
+          <a href="{% url 'account_email' %}" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-ink-700 hover:bg-cream transition-colors">
+            <svg class="w-4 h-4 text-ink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Email &amp; security
+          </a>
+          <div class="border-t border-ink-100 my-1"></div>
+          <a href="{% url 'account_logout' %}" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-primary-600 hover:bg-primary-50 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            Sign out
+          </a>
+        </div>
+      </details>
     </div>
   </div>
 </header>
@@ -93,45 +111,20 @@
   </nav>
 </div>
 
-<main class="max-w-5xl mx-auto px-4 py-5 sm:py-7 pb-24 md:pb-10">
-  {% if messages %}
-  <div class="mb-4 space-y-2">
-    {% for msg in messages %}
-    <div class="flex items-start gap-2.5 px-4 py-3 rounded-xl text-sm font-medium border
-      {% if msg.tags == 'error' %}bg-primary-50 text-primary-800 border-primary-200
-      {% elif msg.tags == 'success' %}bg-moss-50 text-moss-800 border-moss-200
-      {% elif msg.tags == 'warning' %}bg-gold-50 text-gold-800 border-gold-200
-      {% else %}bg-white text-ink-700 border-ink-200{% endif %}">
-      <span class="mt-px shrink-0">
-        {% if msg.tags == 'success' %}<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-8 8a1 1 0 01-1.4 0l-4-4a1 1 0 011.4-1.4L8 12.6l7.3-7.3a1 1 0 011.4 0z" clip-rule="evenodd"/></svg>
-        {% else %}<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>{% endif %}
-      </span>
-      <span>{{ msg }}</span>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
+{% include "partials/_toasts.html" %}
 
+<main class="max-w-5xl mx-auto px-4 py-5 sm:py-7 pb-28 md:pb-10">
   {% block content %}{% endblock %}
 </main>
 
 {# ── Mobile bottom tab bar ── #}
-<nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-ink-100 shadow-[0_-8px_24px_-12px_rgba(22,19,15,.15)]">
-  <div class="grid grid-cols-4 max-w-md mx-auto">
-    <a href="{% url 'dashboard:home' %}" class="flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold {% if u == 'home' %}text-primary-600{% else %}text-ink-400{% endif %}">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-      Home
-    </a>
-    <a href="{% url 'dashboard:products' %}" class="flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold {% if u == 'products' %}text-primary-600{% else %}text-ink-400{% endif %}">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-      Products
-    </a>
-    <a href="{% url 'dashboard:wallet' %}" class="flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold {% if u == 'wallet' %}text-primary-600{% else %}text-ink-400{% endif %}">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-      Wallet
-    </a>
-    <label for="dash-nav-toggle" class="flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold text-ink-400 cursor-pointer">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+<nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-ink-100 shadow-[0_-12px_32px_-8px_rgba(22,19,15,.18)] pb-[env(safe-area-inset-bottom)]">
+  <div class="grid grid-cols-4 max-w-md mx-auto px-1.5 py-1.5">
+    {% include "dashboard/partials/_tab.html" with url='dashboard:home' name='home' label='Home' cur=u path='M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' %}
+    {% include "dashboard/partials/_tab.html" with url='dashboard:products' name='products' label='Products' cur=u path='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' %}
+    {% include "dashboard/partials/_tab.html" with url='dashboard:wallet' name='wallet' label='Wallet' cur=u path='M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' %}
+    <label for="dash-nav-toggle" class="flex flex-col items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-bold text-ink-400 cursor-pointer active:bg-cream transition-colors">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
       Menu
     </label>
   </div>

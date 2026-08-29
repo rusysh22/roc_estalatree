@@ -430,6 +430,22 @@
     });
   }
 
+  // Close an open dropdown-style <details> (marked [data-menu]) on outside click / Esc.
+  function initDetailsMenus() {
+    function closeAll(except) {
+      document.querySelectorAll("details[data-menu][open]").forEach(function (d) {
+        if (d !== except) d.removeAttribute("open");
+      });
+    }
+    document.addEventListener("click", function (e) {
+      var inside = e.target.closest("details[data-menu]");
+      closeAll(inside);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeAll(null);
+    });
+  }
+
   function safeInit(fn) {
     try {
       fn();
@@ -452,5 +468,6 @@
     safeInit(initMoneyInputs);
     safeInit(initAmountFormatting);
     safeInit(initStarRating);
+    safeInit(initDetailsMenus);
   });
 })();

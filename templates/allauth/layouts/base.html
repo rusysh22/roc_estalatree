@@ -16,6 +16,7 @@
 </head>
 <body class="bg-cream text-ink-900 min-h-screen" style="font-family: var(--font-sans);">
   <div id="page-progress-bar"></div>
+  {% include "partials/_toasts.html" %}
   {% block body %}{% endblock %}
   {% block extra_body %}{% endblock %}
   <script src="{% static 'js/site.js' %}" defer></script>

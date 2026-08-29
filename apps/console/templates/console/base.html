@@ -91,17 +91,7 @@
     </div>
 </div>
 
-{% if messages %}
-<div class="max-w-7xl mx-auto px-4 mt-4 space-y-2">
-  {% for message in messages %}
-  <div class="px-4 py-2 rounded-xl text-sm border
-    {% if message.tags == 'error' %}bg-primary-50 text-primary-700 border-primary-200
-    {% else %}bg-moss-50 text-moss-700 border-moss-200{% endif %}">
-    {{ message }}
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
+{% include "partials/_toasts.html" %}
 
 <main class="max-w-7xl mx-auto px-4 py-8">
   {% block content %}{% endblock %}
