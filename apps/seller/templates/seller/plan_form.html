@@ -17,7 +17,7 @@
   <input type="radio" name="_tab" id="pt-delivery" class="peer/delivery sr-only">
   {% if plan %}<input type="radio" name="_tab" id="pt-ent" class="peer/ent sr-only">{% endif %}
 
-  <div class="flex gap-1 p-1 bg-gray-100 rounded-xl mb-5 overflow-x-auto">
+  <div data-tab-bar class="flex gap-1 p-1 bg-gray-100 rounded-xl mb-5 overflow-x-auto">
     <label for="pt-pricing"  class="flex-1 min-w-[7rem] text-center text-xs font-semibold text-gray-500 px-3 py-2 rounded-lg cursor-pointer hover:text-gray-700 peer-checked/pricing:bg-white peer-checked/pricing:text-indigo-700 peer-checked/pricing:shadow-sm transition-colors">Pricing</label>
     <label for="pt-delivery" class="flex-1 min-w-[7rem] text-center text-xs font-semibold text-gray-500 px-3 py-2 rounded-lg cursor-pointer hover:text-gray-700 peer-checked/delivery:bg-white peer-checked/delivery:text-indigo-700 peer-checked/delivery:shadow-sm transition-colors">Delivery</label>
     {% if plan %}<label for="pt-ent" class="flex-1 min-w-[7rem] text-center text-xs font-semibold text-gray-500 px-3 py-2 rounded-lg cursor-pointer hover:text-gray-700 peer-checked/ent:bg-white peer-checked/ent:text-indigo-700 peer-checked/ent:shadow-sm transition-colors">Entitlements</label>{% endif %}

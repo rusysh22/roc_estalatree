@@ -16,7 +16,7 @@
   <input type="radio" name="_tab" id="pf-details"   class="peer/details sr-only" checked>
   <input type="radio" name="_tab" id="pf-plans"     class="peer/plans sr-only">
   <input type="radio" name="_tab" id="pf-questions" class="peer/questions sr-only">
-  <div class="flex gap-1 p-1 bg-gray-100 rounded-xl mb-5 overflow-x-auto">
+  <div data-tab-bar class="flex gap-1 p-1 bg-gray-100 rounded-xl mb-5 overflow-x-auto">
     <label for="pf-details"   class="flex-1 min-w-[7rem] text-center text-xs font-semibold text-gray-500 px-3 py-2 rounded-lg cursor-pointer hover:text-gray-700 peer-checked/details:bg-white peer-checked/details:text-indigo-700 peer-checked/details:shadow-sm transition-colors">Details</label>
     <label for="pf-plans"     class="flex-1 min-w-[7rem] text-center text-xs font-semibold text-gray-500 px-3 py-2 rounded-lg cursor-pointer hover:text-gray-700 peer-checked/plans:bg-white peer-checked/plans:text-indigo-700 peer-checked/plans:shadow-sm transition-colors">Plans{% if not plans %} <span class="text-amber-500">!</span>{% endif %}</label>
     <label for="pf-questions" class="flex-1 min-w-[7rem] text-center text-xs font-semibold text-gray-500 px-3 py-2 rounded-lg cursor-pointer hover:text-gray-700 peer-checked/questions:bg-white peer-checked/questions:text-indigo-700 peer-checked/questions:shadow-sm transition-colors">Questions</label>
