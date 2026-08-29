@@ -3,6 +3,16 @@ from django.contrib.auth import get_user_model
 from django.db import models
 
 
+class NotificationChannel(models.TextChoices):
+    """The single channel a customer receives notifications on (ADR-022).
+
+    Not additive — a customer picks one. See apps.accounts.models.Customer.
+    """
+
+    EMAIL = "email", "Email"
+    WHATSAPP = "whatsapp", "WhatsApp"
+
+
 class TimestampedModel(models.Model):
     """Abstract base: created_at + updated_at on every model."""
 

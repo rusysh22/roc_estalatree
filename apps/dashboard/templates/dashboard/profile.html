@@ -39,23 +39,41 @@
                value="{{ customer.wa_number }}"
                placeholder="628123456789"
                class="w-full px-3 py-2 border border-ink-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-        <p class="text-xs text-ink-400 mt-1">Used for renewal reminders and order confirmations.</p>
+        {% if customer.wa_number %}
+          {% if customer.wa_verified %}
+          <p class="text-xs text-moss-600 mt-1">WhatsApp number verified.</p>
+          {% else %}
+          <p class="text-xs text-gold-600 mt-1">Not verified &mdash; verify it to receive notifications on WhatsApp.</p>
+          {% endif %}
+        {% endif %}
+        <p class="text-xs text-ink-400 mt-1">Changing the number resets verification.</p>
       </div>
 
-      <!-- Notification preferences -->
+      <!-- Notification channel (one channel, ADR-022) -->
       <div class="mb-5 space-y-2">
-        <p class="text-sm font-medium text-ink-700">Notification channels</p>
+        <p class="text-sm font-medium text-ink-700">Notification channel</p>
         <label class="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" name="notif_wa" value="1"
-                 {% if customer.notif_wa %}checked{% endif %}
-                 class="w-4 h-4 text-primary-600 rounded-lg border-ink-300 focus:ring-primary-500">
-          <span class="text-sm text-ink-700">WhatsApp notifications</span>
+          <input type="radio" name="notification_channel" value="email"
+                 {% if customer.notification_channel == "email" %}checked{% endif %}
+                 class="w-4 h-4 text-primary-600 border-ink-300 focus:ring-primary-500">
+          <span class="text-sm text-ink-700">Email</span>
         </label>
+        <label class="flex items-center gap-3 cursor-pointer {% if not customer.wa_verified %}opacity-50{% endif %}">
+          <input type="radio" name="notification_channel" value="whatsapp"
+                 {% if customer.notification_channel == "whatsapp" %}checked{% endif %}
+                 {% if not customer.wa_verified %}disabled{% endif %}
+                 class="w-4 h-4 text-primary-600 border-ink-300 focus:ring-primary-500">
+          <span class="text-sm text-ink-700">WhatsApp {% if not customer.wa_verified %}(verify number first){% endif %}</span>
+        </label>
+        <p class="text-xs text-ink-400">Receipts and invoices are always emailed regardless of this choice.</p>
+      </div>
+
+      <div class="mb-5">
         <label class="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" name="notif_email" value="1"
-                 {% if customer.notif_email %}checked{% endif %}
+          <input type="checkbox" name="notif_promo" value="1"
+                 {% if customer.notif_promo %}checked{% endif %}
                  class="w-4 h-4 text-primary-600 rounded-lg border-ink-300 focus:ring-primary-500">
-          <span class="text-sm text-ink-700">Email notifications</span>
+          <span class="text-sm text-ink-700">Send me promotions and product news (email)</span>
         </label>
       </div>
 

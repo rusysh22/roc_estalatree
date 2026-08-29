@@ -5,13 +5,18 @@ All handlers are registered via NotificationsConfig.ready() importing this modul
 Handlers fire after transaction.on_commit (emit() contract) — they never observe
 rolled-back state. Each handler dispatches Celery tasks; nothing blocks.
 
+Delivery model (ADR-022): each customer has ONE channel (`resolve_channel()`).
+`_notify()` sends to that channel only. Value documents (receipts, invoices,
+license keys) are always emailed via their dedicated HTML-email tasks; for those
+handlers we additionally push a short WhatsApp copy only when WA is the chosen
+channel (`_wa_copy()`).
+
 Events and channels:
-  topup.paid             → WA + email
-  order.paid             → WA + email (with license key if applicable)
-  subscription.renewed   → WA
-  subscription.graced    → WA + email
-  subscription.suspended → WA + email
-  subscription.cancelled → WA
+  topup.paid             → email (HTML receipt) + WA copy if channel=WA
+  order.paid             → email (HTML receipt) + WA copy if channel=WA
+  order.awaiting_confirmation → buyer: chosen channel · seller: email
+  order.payment_rejected → chosen channel
+  subscription.renewed / graced / suspended / cancelled → chosen channel
 """
 import logging
 
@@ -27,20 +32,32 @@ def _customer(customer_id):
     return Customer.objects.select_related("user", "wallet").get(pk=customer_id)
 
 
-def _wa(customer, message: str) -> None:
-    if not getattr(customer, "notif_wa", True):
+def _uses_wa(customer) -> bool:
+    from apps.core.models import NotificationChannel
+    return customer.resolve_channel() == NotificationChannel.WHATSAPP
+
+
+def _notify(customer, *, wa_text: str, email_subject: str, email_body: str) -> None:
+    """Send one notification on the customer's chosen channel."""
+    from apps.notifications.tasks import deliver_email, deliver_whatsapp
+    from apps.notifications.whatsapp import normalize_number
+
+    if _uses_wa(customer):
+        deliver_whatsapp.delay(normalize_number(customer.wa_number), wa_text)
+    else:
+        deliver_email.delay(customer.user.email, email_subject, email_body)
+
+
+def _wa_copy(customer, wa_text: str) -> None:
+    """Push a WhatsApp copy of a value-document notification, only when WA is chosen.
+
+    The authoritative document always goes out by email separately.
+    """
+    if not _uses_wa(customer):
         return
     from apps.notifications.tasks import deliver_whatsapp
     from apps.notifications.whatsapp import normalize_number
-    if customer.wa_number:
-        deliver_whatsapp.delay(normalize_number(customer.wa_number), message)
-
-
-def _email(customer, subject: str, message: str) -> None:
-    if not getattr(customer, "notif_email", True):
-        return
-    from apps.notifications.tasks import deliver_email
-    deliver_email.delay(customer.user.email, subject, message)
+    deliver_whatsapp.delay(normalize_number(customer.wa_number), wa_text)
 
 
 # ── Handlers ──────────────────────────────────────────────────────────────────
@@ -55,10 +72,9 @@ def handle_topup_paid(customer_id, amount, bonus=0, **kwargs):
             f"Rp{amount:,}{bonus_text} telah dikreditkan ke saldo Anda.\n"
             f"Saldo siap digunakan untuk pembelian."
         )
-        _wa(c, msg)
-        if getattr(c, "notif_email", True):
-            from apps.notifications.tasks import deliver_topup_confirmation_email
-            deliver_topup_confirmation_email.delay(c.user.email, amount, bonus, customer_id)
+        from apps.notifications.tasks import deliver_topup_confirmation_email
+        deliver_topup_confirmation_email.delay(c.user.email, amount, bonus, customer_id)
+        _wa_copy(c, msg)
     except Exception:
         logger.exception("handle_topup_paid: error for customer %s", customer_id)
 
@@ -95,10 +111,9 @@ def handle_order_paid(customer_id, order_id, plan_name="", **kwargs):
             f"{delivery_text}\n\n"
             "Terima kasih! Simpan informasi akses ini dengan aman."
         )
-        _wa(c, msg)
-        if getattr(c, "notif_email", True):
-            from apps.notifications.tasks import deliver_order_confirmation_email
-            deliver_order_confirmation_email.delay(c.user.email, order.pk)
+        from apps.notifications.tasks import deliver_order_confirmation_email
+        deliver_order_confirmation_email.delay(c.user.email, order.pk)
+        _wa_copy(c, msg)
     except Exception:
         logger.exception("handle_order_paid: error for customer %s", customer_id)
 
@@ -112,26 +127,35 @@ def handle_order_awaiting_confirmation(customer_id, order_id, plan_name="", **kw
         order = Order.objects.select_related("plan__product__seller__user").get(pk=order_id)
 
         c = _customer(customer_id)
-        _wa(c, (
+        body = (
             f"🧾 *Order Diterima — Menunggu Pembayaran*\n\n"
             f"Produk: *{plan_name or order.plan}*\n"
             f"Jumlah: Rp{order.amount:,}\n\n"
             "Selesaikan pembayaran via QRIS penjual. Pesanan akan diproses setelah "
             "penjual mengonfirmasi pembayaran."
-        ))
+        )
+        _notify(
+            c,
+            wa_text=body,
+            email_subject=f"Order diterima — menunggu pembayaran: {plan_name or order.plan}",
+            email_body=body,
+        )
 
+        # Sellers are email-only (ADR-022).
         seller = getattr(order.plan.product, "seller", None)
         seller_user = getattr(seller, "user", None)
         if seller and seller_user:
-            from apps.notifications.tasks import deliver_whatsapp
-            from apps.notifications.whatsapp import normalize_number
-            if seller.wa_number:
-                deliver_whatsapp.delay(normalize_number(seller.wa_number), (
-                    f"🔔 *Pesanan Baru — Perlu Konfirmasi Pembayaran*\n\n"
-                    f"Produk: *{plan_name or order.plan}*\n"
+            from apps.notifications.tasks import deliver_email
+            deliver_email.delay(
+                seller_user.email,
+                f"Pesanan baru — perlu konfirmasi pembayaran: {plan_name or order.plan}",
+                (
+                    f"Pesanan baru masuk dan menunggu konfirmasi pembayaran.\n\n"
+                    f"Produk: {plan_name or order.plan}\n"
                     f"Jumlah: Rp{order.amount:,}\n\n"
                     "Cek mutasi QRIS Anda, lalu konfirmasi di Seller Dashboard → Orders."
-                ))
+                ),
+            )
     except Exception:
         logger.exception("handle_order_awaiting_confirmation: error for order %s", order_id)
 
@@ -141,11 +165,13 @@ def handle_order_payment_rejected(customer_id, order_id, plan_name="", reason=""
     try:
         c = _customer(customer_id)
         tail = f"\nCatatan penjual: {reason}" if reason else ""
-        _wa(c, (
+        body = (
             f"⚠️ *Pembayaran Tidak Terverifikasi*\n\n"
             f"Penjual belum menerima pembayaran untuk *{plan_name}*, jadi pesanan dibatalkan."
             f"{tail}\n\nHubungi penjual jika Anda sudah membayar."
-        ))
+        )
+        _notify(c, wa_text=body,
+                email_subject=f"Pembayaran tidak terverifikasi: {plan_name}", email_body=body)
     except Exception:
         logger.exception("handle_order_payment_rejected: error for customer %s", customer_id)
 
@@ -160,7 +186,8 @@ def handle_subscription_renewed(customer_id, sub_id, plan_name="", new_period_en
             f"Langganan *{plan_name}* berhasil diperpanjang.\n"
             f"Aktif hingga: {period_str}"
         )
-        _wa(c, msg)
+        _notify(c, wa_text=msg,
+                email_subject=f"Langganan diperpanjang: {plan_name}", email_body=msg)
     except Exception:
         logger.exception("handle_subscription_renewed: error for customer %s", customer_id)
 
@@ -175,8 +202,8 @@ def handle_subscription_graced(customer_id, sub_id, plan_name="", grace_days=3, 
             f"Anda masih punya masa tenggang {grace_days} hari.\n"
             f"Top up sekarang untuk menjaga akses tetap aktif."
         )
-        _wa(c, msg)
-        _email(c, f"Perpanjangan gagal: {plan_name}", msg)
+        _notify(c, wa_text=msg,
+                email_subject=f"Perpanjangan gagal: {plan_name}", email_body=msg)
     except Exception:
         logger.exception("handle_subscription_graced: error for customer %s", customer_id)
 
@@ -191,8 +218,8 @@ def handle_subscription_suspended(customer_id, sub_id, plan_name="", **kwargs):
             f"dan masa tenggang telah habis.\n"
             f"Top up sekarang — akses akan aktif kembali otomatis."
         )
-        _wa(c, msg)
-        _email(c, f"Akses ditangguhkan: {plan_name}", msg)
+        _notify(c, wa_text=msg,
+                email_subject=f"Akses ditangguhkan: {plan_name}", email_body=msg)
     except Exception:
         logger.exception("handle_subscription_suspended: error for customer %s", customer_id)
 
@@ -206,6 +233,7 @@ def handle_subscription_cancelled(customer_id, sub_id, plan_name="", **kwargs):
             f"Langganan *{plan_name}* telah berakhir (auto-renew tidak aktif).\n"
             f"Aktifkan kembali kapan saja melalui dashboard."
         )
-        _wa(c, msg)
+        _notify(c, wa_text=msg,
+                email_subject=f"Langganan berakhir: {plan_name}", email_body=msg)
     except Exception:
         logger.exception("handle_subscription_cancelled: error for customer %s", customer_id)

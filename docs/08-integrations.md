@@ -13,26 +13,30 @@
 - Secrets are **env-only** (`SUMOPOD_API_KEY`, `SUMOPOD_WEBHOOK_SECRET`, `SUMOPOD_WEBHOOK_TOKEN`), never `Setting`/DB. Start in **sandbox** (`SUMOPOD_SANDBOX=True`).
 
 ## 8.2 WhatsApp
-- For notifications & the **Contact** button (deep link `wa.me`).
-- Notification gateway candidates: **Fonnte / Wablas** (common in ID) or the official WhatsApp Business API. **Final choice at implementation time** (see risks).
-- Abstraction: a `notifications/whatsapp.py` with a generic interface so the gateway is swappable.
+- For customer notifications & the **Contact** button (deep link `wa.me`).
+- Gateway: **kirim.chat** (ADR-022). `WA_BACKEND=kirimchat`, secret `WA_TOKEN` (env-only). Fonnte/console backends kept for fallback/dev.
+- Abstraction: `notifications/whatsapp.py` — add a backend class + register in `_BACKENDS`.
+- **Customer-only.** Sellers are email-only. See [27-whatsapp-notifications.md](27-whatsapp-notifications.md).
 
 ## 8.3 Email
-- Companion/fallback for notifications + **invoice PDF** delivery.
+- Primary channel and system-of-record for financial documents + **invoice PDF** delivery.
 - Standard Django SMTP.
 
 ## 8.4 Notifications (event → channel)
 
-| Event | WA | Email |
-|-------|----|----|
-| Top-up success | ✓ | ✓ |
-| Purchase success + license key | ✓ | ✓ |
-| Renewal reminder (H-3, H-1) | ✓ | ✓ |
-| Renewal success | ✓ | — |
-| Renewal failed (insufficient balance) | ✓ | ✓ |
-| Low balance | ✓ | — |
-| License suspended | ✓ | ✓ |
-| Lead follow-up | ✓ | — |
+Each customer picks **one** channel (`Customer.notification_channel`, email | whatsapp;
+WhatsApp needs a verified number). Value documents are always emailed regardless.
 
-- Templates managed by Superadmin (in `Setting` / a template model).
+| Event | Channel |
+|-------|---------|
+| Top-up success (HTML receipt) | email always · WA copy if chosen |
+| Purchase success + license key (HTML receipt) | email always · WA copy if chosen |
+| Renewal reminder (H-3, H-1) | chosen channel |
+| Renewal success · renewal failed · low balance | chosen channel |
+| License suspended / graced / cancelled | chosen channel |
+| Order awaiting payment / rejected | chosen channel |
+| Seller: new order needs confirmation | seller email |
+| Promotions (opt-in `notif_promo`) | email only (for now) |
+
+- Templates managed by Superadmin; WA business-initiated sends use pre-approved WABA templates.
 - Delivery via **background jobs** (async), never blocking the request.

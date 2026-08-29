@@ -5,10 +5,12 @@ Reminder windows are intentionally wider than 1h so they fire even
 if the task runs a few minutes late.
 
 M1: NotificationLog dedup prevents duplicate sends on Celery retry or
-    overlapping hourly runs (unique dedup_key per sub+window+channel).
+    overlapping hourly runs (unique dedup_key per sub+window).
 M2: Only dispatches when the customer has a shortfall — zero-cost "all good"
     reminders are suppressed.
-LOW: WA number normalized before dispatch (consistent with handlers).
+
+ADR-022: one reminder per (sub, window) on the customer's chosen channel
+(`resolve_channel()`), not one per channel.
 """
 import logging
 from datetime import timedelta
@@ -18,7 +20,7 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-_DEDUP_KEY = "reminder:{sub_id}:{period_end}:{label}:{channel}"
+_DEDUP_KEY = "reminder:{sub_id}:{period_end}:{label}"
 
 
 def _try_log(dedup_key: str, channel: str, recipient: str) -> bool:
@@ -45,6 +47,7 @@ def dispatch_renewal_reminders() -> dict:
     Returns {"h3": N, "h1": N} counts.
     """
     from apps.billing.models import Subscription
+    from apps.core.models import NotificationChannel
     from apps.notifications.tasks import deliver_email, deliver_whatsapp
     from apps.notifications.whatsapp import normalize_number
 
@@ -85,24 +88,21 @@ def dispatch_renewal_reminders() -> dict:
                     f"Top up sekarang agar akses tidak terputus."
                 )
 
-                if customer.wa_number:
-                    wa_key = _DEDUP_KEY.format(
-                        sub_id=sub.pk, period_end=period_end_date,
-                        label=slug, channel="wa",
-                    )
-                    if _try_log(wa_key, "whatsapp", normalize_number(customer.wa_number)):
-                        deliver_whatsapp.delay(normalize_number(customer.wa_number), msg)
-
-                email_key = _DEDUP_KEY.format(
-                    sub_id=sub.pk, period_end=period_end_date,
-                    label=slug, channel="email",
+                channel = customer.resolve_channel()
+                dedup_key = _DEDUP_KEY.format(
+                    sub_id=sub.pk, period_end=period_end_date, label=slug,
                 )
-                if _try_log(email_key, "email", customer.user.email):
-                    deliver_email.delay(
-                        customer.user.email,
-                        f"Pengingat perpanjangan {label}: {sub.plan.name}",
-                        msg,
-                    )
+
+                if channel == NotificationChannel.WHATSAPP:
+                    if _try_log(dedup_key, "whatsapp", normalize_number(customer.wa_number)):
+                        deliver_whatsapp.delay(normalize_number(customer.wa_number), msg)
+                else:
+                    if _try_log(dedup_key, "email", customer.user.email):
+                        deliver_email.delay(
+                            customer.user.email,
+                            f"Pengingat perpanjangan {label}: {sub.plan.name}",
+                            msg,
+                        )
 
                 if label == "H-3":
                     h3_count += 1

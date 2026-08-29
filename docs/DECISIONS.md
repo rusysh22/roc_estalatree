@@ -2,7 +2,7 @@
 
 > Records each decision **and its rationale** so future agents/sessions don't undo it without context. Newest on top. Keep entries short.
 >
-> **Closed-loop status:** All ADRs below are **Accepted / Final**. Do not change without explicit user instruction. If a new decision is needed, add a new ADR (next: ADR-022) and note it in [STATUS.md](STATUS.md).
+> **Closed-loop status:** All ADRs below are **Accepted / Final**. Do not change without explicit user instruction. If a new decision is needed, add a new ADR (next: ADR-023) and note it in [STATUS.md](STATUS.md).
 
 ---
 
@@ -24,6 +24,12 @@
 | **Icons** | Heroicons SVG inline/sprite; no emoji in UI. |
 
 ---
+
+### ADR-022 — Notification channel is a single per-customer choice (email XOR WhatsApp); WA gateway is kirim.chat
+**Status:** Accepted · 2026-08-29
+**Decision:** WhatsApp notifications are a **customer-only** feature. `Customer` gets `notification_channel` (`email` | `whatsapp`, default `email`), `wa_number_verified_at`, and `notif_promo`; the old additive `notif_wa` + `notif_email` booleans are removed. A customer receives each notification on **one** channel (`Customer.resolve_channel()`), except value documents (order/top-up receipts, invoices, license keys) which are **always emailed** plus a short WA summary when the channel is WhatsApp. The `whatsapp` option is locked in the UI until the number is verified by OTP. **Sellers are email-only** — `SellerProfile` is unchanged and all seller notifications (including `order.awaiting_confirmation`) go to `seller.user.email`; the WA-to-seller code is removed. **Promotional messages are email-only** for now (gated on `notif_promo`); WA marketing is deferred to a future ADR. The production WA gateway is **kirim.chat** (`https://api-prod.kirim.chat/api/v1/public`, `Authorization: Bearer $WA_TOKEN`), added as `KirimChatBackend` alongside the existing Fonnte/console backends; delivery-status + inbound (STOP keyword) webhook at `/notifications/webhook/kirimchat/`. Full plan: [27-whatsapp-notifications.md](27-whatsapp-notifications.md).
+**Why:** The additive model sent email + WA for the same event ("collision"). Users want to pick one. Email stays the system of record for financial documents. Sellers have no demonstrated need for WA notifications and it avoids seller-number verification + consent handling. Promo-over-WA risks the WABA quality rating, which would degrade every template category, so it waits until transactional volume is proven.
+**Fallout:** Data migration maps `notif_wa=True & notif_email=False` → `whatsapp` (else `email`); all `wa_number_verified_at` start NULL, so previously WA-only customers fall back to email until they re-verify. `reminders.py` collapses to one `dedup_key` per (sub, window) instead of one per channel. `NotificationLog` grows into a delivery/outbox record (status, provider, provider_msg_id) to support WA→email fallback on `failed`. New env: `WA_TOKEN`, `KIRIMCHAT_WEBHOOK_SECRET`. Supersedes the "WA gateway" open question and the WA-broadcast assumption in ADR-018.
 
 ### ADR-021 — Payment gateway is Sumopod (replaced Duitku)
 **Status:** Accepted · 2026-08-28 (supersedes the gateway choice in ADR-003)

@@ -10,6 +10,7 @@ import logging
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -277,11 +278,34 @@ def invoices(request):
 def profile(request):
     customer = _customer(request)
     if request.method == "POST":
-        wa = request.POST.get("wa_number", "").strip()
-        customer.wa_number = wa
-        customer.notif_wa = bool(request.POST.get("notif_wa"))
-        customer.notif_email = bool(request.POST.get("notif_email"))
-        customer.save(update_fields=["wa_number", "notif_wa", "notif_email", "updated_at"])
+        from apps.core.models import NotificationChannel
+        from apps.notifications.whatsapp import normalize_number
+
+        wa = normalize_number(request.POST.get("wa_number", ""))
+        if wa != customer.wa_number:
+            customer.wa_number = wa
+            customer.wa_number_verified_at = None  # re-verify after any change
+
+        channel = request.POST.get("notification_channel", NotificationChannel.EMAIL)
+        if channel not in NotificationChannel.values:
+            channel = NotificationChannel.EMAIL
+        # Can't select WhatsApp until the number is verified.
+        if channel == NotificationChannel.WHATSAPP and not customer.wa_verified:
+            channel = NotificationChannel.EMAIL
+            messages.warning(request, "Verify your WhatsApp number first to receive notifications there.")
+        customer.notification_channel = channel
+        customer.notif_promo = bool(request.POST.get("notif_promo"))
+
+        try:
+            customer.full_clean(exclude=["user"])
+        except ValidationError as e:
+            messages.error(request, "; ".join(sum(e.message_dict.values(), [])))
+            return redirect("dashboard:profile")
+
+        customer.save(update_fields=[
+            "wa_number", "wa_number_verified_at", "notification_channel",
+            "notif_promo", "updated_at",
+        ])
         messages.success(request, "Profile updated.")
         return redirect("dashboard:profile")
 

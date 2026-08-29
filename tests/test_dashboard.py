@@ -233,11 +233,12 @@ def test_deactivate_device_htmx_returns_row(authed_client, funded_customer, lice
 def test_profile_saves_wa_number(authed_client, customer):
     resp = authed_client.post(
         reverse("dashboard:profile"),
-        data={"wa_number": "081234567890"},
+        data={"wa_number": "081234567890", "notification_channel": "email"},
     )
     assert resp.status_code == 302
     customer.refresh_from_db()
-    assert customer.wa_number == "081234567890"
+    assert customer.wa_number == "6281234567890"  # normalized on save
+    assert customer.wa_number_verified_at is None
 
 
 # ── 7. Refund request ─────────────────────────────────────────────────────────

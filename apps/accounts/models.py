@@ -11,7 +11,8 @@ from django.contrib.auth.models import (
 from django.db import models
 from django.utils import timezone
 
-from apps.core.models import TimestampedModel
+from apps.core.models import NotificationChannel, TimestampedModel
+from apps.core.validators import validate_wa_number
 
 
 class UserManager(BaseUserManager):
@@ -151,18 +152,61 @@ class SellerProfile(TimestampedModel):
 
 
 class Customer(TimestampedModel):
-    """Extended profile for a buying user (OneToOne to custom User)."""
+    """Extended profile for a buying user (OneToOne to custom User).
+
+    Notification delivery is a *single channel choice* (ADR-022): the customer
+    receives each notification via email OR WhatsApp, never both. WhatsApp is
+    only usable once the number is verified by OTP. Value documents
+    (receipts / invoices / license keys) are always emailed regardless — that
+    rule lives in the notification handlers, not here.
+    """
 
     user = models.OneToOneField(
         "accounts.User", on_delete=models.CASCADE, related_name="customer"
     )
-    wa_number = models.CharField(max_length=20, blank=True)
-    notif_wa = models.BooleanField(default=True, help_text="Receive notifications via WhatsApp")
-    notif_email = models.BooleanField(default=True, help_text="Receive notifications via email")
+    wa_number = models.CharField(
+        max_length=20, blank=True, validators=[validate_wa_number]
+    )
+    wa_number_verified_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Set when the number passes OTP verification; cleared when the number changes.",
+    )
+    notification_channel = models.CharField(
+        max_length=10,
+        choices=NotificationChannel.choices,
+        default=NotificationChannel.EMAIL,
+        help_text="Preferred channel. WhatsApp only takes effect once the number is verified.",
+    )
+    notif_promo = models.BooleanField(
+        default=False,
+        help_text="Explicit opt-in for promotional messages (separate from transactional).",
+    )
     notes = models.TextField(blank=True)
 
     class Meta:
         verbose_name = "Customer"
 
     def __str__(self) -> str:
+        return self.user.email
+
+    @property
+    def wa_verified(self) -> bool:
+        return self.wa_number_verified_at is not None
+
+    def resolve_channel(self) -> str:
+        """The channel a notification will actually go out on.
+
+        Falls back to email whenever WhatsApp is chosen but not usable
+        (no number, or number not verified).
+        """
+        if (
+            self.notification_channel == NotificationChannel.WHATSAPP
+            and self.wa_number
+            and self.wa_verified
+        ):
+            return NotificationChannel.WHATSAPP
+        return NotificationChannel.EMAIL
+
+    @property
+    def notify_email_address(self) -> str:
         return self.user.email
