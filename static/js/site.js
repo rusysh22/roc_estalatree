@@ -430,6 +430,31 @@
     });
   }
 
+  // CSS-only radio tabs: the panels toggle via peer-checked (direct siblings), but the
+  // <label> chips are nested in the tab bar so the sibling selector can't reach them.
+  // Highlight the active label in JS. Mark the bar with [data-tab-bar].
+  function initTabHighlight() {
+    document.querySelectorAll("[data-tab-bar]").forEach(function (bar) {
+      var labels = Array.prototype.slice.call(bar.querySelectorAll("label[for]"));
+      function sync() {
+        labels.forEach(function (lbl) {
+          var input = document.getElementById(lbl.getAttribute("for"));
+          var on = !!(input && input.checked);
+          lbl.classList.toggle("bg-white", on);
+          lbl.classList.toggle("shadow-sm", on);
+          lbl.classList.toggle("text-indigo-700", on);
+          lbl.classList.toggle("text-primary-700", false);
+          lbl.classList.toggle("text-gray-500", !on);
+        });
+      }
+      labels.forEach(function (lbl) {
+        var input = document.getElementById(lbl.getAttribute("for"));
+        if (input) input.addEventListener("change", sync);
+      });
+      sync();
+    });
+  }
+
   // Close an open dropdown-style <details> (marked [data-menu]) on outside click / Esc.
   function initDetailsMenus() {
     function closeAll(except) {
@@ -469,5 +494,6 @@
     safeInit(initAmountFormatting);
     safeInit(initStarRating);
     safeInit(initDetailsMenus);
+    safeInit(initTabHighlight);
   });
 })();
