@@ -19,14 +19,17 @@ logger = logging.getLogger(__name__)
 
 @runtime_checkable
 class WhatsAppBackend(Protocol):
-    def send(self, to_number: str, message: str) -> None: ...
+    def send(self, to_number: str, message: str) -> str | None:
+        """Send the message. Returns the provider message id when available."""
+        ...
 
 
 class ConsoleBackend:
     """Dev / test backend — logs the message. No credentials needed."""
 
-    def send(self, to_number: str, message: str) -> None:
+    def send(self, to_number: str, message: str) -> str | None:
         logger.info("[WA-console] → %s: %s", to_number, message[:80])
+        return None
 
 
 class FonnteBackend:
@@ -37,12 +40,12 @@ class FonnteBackend:
 
     API_URL = "https://api.fonnte.com/send"
 
-    def send(self, to_number: str, message: str) -> None:
+    def send(self, to_number: str, message: str) -> str | None:
         import os
         token = os.environ.get("WA_TOKEN", "")
         if not token:
             logger.warning("FonnteBackend: WA_TOKEN env var not set — message not sent to %s", to_number)
-            return
+            return None
 
         payload = json.dumps({"target": to_number, "message": message}).encode()
         req = urllib.request.Request(
@@ -58,6 +61,11 @@ class FonnteBackend:
         except urllib.error.URLError as exc:
             logger.error("FonnteBackend: send failed to %s: %s", to_number, exc)
             raise
+        try:
+            ids = json.loads(body).get("id")
+            return str(ids[0]) if isinstance(ids, list) and ids else None
+        except (ValueError, AttributeError, TypeError):
+            return None
 
 
 class KirimChatBackend:
@@ -73,14 +81,14 @@ class KirimChatBackend:
 
     API_URL = "https://api-prod.kirim.chat/api/v1/public/messages/send"
 
-    def send(self, to_number: str, message: str) -> None:
+    def send(self, to_number: str, message: str) -> str | None:
         import os
         token = os.environ.get("WA_TOKEN", "")
         if not token:
             logger.warning(
                 "KirimChatBackend: WA_TOKEN env var not set — message not sent to %s", to_number
             )
-            return
+            return None
 
         payload = json.dumps({
             "phone_number": to_number,
@@ -113,6 +121,11 @@ class KirimChatBackend:
             logger.error("KirimChatBackend: send failed to %s: %s", to_number, exc)
             raise
 
+        try:
+            return (json.loads(body).get("data") or {}).get("message_id") or None
+        except ValueError:
+            return None
+
 
 _BACKENDS: dict[str, type] = {
     "console": ConsoleBackend,
@@ -122,9 +135,18 @@ _BACKENDS: dict[str, type] = {
 
 
 def get_backend() -> WhatsAppBackend:
+    from apps.core.models import Setting
     key = Setting.get("WA_BACKEND", "console")
     cls = _BACKENDS.get(key, ConsoleBackend)
     return cls()
+
+
+def wa_suppressed(number: str) -> bool:
+    """True if this WA number has opted out / been suppressed."""
+    from apps.notifications.models import WhatsAppSuppression
+    if not number:
+        return False
+    return WhatsAppSuppression.objects.filter(number=normalize_number(number)).exists()
 
 
 def normalize_number(raw: str) -> str:
@@ -137,8 +159,11 @@ def normalize_number(raw: str) -> str:
     return normalize_wa_number(raw)
 
 
-def send_whatsapp(to_number: str, message: str) -> None:
-    """Send a WA message via the configured backend. No-op if number is blank."""
+def send_whatsapp(to_number: str, message: str) -> str | None:
+    """Send a WA message via the configured backend. No-op if number is blank.
+
+    Returns the provider message id when the backend reports one.
+    """
     if not to_number:
-        return
-    get_backend().send(normalize_number(to_number), message)
+        return None
+    return get_backend().send(normalize_number(to_number), message)

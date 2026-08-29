@@ -40,3 +40,4 @@ WhatsApp needs a verified number). Value documents are always emailed regardless
 
 - Templates managed by Superadmin; WA business-initiated sends use pre-approved WABA templates.
 - Delivery via **background jobs** (async), never blocking the request.
+- **Delivery tracking:** `NotificationDelivery` outbox rows; kirim.chat webhook `POST /notifications/webhook/kirimchat/` (`X-KirimChat-Signature` HMAC-SHA256, `event_id` idempotency) updates status and, on `message.failed`, re-sends the notification by email. Inbound `STOP` → `WhatsAppSuppression` + channel reset to email.

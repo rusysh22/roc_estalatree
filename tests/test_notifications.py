@@ -183,7 +183,7 @@ def test_subscription_renewed_email_channel(mock_email, mock_wa, customer_with_w
     mock_email.delay.assert_called_once()
     mock_wa.delay.assert_not_called()
     body = mock_email.delay.call_args[0][2]
-    assert "Diperpanjang" in body
+    assert "renewed" in body.lower()
     assert "2026-07-18" in body
 
 
@@ -197,7 +197,7 @@ def test_subscription_renewed_wa_channel(mock_email, mock_wa, customer_wa_channe
 
     mock_wa.delay.assert_called_once()
     mock_email.delay.assert_not_called()
-    assert "Diperpanjang" in mock_wa.delay.call_args[0][1]
+    assert "renewed" in mock_wa.delay.call_args[0][1].lower()
 
 
 @pytest.mark.django_db
@@ -211,7 +211,7 @@ def test_subscription_graced_single_channel(mock_email, mock_wa, customer_with_w
 
     mock_email.delay.assert_called_once()   # email-channel customer
     mock_wa.delay.assert_called_once()      # wa-channel customer
-    assert "3 hari" in mock_wa.delay.call_args[0][1]
+    assert "3-day" in mock_wa.delay.call_args[0][1]
 
 
 @pytest.mark.django_db
@@ -223,7 +223,7 @@ def test_subscription_suspended_single_channel(mock_email, mock_wa, customer_wa_
 
     mock_wa.delay.assert_called_once()
     mock_email.delay.assert_not_called()
-    assert "Ditangguhkan" in mock_wa.delay.call_args[0][1]
+    assert "suspended" in mock_wa.delay.call_args[0][1].lower()
 
 
 @pytest.mark.django_db

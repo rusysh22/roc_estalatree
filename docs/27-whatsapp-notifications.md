@@ -170,37 +170,37 @@ def notify(recipient, *, event, wa_text, email_subject, email_body,
 - Env baru di `.env.example`: `WA_TOKEN=`, `KIRIMCHAT_WEBHOOK_SECRET=`.
 - Fonnte backend tetap ada (fallback / rollback cepat).
 
-### C6. Webhook kirim.chat — status & inbound
+### C6. Webhook kirim.chat — status & inbound ✅ (2026-08-29)
 
-View baru `apps/notifications/views.kirimchat_webhook` di `/notifications/webhook/kirimchat/`:
+`POST /notifications/webhook/kirimchat/` (`apps/notifications/views.kirimchat_webhook`,
+logika di `apps/notifications/webhooks.py`).
 
-1. **Verifikasi** signature HMAC-SHA256 (`KIRIMCHAT_WEBHOOK_SECRET`) → 401 kalau gagal.
-2. **Status pesan** (`delivered/read/failed`) → update baris outbox; `failed` → jadwalkan fallback email.
-3. **Inbound pesan**: kalau body cocok keyword STOP (`STOP`, `BERHENTI`, `UNSUB`, `UNSUBSCRIBE`) →
-   - set `notification_channel = EMAIL` untuk profil dengan nomor itu,
-   - insert `WhatsAppSuppression(number, reason="opt_out")`,
-   - balas konfirmasi 1× ("Anda tidak akan menerima notifikasi WhatsApp lagi. …").
-4. Idempotency key `kirimchat:<webhook-id>`.
+Payload kirim.chat: `{event_type, event_id, timestamp, data:{message_id, customer_phone, content, direction, channel}}`.
 
-Model baru:
+1. **Verifikasi** header `X-KirimChat-Signature: sha256=<hmac-sha256(raw_body, KIRIMCHAT_WEBHOOK_SECRET)>` → 401 kalau gagal; 500 kalau secret belum di-set.
+2. **Idempotency** — `event_id` disimpan di cache (Redis) 1 hari; duplikat → `200 OK (duplicate)` tanpa proses.
+3. **Status** `message.sent/delivered/read` → update `NotificationDelivery` (cari via `provider_msg_id`); tidak mundur ke status lebih rendah.
+4. **`message.failed`** → status `failed` + `fallback_delivery_to_email()` (kirim ulang `email_subject`/`email_body` yang tersimpan; status jadi `fallback_sent`).
+5. **`message.received`** dengan `content` = `STOP/BERHENTI/UNSUB/UNSUBSCRIBE/BATAL/KELUAR` → `WhatsAppSuppression(number, opt_out)` + semua `Customer` bernomor itu yang `channel=whatsapp` dipindah ke `email` + balas konfirmasi 1×. Kata `MULAI/START/LANJUT/SUBSCRIBE` → hapus suppression.
+6. Jawab 2xx dalam < 5 detik (proses ringan, task async).
+
+**Model baru** (`apps/notifications/models.py`) — bukan meng-extend `NotificationLog` (semantiknya beda: `NotificationLog` = dedup, `NotificationDelivery` = outbox):
 
 ```python
 class WhatsAppSuppression(TimestampedModel):
-    number = models.CharField(max_length=20, unique=True)   # sudah dinormalisasi
-    reason = models.CharField(...)   # opt_out | invalid_number | complaint | manual
+    number = models.CharField(max_length=20, unique=True)   # normalized 62…
+    reason = ...   # opt_out | invalid_number | complaint | manual
     detail = models.TextField(blank=True)
+
+class NotificationDelivery(TimestampedModel):
+    customer = FK(Customer, null=True, on_delete=SET_NULL, related_name="notifications")
+    event, channel, recipient
+    wa_text, email_subject, email_body        # retained for WA→email fallback
+    status  = queued|sent|delivered|read|failed|fallback_sent
+    provider, provider_msg_id (indexed), error
 ```
 
-**Outbox (naikkan `NotificationLog`)** — tambah field agar bisa tracking & fallback:
-
-```python
-# tambahan pada NotificationLog (atau model NotificationDelivery baru)
-event          = models.CharField(...)        # nama domain event / "reminder:h3" dst
-status         = models.CharField(...)        # queued|sent|delivered|read|failed|fallback_sent
-provider       = models.CharField(...)        # kirimchat|fonnte|smtp|console
-provider_msg_id= models.CharField(blank=True)
-error          = models.TextField(blank=True)
-```
+Value-document email (HTML receipt) di-dispatch task-nya sendiri dan **tidak** ditrack di `NotificationDelivery`.
 
 ### C7. Verifikasi nomor WA via OTP
 
@@ -287,16 +287,21 @@ Legenda kanal: **P** = kirim ke kanal pilihan pelanggan (`resolve_channel`); **E
 - [x] Admin `CustomerAdmin` + form `dashboard/profile` (radio kanal, kunci WA sampai verified, toggle promo).
 - [x] Tes: `tests/test_notification_channel.py` (validator, `resolve_channel`, backend HTTP) + `tests/test_notifications.py` ditulis ulang untuk model 1-kanal. Suite: 224 pass (2 gagal pre-existing, tidak terkait).
 
-### Fase N.2 — Dispatch terpadu
-- [ ] `apps/notifications/dispatch.notify()`; pindahkan `handlers.py` & `reminders.py`.
-- [ ] `reminders.py`: satu `dedup_key` per (sub, window).
-- [ ] Outbox: perluas `NotificationLog` (event/status/provider/provider_msg_id/error).
-- [ ] Tes: setiap handler kirim **tepat satu** kanal; `always_email` untuk receipt.
+### Fase N.2 — Dispatch terpadu ✅ (2026-08-29)
+- [x] `apps/notifications/dispatch.py` — `notify()`, `notify_wa_copy()`, `effective_channel()`, `fallback_delivery_to_email()`. `handlers.py` & `reminders.py` memakainya.
+- [x] `reminders.py`: satu `dedup_key` per (sub, window); lewat `notify()`.
+- [x] Model **`NotificationDelivery`** (outbox terpisah, bukan `NotificationLog`) — event/channel/recipient/wa_text/email_subject/email_body/status/provider/provider_msg_id/error.
+- [x] `deliver_whatsapp` task terima `delivery_id`; update status (sent + `provider_msg_id`; failed + fallback saat retry habis).
+- [x] Bug fix: `whatsapp.get_backend()` — `Setting` tidak pernah di-import (NameError laten di prod). `send_whatsapp()` kini kembalikan `provider_msg_id`.
+- [x] Semua teks notifikasi diubah ke **Bahasa Inggris** (konsisten dgn DECISIONS.md → Language).
+- [x] Tes: `tests/test_notifications.py` (tepat satu kanal per event).
 
-### Fase N.3 — Webhook & suppression
-- [ ] `WhatsAppSuppression`, view `kirimchat_webhook` (verifikasi HMAC, status, inbound STOP), idempotency.
-- [ ] Fallback email otomatis saat status `failed`.
-- [ ] Tes: signature invalid → 401; STOP → channel jadi email + suppression; `failed` → fallback.
+### Fase N.3 — Webhook & suppression ✅ (2026-08-29)
+- [x] `apps/notifications/webhooks.py` + `views.kirimchat_webhook` + `urls.py` → `/notifications/webhook/kirimchat/` (didaftarkan di `config/urls.py`).
+- [x] Verifikasi HMAC-SHA256 (`X-KirimChat-Signature`), idempotency `event_id` via cache.
+- [x] Status `sent/delivered/read` → update `NotificationDelivery`; `failed` → fallback email otomatis.
+- [x] `WhatsAppSuppression` model + admin; STOP/START keyword; `effective_channel()` cek suppression.
+- [x] Tes: `tests/test_notification_webhook.py` (signature 401, delivered, failed→fallback, idempotency, STOP).
 
 ### Fase N.4 — OTP verifikasi nomor (pelanggan)
 - [ ] `WhatsAppOTP`, service generate/verify, rate limit.

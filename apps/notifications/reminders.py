@@ -48,7 +48,6 @@ def dispatch_renewal_reminders() -> dict:
     """
     from apps.billing.models import Subscription
     from apps.core.models import NotificationChannel
-    from apps.notifications.tasks import deliver_email, deliver_whatsapp
     from apps.notifications.whatsapp import normalize_number
 
     now = timezone.now()
@@ -81,28 +80,34 @@ def dispatch_renewal_reminders() -> dict:
 
                 period_end_date = sub.current_period_end.date().isoformat()
                 msg = (
-                    f"⏰ *Pengingat Perpanjangan ({label})*\n\n"
-                    f"Langganan *{sub.plan.name}* akan diperpanjang dalam {label}.\n"
-                    f"Harga: Rp{sub.plan.price:,} | Saldo: Rp{balance:,}\n"
-                    f"Kekurangan: Rp{shortfall:,}\n\n"
-                    f"Top up sekarang agar akses tidak terputus."
+                    f"⏰ *Renewal reminder ({label})*\n\n"
+                    f"Your *{sub.plan.name}* subscription renews in {label}.\n"
+                    f"Price: Rp{sub.plan.price:,} | Balance: Rp{balance:,}\n"
+                    f"Shortfall: Rp{shortfall:,}\n\n"
+                    f"Top up now to avoid an interruption in access."
                 )
 
-                channel = customer.resolve_channel()
+                from apps.notifications.dispatch import effective_channel, notify
+
+                channel = effective_channel(customer)
                 dedup_key = _DEDUP_KEY.format(
                     sub_id=sub.pk, period_end=period_end_date, label=slug,
                 )
+                recipient = (
+                    normalize_number(customer.wa_number)
+                    if channel == NotificationChannel.WHATSAPP
+                    else customer.user.email
+                )
+                if not _try_log(dedup_key, channel, recipient):
+                    continue
 
-                if channel == NotificationChannel.WHATSAPP:
-                    if _try_log(dedup_key, "whatsapp", normalize_number(customer.wa_number)):
-                        deliver_whatsapp.delay(normalize_number(customer.wa_number), msg)
-                else:
-                    if _try_log(dedup_key, "email", customer.user.email):
-                        deliver_email.delay(
-                            customer.user.email,
-                            f"Pengingat perpanjangan {label}: {sub.plan.name}",
-                            msg,
-                        )
+                notify(
+                    customer,
+                    event=f"reminder:{slug}",
+                    wa_text=msg,
+                    email_subject=f"Renewal reminder {label}: {sub.plan.name}",
+                    email_body=msg,
+                )
 
                 if label == "H-3":
                     h3_count += 1

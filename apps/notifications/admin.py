@@ -1,6 +1,11 @@
 from django.contrib import admin
 
-from apps.notifications.models import EmailSuppression, NotificationLog
+from apps.notifications.models import (
+    EmailSuppression,
+    NotificationDelivery,
+    NotificationLog,
+    WhatsAppSuppression,
+)
 
 
 @admin.register(EmailSuppression)
@@ -15,3 +20,20 @@ class NotificationLogAdmin(admin.ModelAdmin):
     list_display = ("recipient", "channel", "dedup_key", "created_at")
     list_filter = ("channel",)
     search_fields = ("recipient", "dedup_key")
+
+
+@admin.register(WhatsAppSuppression)
+class WhatsAppSuppressionAdmin(admin.ModelAdmin):
+    list_display = ("number", "reason", "created_at")
+    list_filter = ("reason",)
+    search_fields = ("number", "detail")
+
+
+@admin.register(NotificationDelivery)
+class NotificationDeliveryAdmin(admin.ModelAdmin):
+    list_display = ("recipient", "channel", "event", "status", "provider", "created_at")
+    list_filter = ("channel", "status", "provider")
+    search_fields = ("recipient", "event", "provider_msg_id")
+    readonly_fields = tuple(
+        f.name for f in NotificationDelivery._meta.fields
+    )

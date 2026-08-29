@@ -25,15 +25,50 @@ def _is_suppressed(to_email: str) -> bool:
     default_retry_delay=60,
     acks_late=True,
 )
-def deliver_whatsapp(self, to_number: str, message: str):
-    """Send a WA message via the configured backend (ConsoleBackend in dev, Fonnte in prod)."""
+def deliver_whatsapp(self, to_number: str, message: str, delivery_id: int | None = None):
+    """Send a WA message via the configured backend.
+
+    When `delivery_id` is given, the matching NotificationDelivery row is updated
+    (sent + provider_msg_id on success; failed + email fallback once retries are
+    exhausted).
+    """
     from apps.notifications.whatsapp import send_whatsapp
 
     try:
-        send_whatsapp(to_number, message)
+        msg_id = send_whatsapp(to_number, message)
     except Exception as exc:
         logger.error("deliver_whatsapp: failed for %s...: %s", to_number[:6], exc)
-        raise self.retry(exc=exc)
+        try:
+            raise self.retry(exc=exc)
+        except self.MaxRetriesExceededError:
+            if delivery_id:
+                _finish_wa_delivery(delivery_id, ok=False, error=str(exc))
+            raise
+    else:
+        if delivery_id:
+            _finish_wa_delivery(delivery_id, ok=True, provider_msg_id=msg_id or "")
+
+
+def _finish_wa_delivery(delivery_id: int, *, ok: bool, provider_msg_id: str = "", error: str = ""):
+    from apps.notifications.models import NotificationDelivery
+
+    try:
+        d = NotificationDelivery.objects.get(pk=delivery_id)
+    except NotificationDelivery.DoesNotExist:
+        return
+
+    from apps.core.models import Setting
+    d.provider = Setting.get("WA_BACKEND", "console")
+    if ok:
+        d.status = NotificationDelivery.Status.SENT
+        d.provider_msg_id = provider_msg_id
+        d.save(update_fields=["status", "provider", "provider_msg_id", "updated_at"])
+    else:
+        d.status = NotificationDelivery.Status.FAILED
+        d.error = error
+        d.save(update_fields=["status", "provider", "error", "updated_at"])
+        from apps.notifications.dispatch import fallback_delivery_to_email
+        fallback_delivery_to_email(d)
 
 
 @shared_task(
