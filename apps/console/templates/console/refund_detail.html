@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="mb-4">
-  <a href="{% url 'console:cockpit' %}" class="text-sm text-primary-500 hover:underline">&larr; Cockpit</a>
+  <a href="{% url 'console:cockpit' %}" class="back-link mb-4"><svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Cockpit</a>
 </div>
 
 <h1 class="text-2xl font-extrabold text-ink-900 tracking-tight mb-6">Refund #{{ ref.pk }}</h1>
@@ -16,7 +16,7 @@
     <dl class="space-y-2 text-sm">
       <div class="flex justify-between">
         <dt class="text-ink-500">Customer</dt>
-        <dd><a href="{% url 'console:customer_360' ref.customer_id %}" class="text-primary-600 hover:underline">{{ ref.customer }}</a></dd>
+        <dd><a href="{% url 'console:customer_360' ref.customer_id %}" class="chip-link">{{ ref.customer }}</a></dd>
       </div>
       <div class="flex justify-between">
         <dt class="text-ink-500">Order</dt>

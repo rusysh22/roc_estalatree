@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="mb-4">
-  <a href="{% url 'console:customer_list' %}" class="text-sm text-primary-500 hover:underline">&larr; Customers</a>
+  <a href="{% url 'console:customer_list' %}" class="back-link mb-4"><svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>Customers</a>
 </div>
 
 <div class="flex items-start justify-between mb-6">
@@ -211,7 +211,7 @@
         <p class="text-xs text-ink-400">{{ ref.created_at|date:"d M Y" }} &middot; {{ ref.get_status_display }}</p>
       </div>
       {% if ref.status == 'pending' %}
-      <a href="{% url 'console:refund_detail' ref.pk %}" class="text-xs text-primary-600 hover:underline ml-4">Review</a>
+      <a href="{% url 'console:refund_detail' ref.pk %}" class="chip-link ml-4">Review</a>
       {% endif %}
     </div>
     {% endfor %}

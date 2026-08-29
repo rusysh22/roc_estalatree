@@ -9,7 +9,7 @@
     <input type="text" name="q" value="{{ q }}" placeholder="Search by emailâ€¦"
            class="border border-ink-300 rounded-xl px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-primary-500">
     <button type="submit" class="bg-primary-500 text-white px-4 py-2 rounded-full text-sm hover:bg-primary-600">Search</button>
-    {% if q %}<a href="{% url 'console:customer_list' %}" class="px-4 py-2 text-sm text-ink-600 hover:underline">Clear</a>{% endif %}
+    {% if q %}<a href="{% url 'console:customer_list' %}" class="chip-link"><svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>Clear</a>{% endif %}
   </form>
 </div>
 
@@ -36,7 +36,9 @@
         </td>
         <td class="px-4 py-3 text-ink-400">{{ customer.created_at|date:"d M Y" }}</td>
         <td class="px-4 py-3 text-right">
-          <a href="{% url 'console:customer_360' customer.pk %}" class="text-primary-600 hover:underline text-xs">View 360&deg;</a>
+          <a href="{% url 'console:customer_360' customer.pk %}" class="icon-btn ml-auto" aria-label="Open customer 360" title="Open customer 360">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          </a>
         </td>
       </tr>
       {% endfor %}
