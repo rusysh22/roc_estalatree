@@ -1,7 +1,33 @@
 """Reusable form fields."""
+import re
+
 from django import forms
 
 from apps.core.images import ACCEPT, HELP_TEXT, process_upload
+
+
+class RupiahInput(forms.TextInput):
+    """A text input that shows a live thousand-separated amount as the user types
+    (via `data-money` + site.js) and strips the separators back out on submit, so
+    the bound field still receives a plain integer string.
+    """
+
+    def __init__(self, attrs=None):
+        base = {"data-money": "", "inputmode": "numeric", "autocomplete": "off"}
+        if attrs:
+            base.update(attrs)
+        super().__init__(base)
+
+    def value_from_datadict(self, data, files, name):
+        value = super().value_from_datadict(data, files, name)
+        if value in (None, ""):
+            return value
+        return re.sub(r"[^\d]", "", str(value)) or ""
+
+
+def clean_rupiah(raw) -> int:
+    """Parse a possibly-formatted rupiah string ('Rp1.500.000', '1.500.000') → int."""
+    return int(re.sub(r"[^\d]", "", str(raw or "")) or 0)
 
 
 class ImageUploadField(forms.ImageField):

@@ -262,6 +262,31 @@ def test_checkout_post_sufficient_balance_creates_paid_order(funded_authed_clien
     assert Order.objects.filter(customer=funded_customer, status=Order.Status.PAID).exists()
 
 
+@pytest.mark.django_db(transaction=True)
+def test_pwyw_checkout_accepts_thousand_separated_amount(funded_authed_client, funded_customer):
+    """The 'name your price' field submits a formatted string like '150.000'."""
+    product = ProductFactory(visibility=Product.Visibility.PUBLIC)
+    plan = PlanFactory(product=product, price=0, pwyw=True, min_price=25_000, is_active=True)
+    DeliverableFactory(plan=plan, type="license_key")
+
+    resp = funded_authed_client.post(reverse("storefront:checkout", args=[plan.pk]),
+                                     {"pwyw_price": "Rp150.000"})
+    assert resp.status_code == 302
+    order = Order.objects.filter(customer=funded_customer, status=Order.Status.PAID).latest("created_at")
+    assert order.amount == 150_000
+
+
+@pytest.mark.django_db
+def test_topup_accepts_thousand_separated_amount(authed_client):
+    mock_client = MagicMock()
+    mock_client.create_payment.return_value = MagicMock(fee=0, payment_id="R1", payment_url="https://pay.sumopod.com/pay/R1")
+    with patch("apps.billing.sumopod.SumopodClient.from_settings", return_value=mock_client):
+        resp = authed_client.post(reverse("storefront:topup"), {"amount": "150.000", "payment_method": "VC"})
+    assert resp.status_code == 302
+    from apps.billing.models import TopUp
+    assert TopUp.objects.latest("created_at").amount == 150_000
+
+
 # ── 6. Checkout POST: balance insufficient → Sumopod redirect ─────────────────
 
 @pytest.mark.django_db(transaction=True)

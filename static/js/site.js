@@ -288,8 +288,12 @@
     var chips = document.querySelectorAll("[data-amount-chip]");
     if (!input) return;
 
+    function amountValue() {
+      return parseInt(String(input.value).replace(/[^\d]/g, ""), 10) || 0;
+    }
+
     function syncChips() {
-      var current = String(parseInt(input.value, 10) || "");
+      var current = String(amountValue() || "");
       chips.forEach(function (chip) {
         var match = chip.getAttribute("data-amount") === current;
         chip.classList.toggle("border-primary-500", match);
@@ -303,7 +307,7 @@
 
     function updatePreview() {
       if (preview) {
-        var val = parseInt(input.value, 10);
+        var val = amountValue();
         if (!val) {
           preview.textContent = "";
         } else if (feePercent || feeFlat) {
@@ -318,32 +322,52 @@
       syncChips();
     }
 
+    // initMoneyInputs reformats the field and fires money:change; react to that
+    // (plain "input" too, in case this input isn't money-formatted).
+    input.addEventListener("money:change", updatePreview);
     input.addEventListener("input", updatePreview);
     chips.forEach(function (chip) {
       chip.addEventListener("click", function () {
-        input.value = chip.getAttribute("data-amount");
+        var n = parseInt(chip.getAttribute("data-amount"), 10) || 0;
+        input.value = n ? n.toLocaleString("id-ID") : "";
         updatePreview();
       });
     });
     updatePreview();
   }
 
-  function initGenericAmountPreview() {
-    var inputs = document.querySelectorAll("[data-format-idr]");
+  // Live thousand-separated currency inputs. Any input marked [data-money] (or the
+  // legacy [data-format-idr]) becomes a text field that reformats as you type:
+  // "150000" -> "150.000". Emits a `money:change` event carrying the clean integer.
+  function moneyDigits(s) {
+    return parseInt(String(s == null ? "" : s).replace(/[^\d]/g, ""), 10) || 0;
+  }
+
+  function initMoneyInputs() {
+    var inputs = document.querySelectorAll("[data-money], [data-format-idr]");
     inputs.forEach(function (input) {
-      var preview = input.nextElementSibling;
-      if (!preview || !preview.hasAttribute("data-format-idr-preview")) {
-        preview = document.createElement("p");
-        preview.setAttribute("data-format-idr-preview", "");
-        preview.className = "text-xs font-semibold text-ink-500 mt-1";
-        input.insertAdjacentElement("afterend", preview);
+      if (input.type === "number") input.type = "text";
+      input.setAttribute("inputmode", "numeric");
+      input.setAttribute("autocomplete", "off");
+      var min = parseInt(input.getAttribute("data-money-min"), 10) || 0;
+
+      function apply(clampToMin) {
+        var n = moneyDigits(input.value);
+        if (clampToMin && n && min && n < min) n = min;
+        input.value = n ? n.toLocaleString("id-ID") : "";
+        input.dispatchEvent(new CustomEvent("money:change", { detail: n, bubbles: true }));
       }
-      function update() {
-        var val = parseInt(input.value, 10);
-        preview.textContent = val ? formatRupiah(val) : "";
-      }
-      input.addEventListener("input", update);
-      update();
+      input.addEventListener("input", function () {
+        apply(false);
+        try {
+          var end = input.value.length;
+          input.setSelectionRange(end, end);
+        } catch (e) { /* unsupported input type */ }
+      });
+      input.addEventListener("blur", function () { apply(true); });
+      // A focused number/text input must not have its value changed by scrolling.
+      input.addEventListener("wheel", function () { if (document.activeElement === input) input.blur(); }, { passive: true });
+      apply(false);
     });
   }
 
@@ -425,8 +449,8 @@
     safeInit(initPaymentMethodGroups);
     safeInit(initFaqAccordion);
     safeInit(initCopyButtons);
+    safeInit(initMoneyInputs);
     safeInit(initAmountFormatting);
-    safeInit(initGenericAmountPreview);
     safeInit(initStarRating);
   });
 })();

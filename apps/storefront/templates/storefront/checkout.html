@@ -76,11 +76,13 @@
     {% if plan.pwyw %}
     <section class="bg-white rounded-2xl border border-ink-100 p-4">
       <p class="text-[11px] font-bold text-ink-400 uppercase tracking-wide mb-2">Name your price</p>
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-semibold text-ink-600">Rp</span>
-        <input type="number" name="pwyw_price" id="pwyw_price" form="checkout-form"
-               min="{{ plan.min_price }}" value="{{ plan.price }}" data-format-idr
-               class="flex-1 border border-ink-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200">
+      <div class="flex items-center gap-2 border border-ink-200 rounded-xl px-3 focus-within:ring-2 focus-within:ring-primary-200 focus-within:border-primary-400">
+        <span class="text-sm font-semibold text-ink-500 shrink-0">Rp</span>
+        <input type="text" name="pwyw_price" id="pwyw_price" form="checkout-form"
+               data-money data-money-min="{{ plan.min_price }}"
+               value="{% if plan.price %}{{ plan.price }}{% endif %}"
+               placeholder="{{ plan.min_price|default:0 }}"
+               class="flex-1 min-w-0 bg-transparent py-2 text-sm focus:outline-none">
       </div>
       {% if plan.min_price > 0 %}<p class="text-[11px] text-ink-400 mt-1.5">Minimum {{ plan.min_price|rupiah }}</p>{% endif %}
     </section>
