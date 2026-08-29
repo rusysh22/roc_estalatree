@@ -17,7 +17,7 @@
         {% if entry.amount > 0 %}bg-moss-100 text-moss-700{% else %}bg-primary-100 text-primary-700{% endif %}">
         {{ entry.get_type_display }}
       </span>
-      <span class="text-xs text-ink-400 font-mono">Saldo: {{ entry.balance_after|rupiah }}</span>
+      <span class="text-xs text-ink-400 font-mono">Bal: {{ entry.balance_after|rupiah }}</span>
     </div>
     {% if entry.note %}
     <p class="text-xs text-ink-500 mt-1 truncate">{{ entry.note }}</p>

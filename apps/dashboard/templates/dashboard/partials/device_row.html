@@ -1,26 +1,32 @@
-<tr class="hover:bg-cream" id="device-{{ installation.pk }}">
-  <td class="px-5 py-3 font-mono text-xs text-ink-500">{{ installation.fingerprint|truncatechars:20 }}</td>
-  <td class="px-5 py-3 text-sm">{{ installation.name|default:"—" }}</td>
-  <td class="px-5 py-3 text-xs text-ink-500">{{ installation.license.plan.name }}</td>
-  <td class="px-5 py-3 text-xs text-ink-400">{{ installation.activated_at|date:"d M Y" }}</td>
-  <td class="px-5 py-3">
-    <span class="text-xs px-2 py-0.5 rounded-full
-      {% if installation.status == 'active' %}bg-moss-100 text-moss-700{% else %}bg-ink-100 text-ink-500{% endif %}">
-      {{ installation.get_status_display }}
-    </span>
-  </td>
-  <td class="px-5 py-3 text-right">
+<div id="device-{{ installation.pk }}"
+     class="p-4 sm:px-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+
+  <div class="min-w-0 flex-1">
+    <div class="flex items-center gap-2 flex-wrap">
+      <p class="text-sm font-bold text-ink-900">{{ installation.name|default:"Unnamed device" }}</p>
+      <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full
+        {% if installation.status == 'active' %}bg-moss-100 text-moss-700{% else %}bg-ink-100 text-ink-500{% endif %}">
+        {{ installation.get_status_display }}
+      </span>
+    </div>
+    <p class="text-xs text-ink-400 mt-0.5">
+      {{ installation.license.plan.name }} · activated {{ installation.activated_at|date:"d M Y" }}
+    </p>
+    <p class="text-[11px] text-ink-300 font-mono mt-0.5 break-all">{{ installation.fingerprint|truncatechars:32 }}</p>
+  </div>
+
+  <div class="shrink-0">
     {% if installation.status == 'active' %}
     <button
       hx-post="{% url 'dashboard:deactivate_device' installation.pk %}"
       hx-target="#device-{{ installation.pk }}"
       hx-swap="outerHTML"
       hx-confirm="Deactivate this device? This frees a seat."
-      class="text-xs text-primary-500 hover:text-primary-700 font-medium">
+      class="w-full sm:w-auto text-xs font-bold text-primary-600 border border-primary-200 hover:bg-primary-50 px-3.5 py-2 rounded-full transition-colors">
       Deactivate
     </button>
     {% else %}
     <span class="text-xs text-ink-300">Deactivated</span>
     {% endif %}
-  </td>
-</tr>
+  </div>
+</div>

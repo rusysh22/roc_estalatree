@@ -272,6 +272,31 @@ def test_cart_kept_when_online_payment_initiation_fails(verified_customer, plan_
     assert Cart.objects.get(customer=verified_customer).items.count() == 0
 
 
+@pytest.mark.django_db
+def test_checkout_only_processes_selected_items(verified_customer, plan_a, plan_b):
+    """Unchecked cart lines stay in the cart; only selected ones are bought."""
+    client = Client()
+    client.force_login(verified_customer.user)
+    credit(wallet=verified_customer.wallet, amount=500_000,
+           entry_type=LedgerEntry.Type.ADJUSTMENT, ref="seed", note="seed")
+    client.post(reverse("storefront:cart_add", args=[plan_a.pk]))
+    client.post(reverse("storefront:cart_add", args=[plan_b.pk]))
+    cart = Cart.objects.get(customer=verified_customer)
+    item_a = cart.items.get(plan=plan_a)
+    item_b = cart.items.get(plan=plan_b)
+
+    # Check out only item A (wallet covers it)
+    resp = client.post(reverse("storefront:cart_checkout"), {"item": [str(item_a.pk)]})
+    assert resp.status_code == 302
+
+    orders = Order.objects.filter(customer=verified_customer)
+    assert orders.count() == 1
+    assert orders.first().plan == plan_a
+    # item B is still in the cart
+    assert cart.items.filter(pk=item_b.pk).exists()
+    assert not cart.items.filter(pk=item_a.pk).exists()
+
+
 # ── 8. order_pending routes cart-linked topups to the cart receipt ──────────────
 
 @pytest.mark.django_db

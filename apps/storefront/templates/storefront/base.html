@@ -17,10 +17,11 @@
 
 {# ── Slide-over cart drawer (filled by cart.js) ── #}
 <div id="cart-drawer-backdrop" hidden
-     class="fixed inset-0 z-[60] bg-ink-900/40 opacity-0 transition-opacity duration-200"></div>
+     class="fixed inset-0 z-[80] bg-ink-900/50 opacity-0 transition-opacity duration-200"></div>
 <aside id="cart-drawer" hidden
-       class="fixed top-0 right-0 z-[61] h-full w-full max-w-sm bg-cream flex flex-col
-              translate-x-full transition-transform duration-200 shadow-2xl"
+       class="fixed inset-y-0 right-0 z-[81] w-[88%] max-w-sm bg-cream flex flex-col
+              transition-transform duration-200 shadow-2xl"
+       style="transform: translateX(100%);"
        aria-label="Cart">
   {% cart_drawer_content %}
 </aside>

@@ -1,0 +1,9 @@
+{% comment %}Mobile drawer nav item. Params: url (name), label, path (svg d), name (url_name to match), cur (active url_name).{% endcomment %}
+<label for="dash-nav-toggle" class="block">
+  <a href="{% url url %}"
+     class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
+            {% if cur == name %}bg-primary-50 text-primary-700{% else %}text-ink-700 hover:bg-cream{% endif %}">
+    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ path }}"/></svg>
+    {{ label }}
+  </a>
+</label>

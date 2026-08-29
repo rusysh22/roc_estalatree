@@ -1,65 +1,63 @@
-﻿{% extends "dashboard/base.html" %}
+{% extends "dashboard/base.html" %}
 {% load money %}
 {% block page_title %}Invoices{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-extrabold text-ink-900 mb-6 tracking-tight">Invoices & Transactions</h1>
+<h1 class="text-xl sm:text-2xl font-extrabold text-ink-900 mb-1 tracking-tight">Invoices &amp; transactions</h1>
+<p class="text-sm text-ink-500 mb-5 sm:mb-6">Every order and top-up on your account.</p>
 
 <!-- Orders -->
 <section class="mb-8">
-  <h2 class="text-lg font-bold mb-3">Orders</h2>
+  <h2 class="text-[11px] font-bold text-ink-400 uppercase tracking-wide mb-3">Orders</h2>
   {% if orders %}
   <div class="bg-white rounded-2xl border border-ink-100 divide-y divide-ink-100">
     {% for order in orders %}
-    <div class="flex items-center justify-between px-5 py-3">
-      <div>
-        <p class="font-medium text-sm">{{ order.plan }}</p>
-        <p class="text-xs text-ink-400">
-          {{ order.created_at|date:"d M Y" }}
-          {% if order.invoice_number %}&middot; INV-{{ order.invoice_number|stringformat:"05d" }}{% endif %}
-        </p>
+    <div class="p-4 sm:px-5">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-sm font-bold text-ink-900 line-clamp-1">{{ order.plan.product.name }}</p>
+          <p class="text-[11px] text-ink-400 mt-0.5">
+            {{ order.plan.name }} &middot; {{ order.created_at|date:"d M Y" }}
+            {% if order.invoice_number %} &middot; INV-{{ order.invoice_number|stringformat:"05d" }}{% endif %}
+          </p>
+        </div>
+        <span class="text-sm font-extrabold text-ink-900 shrink-0">{{ order.amount|rupiah }}</span>
       </div>
-      <div class="flex items-center gap-3">
-        <span class="text-sm font-mono text-ink-700">{{ order.amount|rupiah }}</span>
-        <a href="{% url 'storefront:product' order.plan.product.slug %}"
-           class="text-xs text-ink-400 hover:text-primary-500">Product</a>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5 text-xs font-semibold">
+        <a href="{% url 'dashboard:invoice_detail' order.public_id %}" class="text-primary-600 hover:text-primary-700">View invoice</a>
+        <a href="{% url 'storefront:product' order.plan.product.slug %}" class="text-ink-400 hover:text-ink-600">Product</a>
         {% if order.subscription_id %}
-        <a href="{% url 'dashboard:subscriptions' %}"
-           class="text-xs text-ink-400 hover:text-primary-500">Subscription</a>
+        <a href="{% url 'dashboard:subscriptions' %}" class="text-ink-400 hover:text-ink-600">Subscription</a>
         {% endif %}
-        <a href="{% url 'dashboard:invoice_detail' order.public_id %}"
-           class="text-xs text-primary-500 hover:text-primary-700">View</a>
-        <a href="{% url 'dashboard:refund_request' order.public_id %}"
-           class="text-xs text-ink-400 hover:text-primary-500">Refund</a>
+        <a href="{% url 'dashboard:refund_request' order.public_id %}" class="text-ink-400 hover:text-ink-600">Request refund</a>
       </div>
     </div>
     {% endfor %}
   </div>
   {% else %}
-  <p class="text-sm text-ink-400">No orders yet.</p>
+  <div class="bg-white rounded-2xl border border-ink-100 px-5 py-10 text-center text-sm text-ink-400">No orders yet.</div>
   {% endif %}
 </section>
 
 <!-- Top-ups -->
 <section>
-  <h2 class="text-lg font-bold mb-3">Top-ups</h2>
+  <h2 class="text-[11px] font-bold text-ink-400 uppercase tracking-wide mb-3">Top-ups</h2>
   {% if topups %}
   <div class="bg-white rounded-2xl border border-ink-100 divide-y divide-ink-100">
     {% for topup in topups %}
-    <div class="flex items-center justify-between px-5 py-3">
-      <div>
-        <p class="font-medium text-sm">Top-up</p>
-        <p class="text-xs text-ink-400">{{ topup.created_at|date:"d M Y" }} &middot; #{{ topup.public_id }}</p>
+    <div class="flex items-center justify-between gap-3 p-4 sm:px-5">
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-ink-900">Wallet top-up</p>
+        <p class="text-[11px] text-ink-400 mt-0.5 font-mono">{{ topup.created_at|date:"d M Y" }} &middot; {{ topup.public_id }}</p>
       </div>
-      <span class="text-sm font-mono text-moss-600">+{{ topup.amount|rupiah }}
-        {% if topup.bonus %}<span class="text-xs text-moss-500">+{{ topup.bonus|rupiah }}</span>{% endif %}
+      <span class="text-sm font-extrabold text-moss-600 shrink-0">
+        +{{ topup.amount|rupiah }}{% if topup.bonus %} <span class="text-[11px] font-bold text-moss-500">+{{ topup.bonus|rupiah }} bonus</span>{% endif %}
       </span>
     </div>
     {% endfor %}
   </div>
   {% else %}
-  <p class="text-sm text-ink-400">No top-ups yet.</p>
+  <div class="bg-white rounded-2xl border border-ink-100 px-5 py-10 text-center text-sm text-ink-400">No top-ups yet.</div>
   {% endif %}
 </section>
 {% endblock %}
-

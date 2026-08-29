@@ -3,15 +3,18 @@
 {% block page_title %}Order Confirmation{% endblock %}
 
 {% block content %}
-<div class="max-w-md mx-auto">
+<div class="max-w-lg mx-auto">
 
+  {# ── Status header ── #}
   {% if cart_checkout.status == "completed" %}
   <div class="text-center mb-6">
     <div class="w-16 h-16 bg-moss-100 rounded-full flex items-center justify-center mx-auto mb-4">
       <svg class="w-8 h-8 text-moss-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
     </div>
     <h1 class="text-2xl font-extrabold text-moss-800 tracking-tight">Payment complete!</h1>
-    <p class="text-ink-500 text-sm mt-1">All {{ orders|length }} item(s) have been activated.</p>
+    <p class="text-ink-500 text-sm mt-1">
+      All {{ orders|length }} item{{ orders|length|pluralize }}{% if multi_store %} from {{ stores|length }} stores{% endif %} have been activated.
+    </p>
   </div>
   {% else %}
   <div class="text-center mb-6">
@@ -45,26 +48,87 @@
   </div>
   {% endif %}
 
-  <div class="landing-card overflow-hidden mb-5">
-    <div class="bg-cream px-5 py-3 border-b border-ink-100">
-      <p class="text-xs font-bold text-ink-500 uppercase tracking-wide">Order {{ cart_checkout.public_id }}</p>
+  {# ── Order id + grand total ── #}
+  <div class="bg-white rounded-2xl border border-ink-100 p-4 mb-4 flex items-center justify-between">
+    <div>
+      <p class="text-[11px] font-bold text-ink-400 uppercase tracking-wide">Order</p>
+      <p class="font-mono text-xs text-ink-600 mt-0.5">{{ cart_checkout.public_id }}</p>
     </div>
-    {% for order in orders %}
-    <div class="px-5 py-4 {% if not forloop.last %}border-b border-ink-100{% endif %}">
-      <div class="flex justify-between text-sm mb-1">
-        <span class="font-semibold text-ink-900">{{ order.plan.product.name }} &middot; {{ order.plan.name }}</span>
-        <span class="font-bold text-ink-900">{{ order.amount|rupiah }}</span>
-      </div>
-      <div class="flex justify-between items-center">
-        <span class="text-xs text-ink-400 font-mono">{{ order.public_id }}</span>
-        <span class="text-xs font-bold {% if order.status == 'paid' %}text-moss-600{% else %}text-gold-700{% endif %}">{{ order.get_status_display }}</span>
-      </div>
-      {% for grant in order.grants.all %}
-        {% if grant.type == "license_key" and grant.payload.license_key %}
-        <div class="mt-2 bg-cream border-2 border-dashed border-ink-200 rounded-lg px-3 py-2 font-mono font-bold text-xs text-ink-900">
-          {{ grant.payload.license_key }}
-        </div>
+    <div class="text-right">
+      <p class="text-[11px] font-bold text-ink-400 uppercase tracking-wide">Total paid</p>
+      <p class="text-lg font-extrabold text-ink-900">{{ total|rupiah }}</p>
+    </div>
+  </div>
+
+  {# ── Items grouped by store ── #}
+  <div class="space-y-3 mb-6">
+    {% for store in stores %}
+    <div class="bg-white rounded-2xl border border-ink-100 overflow-hidden">
+      <div class="flex items-center gap-2.5 px-4 py-3 bg-cream/60 border-b border-ink-100">
+        {% if store.seller.logo %}
+        <img src="{{ store.seller.logo.url }}" alt="" class="w-6 h-6 rounded-lg object-cover">
+        {% else %}
+        <span class="w-6 h-6 rounded-lg bg-primary-100 text-primary-600 text-[11px] font-extrabold flex items-center justify-center">
+          {{ store.seller.name|slice:':1'|upper|default:'?' }}
+        </span>
         {% endif %}
+        <span class="text-sm font-bold text-ink-900 flex-1 truncate">{{ store.seller.name|default:"Store" }}</span>
+        {% if multi_store %}<span class="text-xs font-semibold text-ink-500">{{ store.subtotal|rupiah }}</span>{% endif %}
+      </div>
+
+      {% for order in store.orders %}
+      <div class="px-4 py-3.5 {% if not forloop.last %}border-b border-ink-100{% endif %}">
+        <div class="flex justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-ink-900">{{ order.plan.product.name }}</p>
+            <p class="text-[11px] text-ink-500 mt-0.5">
+              {{ order.plan.name }}
+              {% if order.plan.interval != 'none' %}· {{ order.plan.get_interval_display }}{% endif %}
+              {% if order.duration_multiplier > 1 %}· {{ order.duration_multiplier }}× periods{% endif %}
+            </p>
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-sm font-extrabold text-ink-900">{{ order.amount|rupiah }}</p>
+            <span class="inline-block mt-0.5 text-[10px] font-bold uppercase tracking-wide
+              {% if order.status == 'paid' %}text-moss-600{% elif order.status == 'failed' %}text-primary-600{% else %}text-gold-700{% endif %}">
+              {{ order.get_status_display }}
+            </span>
+          </div>
+        </div>
+
+        {% if order.subscription %}
+        <p class="text-[11px] text-ink-400 mt-1.5">Active until {{ order.subscription.current_period_end|date:"d M Y" }}</p>
+        {% endif %}
+
+        {# Deliverables — license keys get a copy button #}
+        {% for grant in order.grants.all %}
+          {% if grant.type == "license_key" and grant.payload.license_key %}
+          <div data-copy-row class="mt-2.5 flex items-center gap-2 bg-cream border-2 border-dashed border-ink-200 rounded-xl px-3 py-2">
+            <span class="text-[10px] font-bold text-ink-400 uppercase tracking-wide shrink-0">Key</span>
+            <span data-copy-value class="flex-1 font-mono font-bold text-xs text-ink-900 tracking-wide break-all">{{ grant.payload.license_key }}</span>
+            <button type="button" data-copy-trigger data-copy-label="Copy" data-copy-done-label="Copied!"
+                    class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-primary-600 hover:text-primary-700">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              Copy
+            </button>
+          </div>
+          {% elif grant.type == "download" and grant.payload.download_url %}
+          <a href="{{ grant.payload.download_url }}" target="_blank" rel="noopener"
+             class="mt-2.5 flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-primary-500 hover:bg-primary-600 rounded-xl px-3 py-2 transition-colors">
+            Download file
+          </a>
+          {% elif grant.type == "access_link" and grant.payload.access_url %}
+          <a href="{{ grant.payload.access_url }}" target="_blank" rel="noopener"
+             class="mt-2.5 flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-primary-500 hover:bg-primary-600 rounded-xl px-3 py-2 transition-colors">
+            Open access
+          </a>
+          {% elif grant.type == "credentials" or grant.type == "api_key" %}
+          <p class="mt-2.5 text-[11px] text-ink-500">Credentials / API key ready — view them in <strong>My Products</strong>.</p>
+          {% endif %}
+        {% endfor %}
+
+        <p class="text-[10px] text-ink-300 font-mono mt-2">{{ order.public_id }}</p>
+      </div>
       {% endfor %}
     </div>
     {% endfor %}

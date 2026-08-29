@@ -9,7 +9,7 @@
 
   {# ── Minimal top bar (no marketplace nav / footer) ── #}
   <header class="sticky top-0 z-30 bg-cream/90 backdrop-blur border-b border-ink-900/5">
-    <div class="max-w-md mx-auto px-4 h-14 flex items-center gap-2">
+    <div class="max-w-md lg:max-w-5xl mx-auto px-4 lg:px-8 h-14 flex items-center gap-2">
       <a href="{% url 'storefront:product' product.slug %}"
          class="-ml-1.5 p-1.5 rounded-full text-ink-500 hover:bg-ink-900/5 transition-colors" aria-label="Back">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
@@ -24,7 +24,11 @@
 
   {% include "storefront/partials/_toasts.html" %}
 
-  <main class="flex-1 max-w-md mx-auto w-full px-4 py-4 pb-48 space-y-3">
+  <main class="flex-1 w-full mx-auto max-w-md lg:max-w-5xl px-4 lg:px-8 py-4 lg:py-10">
+   <div class="lg:grid lg:grid-cols-[1fr_22rem] lg:gap-10 lg:items-start pb-44 lg:pb-0">
+
+    {# ── LEFT column: the checkout steps ── #}
+    <div class="min-w-0 space-y-3">
 
     {# ── 1. What you're buying ── #}
     <section class="bg-white rounded-2xl border border-ink-100 p-4 flex gap-3 items-center">
@@ -49,18 +53,18 @@
       <div class="grid grid-cols-3 gap-2" id="duration-selector">
         <label class="cursor-pointer">
           <input type="radio" name="duration_choice" value="1" class="sr-only peer" {% if duration_multiplier == 1 %}checked{% endif %}>
-          <div class="border-2 border-ink-100 rounded-xl px-2 py-2.5 text-center peer-checked:border-primary-500 peer-checked:bg-primary-50 transition-all">
-            <p class="text-[13px] font-bold text-ink-900">1 {{ plan.get_interval_display|lower }}</p>
-            <p class="text-[11px] text-ink-500 mt-0.5">{{ plan.price|rupiah }}</p>
+          <div class="h-full border-2 border-ink-100 rounded-xl px-2 py-3 text-center peer-checked:border-primary-500 peer-checked:bg-primary-50 transition-all">
+            <p class="text-[13px] font-bold text-ink-900 whitespace-nowrap">1 {{ plan.get_interval_display|lower }}</p>
+            <p class="text-[11px] text-ink-500 mt-1">{{ plan.price|rupiah }}</p>
           </div>
         </label>
         {% for mult, disc in plan.duration_discounts.items %}
         <label class="cursor-pointer">
           <input type="radio" name="duration_choice" value="{{ mult }}" class="sr-only peer" {% if duration_multiplier == mult|add:"0" %}checked{% endif %}>
-          <div class="relative border-2 border-ink-100 rounded-xl px-2 py-2.5 text-center peer-checked:border-primary-500 peer-checked:bg-primary-50 transition-all">
-            {% if disc %}<span class="absolute -top-2 left-1/2 -translate-x-1/2 bg-moss-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">−{{ disc }}%</span>{% endif %}
-            <p class="text-[13px] font-bold text-ink-900">{{ mult }} {{ plan.get_interval_display|lower }}</p>
-            <p class="text-[11px] text-ink-500 mt-0.5 dur-calc" data-base="{{ plan.price }}" data-mult="{{ mult }}" data-disc="{{ disc|default:0 }}"></p>
+          <div class="h-full border-2 border-ink-100 rounded-xl px-2 py-3 text-center peer-checked:border-primary-500 peer-checked:bg-primary-50 transition-all">
+            <p class="text-[13px] font-bold text-ink-900 whitespace-nowrap">{{ mult }} {{ plan.get_interval_display|lower }}</p>
+            <p class="text-[11px] text-ink-500 mt-1 dur-calc" data-base="{{ plan.price }}" data-mult="{{ mult }}" data-disc="{{ disc|default:0 }}"></p>
+            {% if disc %}<p class="text-[10px] font-bold text-moss-600 mt-0.5">Save {{ disc }}%</p>{% endif %}
           </div>
         </label>
         {% endfor %}
@@ -126,32 +130,7 @@
       {% endif %}
     </section>
 
-    {# ── 7. Price breakdown ── #}
-    <section class="bg-white rounded-2xl border border-ink-100 p-4 text-sm">
-      {% if duration_multiplier > 1 or duration_discount_amount or discount %}
-      <div class="space-y-2 mb-2">
-        <div class="flex justify-between">
-          <span class="text-ink-500">Price{% if duration_multiplier > 1 %} ({{ duration_multiplier }}× {{ plan.get_interval_display|lower }}){% endif %}</span>
-          <span class="text-ink-700">{{ subtotal_amount|rupiah }}</span>
-        </div>
-        {% if duration_discount_amount %}
-        <div class="flex justify-between text-moss-700 font-semibold">
-          <span>Duration discount {{ duration_discount_pct }}%</span><span>−{{ duration_discount_amount|rupiah }}</span>
-        </div>
-        {% endif %}
-        {% if discount %}
-        <div class="flex justify-between text-moss-700 font-semibold">
-          <span>Voucher {{ coupon.code }}</span><span>−{{ discount|rupiah }}</span>
-        </div>
-        {% endif %}
-      </div>
-      {% endif %}
-      <div class="flex justify-between font-extrabold text-ink-900 {% if duration_multiplier > 1 or duration_discount_amount or discount %}pt-2 border-t border-ink-100{% endif %}">
-        <span>Order total</span><span>{{ effective_price|rupiah }}</span>
-      </div>
-    </section>
-
-    {# ── 8. Payment method — each shows its OWN total ── #}
+    {# ── 7. Payment method — each shows its OWN total ── #}
     {% if effective_price > 0 %}
     <section id="payment-methods">
       <p class="text-[11px] font-bold text-ink-400 uppercase tracking-wide mb-2 px-1">Payment method</p>
@@ -258,31 +237,65 @@
     </section>
     {% endif %}
 
+    </div>{# /left column #}
+
+    {# ── RIGHT column: order summary + the CTA (floats on desktop, fixed bar on mobile) ── #}
+    <aside class="lg:sticky lg:top-20 mt-3 lg:mt-0 space-y-3">
+
+      {# Price breakdown #}
+      <section class="bg-white rounded-2xl border border-ink-100 p-4 text-sm">
+        <p class="text-[11px] font-bold text-ink-400 uppercase tracking-wide mb-3">Order summary</p>
+        {% if duration_multiplier > 1 or duration_discount_amount or discount %}
+        <div class="space-y-2 mb-2">
+          <div class="flex justify-between">
+            <span class="text-ink-500">Price{% if duration_multiplier > 1 %} ({{ duration_multiplier }}× {{ plan.get_interval_display|lower }}){% endif %}</span>
+            <span class="text-ink-700">{{ subtotal_amount|rupiah }}</span>
+          </div>
+          {% if duration_discount_amount %}
+          <div class="flex justify-between text-moss-700 font-semibold">
+            <span>Duration discount {{ duration_discount_pct }}%</span><span>−{{ duration_discount_amount|rupiah }}</span>
+          </div>
+          {% endif %}
+          {% if discount %}
+          <div class="flex justify-between text-moss-700 font-semibold">
+            <span>Voucher {{ coupon.code }}</span><span>−{{ discount|rupiah }}</span>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+        <div class="flex justify-between font-extrabold text-ink-900 {% if duration_multiplier > 1 or duration_discount_amount or discount %}pt-2 border-t border-ink-100{% endif %}">
+          <span>Order total</span><span>{{ effective_price|rupiah }}</span>
+        </div>
+      </section>
+
+      {# The checkout form + CTA — fixed bottom bar on mobile, a card in the sticky sidebar on desktop #}
+      <form method="post" id="checkout-form" enctype="multipart/form-data"
+            class="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-ink-100 shadow-[0_-10px_30px_-12px_rgba(22,19,15,.18)]
+                   lg:static lg:z-auto lg:rounded-2xl lg:border lg:border-ink-100 lg:shadow-none">
+        {% csrf_token %}
+        <input type="hidden" name="checkout_token" value="{{ checkout_token }}">
+        <input type="hidden" name="duration" value="{{ duration_multiplier }}">
+        {% if coupon %}<input type="hidden" name="coupon_code" value="{{ coupon.code }}">{% endif %}
+
+        <div class="max-w-md lg:max-w-none mx-auto px-4 pt-3 pb-4 lg:p-5">
+          <div class="flex items-center justify-between mb-2.5">
+            <span class="text-xs font-semibold text-ink-500">Total to pay</span>
+            <span class="text-xl font-extrabold text-ink-900" data-total-display>{{ checkout_total|rupiah }}</span>
+          </div>
+          <button type="submit" data-pay-btn {% if no_payment_method %}disabled{% endif %}
+                  class="w-full py-3.5 rounded-full font-bold text-sm bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white transition-colors disabled:bg-ink-200 disabled:text-ink-400 disabled:cursor-not-allowed">
+            {{ checkout_btn_label }}
+          </button>
+          <p class="text-[11px] text-center text-ink-400 mt-2 flex items-center justify-center gap-1.5">
+            <svg class="w-3 h-3 text-moss-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001z" clip-rule="evenodd"/></svg>
+            Secure payment · instant access
+          </p>
+        </div>
+      </form>
+    </aside>
+
+   </div>{# /grid #}
   </main>
-
-  {# ── Sticky bottom CTA (the whole checkout form) ── #}
-  <form method="post" id="checkout-form" enctype="multipart/form-data"
-        class="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-ink-100 shadow-[0_-10px_30px_-12px_rgba(22,19,15,.18)]">
-    {% csrf_token %}
-    <input type="hidden" name="checkout_token" value="{{ checkout_token }}">
-    <input type="hidden" name="duration" value="{{ duration_multiplier }}">
-    {% if coupon %}<input type="hidden" name="coupon_code" value="{{ coupon.code }}">{% endif %}
-
-    <div class="max-w-md mx-auto px-4 pt-3 pb-4">
-      <div class="flex items-center justify-between mb-2.5">
-        <span class="text-xs font-semibold text-ink-500">Total to pay</span>
-        <span class="text-xl font-extrabold text-ink-900" data-total-display>{{ checkout_total|rupiah }}</span>
-      </div>
-      <button type="submit" data-pay-btn {% if no_payment_method %}disabled{% endif %}
-              class="w-full py-3.5 rounded-full font-bold text-sm bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white transition-colors disabled:bg-ink-200 disabled:text-ink-400 disabled:cursor-not-allowed">
-        {{ checkout_btn_label }}
-      </button>
-      <p class="text-[11px] text-center text-ink-400 mt-2 flex items-center justify-center gap-1.5">
-        <svg class="w-3 h-3 text-moss-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001z" clip-rule="evenodd"/></svg>
-        Secure payment · instant access
-      </p>
-    </div>
-  </form>
 </div>
 {% endblock %}
 
