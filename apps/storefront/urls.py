@@ -24,7 +24,13 @@ urlpatterns = [
     path("cart/checkout/<public_id>/", views.cart_checkout_receipt, name="cart_checkout_receipt"),
     path("contact/<int:product_pk>/", views.contact, name="contact"),
     path("search/", views.search, name="search"),
+    path("legal/", views.legal_index, name="legal_index"),
     path("terms/", views.terms, name="terms"),
     path("privacy/", views.privacy, name="privacy"),
+    path("refunds/", views.refunds, name="refunds"),
+    path("purchase-agreement/", views.purchase_agreement, name="purchase_agreement"),
+    path("acceptable-use/", views.acceptable_use, name="acceptable_use"),
+    path("seller-agreement/", views.seller_agreement, name="seller_agreement"),
+    path("cookies/", views.cookies, name="cookies"),
     path("<slug:slug>/", views.page, name="store_page"),
 ]

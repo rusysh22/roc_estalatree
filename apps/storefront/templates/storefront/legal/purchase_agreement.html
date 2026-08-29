@@ -1,0 +1,120 @@
+{% extends "storefront/legal/_layout.html" %}
+
+{% block legal_intro %}
+<p class="text-sm text-ink-500 leading-relaxed">
+  This Purchase Agreement is the standard contract that applies to <strong>every order you place
+  on Berlanggan</strong>. You confirm your acceptance of it by ticking the agreement box at
+  checkout. It works together with the <a href="{% url 'storefront:terms' %}">Terms of
+  Service</a>, the <a href="{% url 'storefront:refunds' %}">Refund Policy</a>, and the
+  <a href="{% url 'storefront:privacy' %}">Privacy Policy</a>. If those documents and this one
+  conflict, this Purchase Agreement controls for the specific order it governs.
+</p>
+{% endblock %}
+
+{% block legal_body %}
+<section>
+  <h2 id="s-1">1. The parties to your order</h2>
+  <p>Each order is a contract of sale between <strong>you (the buyer)</strong> and
+  <strong>the seller</strong> who lists the Product, unless the Product page names Berlanggan as
+  the seller. <strong>Berlanggan acts as the marketplace and payment facilitator</strong> &mdash;
+  it provides checkout, the wallet, delivery tooling, invoicing, and dispute support, but it is
+  not the seller and does not itself own or warrant the seller's Product.</p>
+</section>
+
+<section>
+  <h2 id="s-2">2. Your order and when the contract forms</h2>
+  <ul>
+    <li>When you complete checkout you make a binding offer to buy the selected Product and plan
+      at the price shown, in Indonesian Rupiah (IDR) unless stated otherwise.</li>
+    <li>The contract is formed when payment is confirmed (instantly for wallet or online payment;
+      for direct-payment methods such as static QRIS, when the seller confirms receipt).</li>
+    <li>The order confirmation, the invoice, and the plan details on the Product page at the time
+      of purchase together record what you bought.</li>
+    <li>Prices include applicable taxes where required. Any payment-processor fee is shown
+      separately before you pay.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-3">3. Payment</h2>
+  <ul>
+    <li>You authorise Berlanggan (or its payment processor) to charge the amount shown for the
+      order, including any disclosed fee, using the method you select.</li>
+    <li>Wallet balance is closed-loop: it can be spent on the Platform but not withdrawn or
+      transferred.</li>
+    <li>For direct-payment orders you pay the seller's account directly and upload proof; the
+      order stays pending until the seller confirms.</li>
+    <li>You confirm that you are the authorised holder of the payment method used and that the
+      funds are lawfully yours.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-4">4. Delivery</h2>
+  <ul>
+    <li>The Product is delivered electronically &mdash; typically a license key, download link,
+      account credential, or access grant shown on the order page and in <em>My Products</em>,
+      and usually also emailed to you.</li>
+    <li>Delivery is normally immediate; for direct-payment orders it happens after the seller
+      confirms payment.</li>
+    <li>You are responsible for giving a correct email address and for meeting any technical
+      requirements the Product page states (for example a particular platform or third-party
+      account).</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-5">5. Licence and permitted use</h2>
+  <p>Unless the Product page grants broader rights, your purchase gives you a
+  <strong>personal, non-exclusive, non-transferable, non-sublicensable licence</strong> to use
+  the Product for its stated purpose and within any stated seat, device, or usage limits. You
+  must not resell, redistribute, publicly post, sublicense, or build a competing product from the
+  purchased content. License keys and access credentials are for your use only.</p>
+</section>
+
+<section>
+  <h2 id="s-6">6. Your acknowledgements</h2>
+  <p>By placing the order you confirm that:</p>
+  <ul>
+    <li>you are at least 18 years old and able to enter into this contract;</li>
+    <li>you have read the Product description and plan terms and they meet your needs;</li>
+    <li>the Product is a digital item, delivery begins immediately, and &mdash; except as set out
+      in the Refund Policy or required by law &mdash; the sale is final once delivered;</li>
+    <li>you will use the Product lawfully and in line with the
+      <a href="{% url 'storefront:acceptable_use' %}">Acceptable Use Policy</a>;</li>
+    <li>the information you gave at checkout, including answers to any seller questions, is
+      accurate.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-7">7. Seller's commitments</h2>
+  <p>The seller agrees that the Product: is described accurately; is delivered as stated; does not
+  infringe anyone's rights; is free of malware; and is supported for a reasonable time or the
+  period stated on the plan. Support requests are handled through the order page.</p>
+</section>
+
+<section>
+  <h2 id="s-8">8. Refunds and problems</h2>
+  <p>If the Product is not delivered, is defective, or is materially not as described, you are
+  entitled to a remedy under the <a href="{% url 'storefront:refunds' %}">Refund Policy</a>.
+  Contact the seller first through the order page; if it is not resolved, open a refund request
+  or contact <a href="mailto:support@berlanggan.com">support@berlanggan.com</a>. Approved refunds
+  are normally credited to your wallet as described in the Refund Policy.</p>
+</section>
+
+<section>
+  <h2 id="s-9">9. Liability for the order</h2>
+  <p>To the extent permitted by law, the seller's and Berlanggan's total liability for anything
+  connected with an order is limited to the amount you paid for that order. Neither the seller
+  nor Berlanggan is liable for indirect or consequential loss, lost profits, or loss of data.
+  Rights you have under mandatory consumer law are not affected.</p>
+</section>
+
+<section>
+  <h2 id="s-10">10. Records and governing law</h2>
+  <p>Berlanggan keeps a record of your acceptance of this Agreement, the order details, and the
+  invoice. This Agreement is governed by the laws of the Republic of Indonesia, and disputes are
+  subject to the process in the <a href="{% url 'storefront:terms' %}">Terms of Service</a>.</p>
+</section>
+{% endblock %}

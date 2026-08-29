@@ -1,0 +1,153 @@
+{% extends "storefront/legal/_layout.html" %}
+
+{% block legal_intro %}
+<p class="text-sm text-ink-500 leading-relaxed">
+  This Privacy Policy explains how Berlanggan (&ldquo;we&rdquo;, &ldquo;us&rdquo;) collects, uses, shares, and
+  protects personal data when you use the Berlanggan marketplace and related services (the
+  &ldquo;Platform&rdquo;). It applies to buyers, sellers, and visitors. For the meaning of terms not
+  defined here, see the <a href="{% url 'storefront:terms' %}">Terms of Service</a>.
+</p>
+{% endblock %}
+
+{% block legal_body %}
+<section>
+  <h2 id="s-1">1. Who is responsible for your data</h2>
+  <p>Berlanggan is the data controller for personal data processed through the Platform. If you
+  are a buyer of a seller's Product, that seller is a separate controller for the limited order
+  data we share with them so they can deliver and support your purchase (see section 4).</p>
+  <p>Contact: <a href="mailto:privacy@berlanggan.com">privacy@berlanggan.com</a>.</p>
+</section>
+
+<section>
+  <h2 id="s-2">2. What we collect</h2>
+  <h3>You give us</h3>
+  <ul>
+    <li><strong>Account data</strong> &mdash; email address, password (hashed), and, if you add
+      them, name, WhatsApp number, and notification preferences.</li>
+    <li><strong>Seller data</strong> &mdash; store name, logo, bio, payout bank details, tax
+      identifiers (for example NPWP) where required for invoicing, and any KYC information you
+      submit.</li>
+    <li><strong>Transaction data</strong> &mdash; the Products you buy or sell, order amounts,
+      coupons used, wallet top-ups, answers to seller checkout questions, and payment-proof
+      images you upload for manually-confirmed payments.</li>
+    <li><strong>Support and communications</strong> &mdash; messages you send us or a seller,
+      reviews, and contact-form submissions.</li>
+  </ul>
+  <h3>We collect automatically</h3>
+  <ul>
+    <li><strong>Device and usage data</strong> &mdash; IP address, browser and device type,
+      pages viewed, referring page, and timestamps.</li>
+    <li><strong>Cookies and similar technologies</strong> &mdash; see the
+      <a href="{% url 'storefront:cookies' %}">Cookie Policy</a>.</li>
+  </ul>
+  <h3>From third parties</h3>
+  <ul>
+    <li><strong>Payment processor</strong> &mdash; payment status, and a masked reference for the
+      method used. We do not receive or store full card numbers.</li>
+    <li><strong>Sign-in providers</strong> &mdash; if you sign in with Google, we receive your
+      email address and basic profile information from Google.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-3">3. Why we use your data and our legal bases</h2>
+  <table>
+    <tr><th>Purpose</th><th>Legal basis</th></tr>
+    <tr><td>Create and operate your account; provide the Platform</td><td>Performance of a contract</td></tr>
+    <tr><td>Process orders, payments, payouts, refunds, and invoicing</td><td>Performance of a contract; legal obligation</td></tr>
+    <tr><td>Deliver order confirmations, receipts, license keys, and service notices</td><td>Performance of a contract</td></tr>
+    <tr><td>Prevent fraud, abuse, and security incidents; enforce our Terms</td><td>Legitimate interests</td></tr>
+    <tr><td>Provide support and respond to your requests</td><td>Performance of a contract; legitimate interests</td></tr>
+    <tr><td>Improve and analyse the Platform</td><td>Legitimate interests</td></tr>
+    <tr><td>Send promotional messages</td><td>Consent (opt-in; withdraw any time)</td></tr>
+    <tr><td>Keep records for tax and accounting</td><td>Legal obligation</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2 id="s-4">4. When we share data</h2>
+  <ul>
+    <li><strong>With sellers</strong> &mdash; when you buy a Product, the seller receives your
+      email, the order details, your checkout answers, and any payment proof, so they can deliver
+      and support the Product. Sellers must use this only to fulfil and support your order.</li>
+    <li><strong>With buyers</strong> &mdash; sellers' store name and public profile are visible to
+      buyers; a seller's private payout and KYC data are never shown to buyers.</li>
+    <li><strong>Service providers</strong> &mdash; payment processing, hosting, email and
+      WhatsApp delivery, error monitoring, and analytics, acting on our instructions under
+      contract.</li>
+    <li><strong>Legal and safety</strong> &mdash; authorities, our advisers, or other parties
+      where required by law or to protect the rights, property, or safety of Berlanggan, our
+      users, or the public.</li>
+    <li><strong>Business transfers</strong> &mdash; a successor entity in a merger, acquisition,
+      or asset sale, subject to this Policy.</li>
+  </ul>
+  <p>We do not sell your personal data.</p>
+</section>
+
+<section>
+  <h2 id="s-5">5. Operator and staff access</h2>
+  <p>Berlanggan staff and administrators may access personal data only where needed to run the
+  Platform &mdash; for support, dispute resolution, fraud and security review, and legal
+  compliance. Access is limited to authorised personnel, logged, and subject to
+  confidentiality obligations. Admin actions on accounts, orders, and payouts are recorded.</p>
+</section>
+
+<section>
+  <h2 id="s-6">6. International transfers</h2>
+  <p>Our service providers may process data outside Indonesia. Where they do, we rely on
+  appropriate safeguards (such as contractual protections) to keep your data protected to a
+  standard consistent with this Policy and applicable law.</p>
+</section>
+
+<section>
+  <h2 id="s-7">7. How long we keep data</h2>
+  <ul>
+    <li><strong>Account data</strong> &mdash; while your account is active, then deleted or
+      anonymised within a reasonable period after closure.</li>
+    <li><strong>Transaction, invoice, and tax records</strong> &mdash; retained for the period
+      required by Indonesian accounting and tax law (generally up to 10 years).</li>
+    <li><strong>Support messages</strong> &mdash; up to 3 years after the last contact.</li>
+    <li><strong>Fraud and security logs</strong> &mdash; as long as needed for the purpose, then
+      deleted.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-8">8. Your rights</h2>
+  <p>Subject to applicable law, you may ask us to:</p>
+  <ul>
+    <li>access the personal data we hold about you and receive a copy;</li>
+    <li>correct inaccurate or incomplete data (much of it is editable in your dashboard);</li>
+    <li>delete your data, or close your account &mdash; note we may keep records we are legally
+      required to retain;</li>
+    <li>restrict or object to certain processing based on legitimate interests;</li>
+    <li>withdraw consent for promotional messages at any time, using the unsubscribe link or your
+      notification settings;</li>
+    <li>receive certain data in a portable format.</li>
+  </ul>
+  <p>To exercise a right, email <a href="mailto:privacy@berlanggan.com">privacy@berlanggan.com</a>.
+  We may need to verify your identity. You also have the right to complain to the relevant data
+  protection authority.</p>
+</section>
+
+<section>
+  <h2 id="s-9">9. Security</h2>
+  <p>We use technical and organisational measures appropriate to the risk &mdash; encryption in
+  transit, hashed passwords, access controls, and monitoring. No method of transmission or
+  storage is completely secure; if a breach affects your data and the law requires it, we will
+  notify you and the authorities.</p>
+</section>
+
+<section>
+  <h2 id="s-10">10. Children</h2>
+  <p>The Platform is not intended for anyone under 18. We do not knowingly collect data from
+  children. If you believe a child has given us data, contact us and we will delete it.</p>
+</section>
+
+<section>
+  <h2 id="s-11">11. Changes to this Policy</h2>
+  <p>We may update this Policy. Material changes will be notified by email or an in-Platform
+  notice before they take effect. The effective date at the top of this page always shows the
+  current version.</p>
+</section>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends "storefront/legal/_layout.html" %}
+
+{% block legal_intro %}
+<p class="text-sm text-ink-500 leading-relaxed">
+  This Acceptable Use Policy applies to everyone who uses Berlanggan &mdash; buyers, sellers, and
+  visitors. It forms part of the <a href="{% url 'storefront:terms' %}">Terms of Service</a>.
+  Breaking it can lead to content removal, withheld payouts, suspension, or account termination,
+  and where relevant we may report activity to the authorities.
+</p>
+{% endblock %}
+
+{% block legal_body %}
+<section>
+  <h2 id="s-1">1. General conduct</h2>
+  <p>You must not use the Platform to do anything unlawful, harmful, deceptive, or that infringes
+  someone else's rights. You must not help or encourage anyone else to do so.</p>
+</section>
+
+<section>
+  <h2 id="s-2">2. Prohibited content and products</h2>
+  <p>Do not list, sell, buy, upload, or distribute:</p>
+  <ul>
+    <li>content that infringes copyright, trademark, patent, trade secret, or other IP &mdash;
+      including cracked software, unauthorised license keys, pirated media, and leaked
+      databases;</li>
+    <li>malware, spyware, credential stealers, botnet tools, or instructions whose main purpose
+      is to cause harm or gain unauthorised access;</li>
+    <li>stolen accounts, stolen payment data, fake documents, or tools for identity theft or
+      fraud;</li>
+    <li>personal data of others offered without a lawful basis;</li>
+    <li>content that is child sexual abuse material, or that sexualises minors, in any form;</li>
+    <li>content that promotes terrorism, violent extremism, or human trafficking;</li>
+    <li>weapons, explosives, controlled drugs, or other items whose sale requires a licence the
+      seller does not hold;</li>
+    <li>hate speech or content that harasses or incites violence against people based on a
+      protected characteristic;</li>
+    <li>gambling services, financial or investment schemes, or &ldquo;get rich quick&rdquo; offers that
+      are unlicensed or deceptive;</li>
+    <li>adult content that is illegal, non-consensual, or offered without required age controls;</li>
+    <li>academic cheating services, fake reviews, engagement or follower manipulation, and
+      spam-generation tools;</li>
+    <li>anything else prohibited by Indonesian law or by the payment processor's rules.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-3">3. Prohibited platform activity</h2>
+  <ul>
+    <li>circumventing fees, commissions, payment flows, or taking transactions off-platform to
+      avoid buyer protection;</li>
+    <li>manipulating prices, reviews, coupons, referrals, or search ranking;</li>
+    <li>creating multiple or fake accounts, or using another person's account;</li>
+    <li>scraping, crawling, or bulk-downloading Platform data except as permitted; automated
+      access without our permission;</li>
+    <li>probing, scanning, or testing the security of the Platform, or bypassing authentication,
+      rate limits, or access controls, without written authorisation;</li>
+    <li>uploading viruses or code that disrupts the Platform; denial-of-service activity;</li>
+    <li>sending unsolicited marketing to other users; misusing the contact or support channels;</li>
+    <li>false, misleading, or exaggerated Product descriptions, fake &ldquo;original price&rdquo;
+      claims, or bait-and-switch listings;</li>
+    <li>impersonating Berlanggan, its staff, or another person or business.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-4">4. Buyer responsibilities</h2>
+  <ul>
+    <li>use purchased Products only within their licence terms; do not share or resell keys and
+      access;</li>
+    <li>do not file dishonest refund requests or chargebacks for Products you received and used as
+      described;</li>
+    <li>keep your account credentials secure.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-5">5. Seller responsibilities</h2>
+  <ul>
+    <li>only sell Products you have the legal right to sell;</li>
+    <li>describe Products accurately, deliver promptly, and provide the support you promise;</li>
+    <li>keep prohibited content out of your store and your files;</li>
+    <li>handle buyer data only to fulfil and support orders, in line with the
+      <a href="{% url 'storefront:privacy' %}">Privacy Policy</a> and the
+      <a href="{% url 'storefront:seller_agreement' %}">Seller Agreement</a>;</li>
+    <li>respond to Berlanggan requests about a listing or a dispute within a reasonable time.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-6">6. Reporting a violation</h2>
+  <p>To report content or behaviour that breaks this Policy, email
+  <a href="mailto:abuse@berlanggan.com">abuse@berlanggan.com</a> with the URL, a description, and
+  any evidence. For copyright complaints, see <a href="{% url 'storefront:terms' %}">Terms of
+  Service</a> section 8.</p>
+</section>
+
+<section>
+  <h2 id="s-7">7. Enforcement</h2>
+  <p>We may investigate suspected violations and take any action we consider appropriate,
+  including removing content, limiting features, holding funds or payouts related to the
+  violation, suspending or terminating accounts, and cooperating with law enforcement. We aim to
+  act proportionately and, where practical, to give notice and a chance to respond &mdash; but we
+  may act immediately where there is a risk of harm, fraud, or legal exposure.</p>
+</section>
+{% endblock %}

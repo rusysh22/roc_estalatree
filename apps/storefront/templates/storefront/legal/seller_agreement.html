@@ -1,0 +1,152 @@
+{% extends "storefront/legal/_layout.html" %}
+
+{% block legal_intro %}
+<p class="text-sm text-ink-500 leading-relaxed">
+  This Seller Agreement applies when you register a store and sell Products on Berlanggan. It is
+  part of the <a href="{% url 'storefront:terms' %}">Terms of Service</a> and adds to them. You
+  accept it when you tick the agreement box during seller onboarding. &ldquo;You&rdquo; means the seller;
+  &ldquo;Berlanggan&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo; means the platform operator.
+</p>
+{% endblock %}
+
+{% block legal_body %}
+<section>
+  <h2 id="s-1">1. Becoming a seller</h2>
+  <ul>
+    <li>You must be at least 18 and able to enter into contracts. If you sell on behalf of a
+      business, you confirm you are authorised to bind it.</li>
+    <li>You must give accurate store, contact, tax, and payout information and keep it current.</li>
+    <li>We may require identity or business verification (KYC) before enabling payouts and may
+      re-verify at any time.</li>
+    <li>We may approve, decline, pause, or close a seller account at our discretion, including for
+      risk, policy, or legal reasons.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-2">2. Your relationship with Berlanggan</h2>
+  <p>You are an independent seller. This Agreement does not create employment, partnership,
+  agency, or a joint venture. <strong>The contract of sale for each Product is between you and the
+  buyer.</strong> Berlanggan provides the marketplace, checkout, payment facilitation, invoicing,
+  and dispute support, and collects payment on your behalf.</p>
+</section>
+
+<section>
+  <h2 id="s-3">3. Your Products and listings</h2>
+  <ul>
+    <li>You are solely responsible for your Products &mdash; their legality, ownership,
+      licensing, quality, safety, accuracy of description, pricing, delivery, and support.</li>
+    <li>You warrant that you own or are licensed to sell each Product and that it does not
+      infringe any third-party right and contains no malware.</li>
+    <li>Listings must be accurate and must not be misleading, including about price, &ldquo;original&rdquo;
+      price, features, or outcomes.</li>
+    <li>You must not list anything prohibited by the
+      <a href="{% url 'storefront:acceptable_use' %}">Acceptable Use Policy</a> or by applicable
+      law or the payment processor's rules.</li>
+    <li>You set your prices in IDR. Prices must include taxes you are required to include.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-4">4. Licence you grant to Berlanggan</h2>
+  <p>You grant Berlanggan a worldwide, non-exclusive, royalty-free licence to host, store,
+  reproduce, display, market, transmit, and deliver your Products, listings, store name, and logo
+  for the purpose of operating and promoting the Platform and fulfilling orders. This licence
+  ends a reasonable time after you remove a Product or close your store, except for copies we
+  must keep to support past orders or meet legal obligations.</p>
+</section>
+
+<section>
+  <h2 id="s-5">5. Delivery and support</h2>
+  <ul>
+    <li>Configure delivery (license keys, files, links, or access grants) so buyers receive the
+      Product promptly after payment is confirmed.</li>
+    <li>For direct-payment (static QRIS) orders, confirm receipt promptly and accurately; do not
+      confirm an order you have not been paid for.</li>
+    <li>Provide the support you promise on the Product page and respond to buyer messages within a
+      reasonable time.</li>
+    <li>Honour the <a href="{% url 'storefront:refunds' %}">Refund Policy</a>. For direct-payment
+      orders, you make refunds directly to the buyer.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-6">6. Commission and fees</h2>
+  <ul>
+    <li>Berlanggan charges a <strong>platform commission</strong> on each wallet-settled sale at
+      the rate shown in your seller dashboard. The commission is deducted before your earnings are
+      recorded in your ledger.</li>
+    <li>Payment-processor fees and any applicable withholding are handled as described in the
+      dashboard and on the invoice.</li>
+    <li>Direct-payment (static QRIS) sales settle straight to you and carry no platform
+      commission; you are fully responsible for their tax and delivery.</li>
+    <li>We may change fees on reasonable prior notice. Continuing to sell after the change takes
+      effect means you accept it.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-7">7. Payouts</h2>
+  <ul>
+    <li>Earnings from wallet-settled sales accumulate in your seller balance and can be withdrawn
+      to your verified bank account, subject to any minimum payout amount and a clearing/hold
+      period.</li>
+    <li>We may delay, withhold, or reverse a payout where there is a dispute, suspected fraud, a
+      chargeback, a policy breach, or a legal requirement, and may set off amounts you owe us
+      (for example refunds or chargebacks) against your balance.</li>
+    <li>You are responsible for the accuracy of your payout details; we are not liable for
+      transfers sent to details you provided incorrectly.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-8">8. Taxes</h2>
+  <p>You are responsible for determining, collecting, reporting, and paying all taxes arising
+  from your sales, including income tax and any VAT/PPN, and for issuing any tax documents you are
+  legally required to issue. Berlanggan may show tax identifiers (such as NPWP) on invoices and
+  may report seller activity to tax authorities where required.</p>
+</section>
+
+<section>
+  <h2 id="s-9">9. Buyer data and privacy</h2>
+  <p>For each order you receive limited buyer data (email, order details, checkout answers,
+  payment proof). You are an independent controller of that data and must: use it only to fulfil
+  and support the order; keep it secure; not use it for unrelated marketing without the buyer's
+  consent; and delete it when no longer needed, subject to your own legal retention duties. You
+  must comply with the <a href="{% url 'storefront:privacy' %}">Privacy Policy</a> and applicable
+  data protection law.</p>
+</section>
+
+<section>
+  <h2 id="s-10">10. Reviews and ratings</h2>
+  <p>Buyers may review your Products. You must not offer incentives for positive reviews, post
+  fake reviews, or attempt to remove honest ones. We may remove reviews that breach our policies.</p>
+</section>
+
+<section>
+  <h2 id="s-11">11. Suspension, removal, and termination</h2>
+  <p>We may remove a listing, limit your store, withhold related funds, or suspend or terminate
+  your seller account if you breach this Agreement, the Acceptable Use Policy, or the law; if
+  there is a pattern of disputes, refunds, or chargebacks; or to protect buyers or the Platform.
+  You may close your store at any time; you remain responsible for open orders, support
+  obligations, refunds, and amounts owed. Sections 3, 4 (tail), 6&ndash;9, 12, and 13 survive
+  termination.</p>
+</section>
+
+<section>
+  <h2 id="s-12">12. Indemnity and liability</h2>
+  <p>You will indemnify and hold Berlanggan harmless from any claim, loss, or expense (including
+  reasonable legal fees) arising from your Products, your listings, your breach of this Agreement
+  or the law, or a buyer or third-party claim relating to a Product you sold. To the extent
+  permitted by law, Berlanggan's total liability to you under this Agreement in any 12-month
+  period is limited to the commission we retained from your sales in the prior 3 months.</p>
+</section>
+
+<section>
+  <h2 id="s-13">13. Changes and governing law</h2>
+  <p>We may update this Agreement on reasonable notice by email or an in-dashboard notice.
+  Continued selling after the effective date means you accept the update. This Agreement is
+  governed by the laws of the Republic of Indonesia, with the dispute process in the
+  <a href="{% url 'storefront:terms' %}">Terms of Service</a>.</p>
+</section>
+{% endblock %}

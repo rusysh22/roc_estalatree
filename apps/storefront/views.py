@@ -20,6 +20,7 @@ from django.db.models.functions import Coalesce
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
@@ -35,6 +36,28 @@ ORDER_RECEIPT_SALT = "order-receipt"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _require_purchase_agreement(request, customer):
+    """Enforce the per-order sale/purchase agreement checkbox on POST.
+
+    Returns a redirect response to short-circuit with when the box is not ticked,
+    or None to continue. Records the acceptance timestamp on the customer the
+    first time they accept.
+    """
+    if request.method != "POST":
+        return None
+    if not request.POST.get("agree_terms"):
+        messages.error(
+            request,
+            "Please tick the box to accept the Purchase Agreement, Terms of "
+            "Service, and Refund Policy before placing your order.",
+        )
+        return redirect(request.get_full_path())
+    if customer is not None and customer.terms_accepted_at is None:
+        customer.terms_accepted_at = timezone.now()
+        customer.save(update_fields=["terms_accepted_at"])
+    return None
+
 
 def _get_or_create_customer(user):
     """Return (customer, created). Auto-creates Customer + wallet on first visit."""
@@ -382,6 +405,10 @@ def checkout_plan(request, plan_pk):
     else:
         customer = None
         wallet_balance = 0
+
+    agreement_redirect = _require_purchase_agreement(request, customer)
+    if agreement_redirect is not None:
+        return agreement_redirect
 
     _SESSION_KEY = f"ck_token_{plan_pk}"
 
@@ -880,11 +907,68 @@ def contact(request, product_pk):
 
 # ── Legal Pages ───────────────────────────────────────────────────────────────
 
+# One effective date for the whole legal pack — bump when any document changes.
+LEGAL_EFFECTIVE_DATE = "30 August 2026"
+
+# (url_name, template, human title, one-line blurb). Also drives the legal index page.
+LEGAL_DOCS = [
+    ("terms", "storefront/legal/terms.html", "Terms of Service",
+     "The rules for using the Berlanggan marketplace as a buyer or visitor."),
+    ("privacy", "storefront/legal/privacy.html", "Privacy Policy",
+     "What personal data we collect, why, who can see it, and your rights."),
+    ("refunds", "storefront/legal/refunds.html", "Refund Policy",
+     "When a purchase can be refunded and how refunds are paid out."),
+    ("purchase_agreement", "storefront/legal/purchase_agreement.html", "Purchase Agreement",
+     "The standard sale terms you accept every time you place an order."),
+    ("acceptable_use", "storefront/legal/acceptable_use.html", "Acceptable Use Policy",
+     "Conduct and content that is not allowed on the platform."),
+    ("seller_agreement", "storefront/legal/seller_agreement.html", "Seller Agreement",
+     "Obligations, fees, payouts, and liability for sellers."),
+    ("cookies", "storefront/legal/cookies.html", "Cookie Policy",
+     "The cookies and similar technologies we use and how to control them."),
+]
+_LEGAL_BY_NAME = {name: (tpl, title) for name, tpl, title, _ in LEGAL_DOCS}
+
+
+def _render_legal(request, url_name):
+    tpl, title = _LEGAL_BY_NAME[url_name]
+    return render(request, tpl, {
+        "doc_title": title,
+        "doc_updated": LEGAL_EFFECTIVE_DATE,
+    })
+
+
+def legal_index(request):
+    docs = [
+        {"url": reverse(f"storefront:{name}"), "title": title, "blurb": blurb}
+        for name, _tpl, title, blurb in LEGAL_DOCS
+    ]
+    return render(request, "storefront/legal/index.html", {
+        "docs": docs,
+        "doc_updated": LEGAL_EFFECTIVE_DATE,
+    })
+
+
 def terms(request):
-    return render(request, "storefront/terms.html")
+    return _render_legal(request, "terms")
 
 def privacy(request):
-    return render(request, "storefront/privacy.html")
+    return _render_legal(request, "privacy")
+
+def refunds(request):
+    return _render_legal(request, "refunds")
+
+def purchase_agreement(request):
+    return _render_legal(request, "purchase_agreement")
+
+def acceptable_use(request):
+    return _render_legal(request, "acceptable_use")
+
+def seller_agreement(request):
+    return _render_legal(request, "seller_agreement")
+
+def cookies(request):
+    return _render_legal(request, "cookies")
 
 
 # ── Cart (docs/feedback item #12) ───────────────────────────────────────────────
@@ -1024,6 +1108,10 @@ def cart_checkout_view(request):
         wallet_balance = customer.wallet.balance
     else:
         customer, wallet_balance = None, 0
+
+    agreement_redirect = _require_purchase_agreement(request, customer)
+    if agreement_redirect is not None:
+        return agreement_redirect
 
     shortfall = max(0, total - wallet_balance)
     seller_ids = {ln["item"].plan.product.seller_id for ln in lines}

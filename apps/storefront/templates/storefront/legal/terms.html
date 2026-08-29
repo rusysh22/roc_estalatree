@@ -1,0 +1,196 @@
+{% extends "storefront/legal/_layout.html" %}
+
+{% block legal_intro %}
+<p class="text-sm text-ink-500 leading-relaxed">
+  These Terms of Service (the &ldquo;Terms&rdquo;) govern your access to and use of the Berlanggan
+  marketplace, websites, and related services (together, the &ldquo;Platform&rdquo;), operated by
+  Berlanggan (&ldquo;Berlanggan&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;). By creating an account, making a purchase,
+  or otherwise using the Platform, you agree to these Terms, the
+  <a href="{% url 'storefront:privacy' %}">Privacy Policy</a>, the
+  <a href="{% url 'storefront:refunds' %}">Refund Policy</a>, and the
+  <a href="{% url 'storefront:acceptable_use' %}">Acceptable Use Policy</a>. If you do not agree,
+  do not use the Platform.
+</p>
+{% endblock %}
+
+{% block legal_body %}
+<section>
+  <h2 id="s-1">1. Who we are and what the Platform does</h2>
+  <p>Berlanggan is an online marketplace that lets independent sellers list and sell digital
+  products, subscriptions, courses, license keys, downloads, and access to online resources
+  (&ldquo;Products&rdquo;) to buyers. Berlanggan provides the storefront, checkout, wallet, delivery
+  tooling, and support infrastructure.</p>
+  <p><strong>Berlanggan is an intermediary, not the seller.</strong> Except where a Product is
+  expressly offered by Berlanggan itself, the contract of sale for each Product is between the
+  buyer and the seller. Berlanggan is not a party to that contract and does not manufacture,
+  own, warrant, or control seller Products.</p>
+</section>
+
+<section>
+  <h2 id="s-2">2. Eligibility and accounts</h2>
+  <ul>
+    <li>You must be at least 18 years old, or the age of majority where you live, and able to
+      form a binding contract.</li>
+    <li>You must provide accurate account information and keep it up to date. You are responsible
+      for everything that happens under your account and for keeping your credentials secure.</li>
+    <li>One person or legal entity per account unless we agree otherwise in writing. You may not
+      transfer or sell your account.</li>
+    <li>We may refuse, suspend, or close an account that violates these Terms, that we are
+      required to act on by law, or that presents a fraud or security risk.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-3">3. The Berlanggan wallet (closed-loop balance)</h2>
+  <p>Buyers pay for Products using a Berlanggan wallet balance or a supported payment method at
+  checkout. The wallet is a <strong>closed-loop stored-value balance</strong>:</p>
+  <ul>
+    <li>Balance can only be used to purchase Products on the Platform.</li>
+    <li>Balance is <strong>non-refundable and cannot be withdrawn, cashed out, or transferred</strong>
+      to a bank account, another user, or any external service, except where a refund is due under
+      the <a href="{% url 'storefront:refunds' %}">Refund Policy</a> or as required by applicable law.</li>
+    <li>Top-ups are processed by our third-party payment processor. Payment-processor fees, where
+      shown, are added to the amount you pay and are non-refundable once a payment is completed.</li>
+    <li>Unless applicable law requires otherwise, wallet balance does not expire but remains
+      strictly closed-loop.</li>
+  </ul>
+  <p>Some sellers accept direct payment (for example, a static QRIS code). For those orders you
+  pay the seller directly, the seller confirms receipt manually, and no Berlanggan wallet balance
+  or platform fee is involved.</p>
+</section>
+
+<section>
+  <h2 id="s-4">4. Purchases, pricing, and delivery</h2>
+  <ul>
+    <li>Prices, plan terms, and Product descriptions are set by the seller and shown at checkout.
+      Prices are in Indonesian Rupiah (IDR) unless stated otherwise.</li>
+    <li>By completing checkout you make a binding offer to buy the selected Product on the terms
+      shown. The order is accepted when payment is confirmed and delivery begins.</li>
+    <li>Digital Products are delivered electronically &mdash; typically instantly (license key,
+      download link, access grant) or, for manually-confirmed payments, once the seller confirms
+      payment. Delivery method and any setup instructions are shown on the order confirmation and
+      in <em>My Products</em>.</li>
+    <li>For subscriptions, access continues for each paid period. Renewal, auto-renew, and grace
+      behaviour are described on the plan and in your dashboard. You can cancel auto-renew at any
+      time; cancellation stops future renewals and does not refund the current period.</li>
+    <li><strong>Digital goods &mdash; no cooling-off period.</strong> Because Products are delivered
+      digitally and consumed immediately, you agree that delivery begins as soon as your order is
+      confirmed and that any statutory right to cancel is waived once delivery has started, to the
+      extent permitted by law. Your remedies for a defective or undelivered Product are set out in
+      the <a href="{% url 'storefront:refunds' %}">Refund Policy</a>.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-5">5. Licence you receive when you buy a Product</h2>
+  <p>Unless the seller's Product page grants broader rights, a purchase gives you a
+  <strong>personal, non-exclusive, non-transferable, non-sublicensable licence</strong> to use the
+  Product for its intended purpose. You may not resell, redistribute, publicly share, or create
+  competing products from purchased content. Seat-limited licences may be used on the number of
+  devices or by the number of users stated on the plan.</p>
+</section>
+
+<section>
+  <h2 id="s-6">6. Selling on Berlanggan</h2>
+  <p>If you register as a seller, the <a href="{% url 'storefront:seller_agreement' %}">Seller
+  Agreement</a> also applies to you and forms part of these Terms. In summary, sellers are
+  responsible for the legality, accuracy, quality, delivery, and support of their Products; grant
+  Berlanggan the licence needed to host and deliver them; pay the platform commission on
+  wallet-settled sales; and handle their own taxes. Berlanggan may remove listings, withhold
+  payouts, or suspend a seller for breach, legal reasons, or risk.</p>
+</section>
+
+<section>
+  <h2 id="s-7">7. Acceptable use</h2>
+  <p>You agree not to misuse the Platform. Prohibited conduct includes fraud, infringing others'
+  rights, distributing malware, circumventing security or fees, scraping at scale, reselling
+  access, and listing or buying prohibited items. The full list is in the
+  <a href="{% url 'storefront:acceptable_use' %}">Acceptable Use Policy</a>. We may remove content
+  and suspend accounts that violate it.</p>
+</section>
+
+<section>
+  <h2 id="s-8">8. Intellectual property</h2>
+  <ul>
+    <li>The Platform, including its software, design, and Berlanggan trademarks, belongs to
+      Berlanggan or its licensors. These Terms grant you no rights in them beyond using the
+      Platform as intended.</li>
+    <li>Seller content belongs to the seller (or its licensors). Buyer-submitted content
+      (reviews, checkout answers, support messages) remains yours, but you grant Berlanggan a
+      worldwide, royalty-free licence to host, display, and use it to operate and improve the
+      Platform.</li>
+    <li><strong>Copyright complaints:</strong> if you believe content on the Platform infringes
+      your rights, email <a href="mailto:legal@berlanggan.com">legal@berlanggan.com</a> with the
+      work concerned, the infringing URL, your contact details, and a good-faith statement. We
+      will review and may remove the content and act against repeat infringers.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-9">9. Disclaimers</h2>
+  <p>The Platform is provided <strong>&ldquo;as is&rdquo; and &ldquo;as available&rdquo;</strong>. To the fullest extent
+  permitted by law, Berlanggan disclaims all warranties, express or implied, including
+  merchantability, fitness for a particular purpose, non-infringement, and any warranty about
+  seller Products. We do not guarantee that the Platform will be uninterrupted, error-free, or
+  secure, and we do not warrant any result from using a Product.</p>
+</section>
+
+<section>
+  <h2 id="s-10">10. Limitation of liability</h2>
+  <p>To the fullest extent permitted by law, Berlanggan and its officers, employees, and agents
+  will not be liable for any indirect, incidental, special, consequential, or punitive damages, or
+  for lost profits, revenue, data, or goodwill. Berlanggan's total liability for any claim
+  relating to the Platform or a transaction is limited to the greater of (a) the amount you paid
+  to Berlanggan for the transaction giving rise to the claim in the 3 months before the claim, or
+  (b) IDR 500,000. Nothing in these Terms excludes liability that cannot be excluded by law.</p>
+</section>
+
+<section>
+  <h2 id="s-11">11. Indemnity</h2>
+  <p>You agree to indemnify and hold Berlanggan harmless from claims, losses, and expenses
+  (including reasonable legal fees) arising from your use of the Platform, your content, your
+  Products (if you are a seller), or your breach of these Terms or of any law or third-party
+  right.</p>
+</section>
+
+<section>
+  <h2 id="s-12">12. Suspension and termination</h2>
+  <p>You may stop using the Platform at any time and may request account deletion (see the
+  <a href="{% url 'storefront:privacy' %}">Privacy Policy</a>). We may suspend or terminate access,
+  remove content, or cancel orders if you breach these Terms, if required by law, or to protect
+  the Platform or its users. On termination, licences you hold end, closed-loop wallet balance is
+  handled under the Refund Policy, and provisions that by their nature should survive (for
+  example sections 3, 5, 8&ndash;11, 13&ndash;15) continue to apply.</p>
+</section>
+
+<section>
+  <h2 id="s-13">13. Changes to these Terms</h2>
+  <p>We may update these Terms. If a change is material we will give notice by email or an
+  in-Platform notice before it takes effect. Your continued use after the effective date means
+  you accept the updated Terms. The current version and its effective date are always shown at the
+  top of this page.</p>
+</section>
+
+<section>
+  <h2 id="s-14">14. Governing law and disputes</h2>
+  <p>These Terms are governed by the laws of the Republic of Indonesia, without regard to
+  conflict-of-laws rules. You and Berlanggan will try in good faith to resolve any dispute
+  informally first by contacting <a href="mailto:legal@berlanggan.com">legal@berlanggan.com</a>.
+  If that fails, the dispute will be submitted to the exclusive jurisdiction of the competent
+  courts of Indonesia, except that either party may seek injunctive relief where available.</p>
+</section>
+
+<section>
+  <h2 id="s-15">15. General</h2>
+  <ul>
+    <li>These Terms, together with the policies they reference, are the entire agreement between
+      you and Berlanggan about the Platform.</li>
+    <li>If any provision is found unenforceable, the rest stays in effect.</li>
+    <li>Our failure to enforce a right is not a waiver of it.</li>
+    <li>You may not assign these Terms; we may assign them to an affiliate or in connection with a
+      merger, acquisition, or sale of assets.</li>
+    <li>Notices to you may be sent to your account email or shown in the Platform; notices to us
+      go to <a href="mailto:legal@berlanggan.com">legal@berlanggan.com</a>.</li>
+  </ul>
+</section>
+{% endblock %}

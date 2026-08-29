@@ -1,0 +1,75 @@
+{% extends "storefront/legal/_layout.html" %}
+
+{% block legal_intro %}
+<p class="text-sm text-ink-500 leading-relaxed">
+  This Cookie Policy explains how Berlanggan uses cookies and similar technologies (local
+  storage, pixels) on the Platform. It should be read with the
+  <a href="{% url 'storefront:privacy' %}">Privacy Policy</a>.
+</p>
+{% endblock %}
+
+{% block legal_body %}
+<section>
+  <h2 id="s-1">1. What cookies are</h2>
+  <p>Cookies are small text files a website stores on your device. They let the site remember
+  your actions and preferences (such as staying signed in) and help us understand how the
+  Platform is used. Similar technologies like browser local storage and tracking pixels serve
+  comparable purposes.</p>
+</section>
+
+<section>
+  <h2 id="s-2">2. Cookies we use</h2>
+  <table>
+    <tr><th>Type</th><th>Purpose</th><th>Can you turn it off?</th></tr>
+    <tr>
+      <td><strong>Strictly necessary</strong></td>
+      <td>Sign-in sessions, security and CSRF protection, load balancing, remembering your cart,
+        and honouring your cookie choices.</td>
+      <td>No &mdash; the Platform will not work without them.</td>
+    </tr>
+    <tr>
+      <td><strong>Preferences</strong></td>
+      <td>Remembering settings such as language or a dismissed notice.</td>
+      <td>Yes.</td>
+    </tr>
+    <tr>
+      <td><strong>Analytics</strong></td>
+      <td>Aggregated statistics on visits and usage so we can improve the Platform.</td>
+      <td>Yes.</td>
+    </tr>
+    <tr>
+      <td><strong>Seller storefront tags</strong></td>
+      <td>Some sellers add their own analytics or advertising tags (for example Google Analytics
+        or a Meta Pixel) to their store pages. These are set by the seller as a separate
+        controller.</td>
+      <td>Yes &mdash; via your browser or the seller's own controls.</td>
+    </tr>
+  </table>
+</section>
+
+<section>
+  <h2 id="s-3">3. Third-party cookies</h2>
+  <p>Some cookies are set by service providers acting for us &mdash; for example our payment
+  processor during checkout, or our analytics provider. Seller storefront tags are set by the
+  relevant seller. We do not control third-party cookies; check the relevant provider's policy
+  for details.</p>
+</section>
+
+<section>
+  <h2 id="s-4">4. Managing cookies</h2>
+  <ul>
+    <li>Where we show a cookie banner or settings control, you can accept or reject non-essential
+      cookies there and change your choice later.</li>
+    <li>Your browser lets you block or delete cookies. Blocking strictly necessary cookies will
+      break sign-in, checkout, and the cart.</li>
+    <li>You can opt out of many analytics and advertising cookies through your browser settings or
+      industry opt-out tools.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-5">5. Changes</h2>
+  <p>We may update this Cookie Policy as our use of these technologies changes. The effective
+  date at the top of this page shows the current version.</p>
+</section>
+{% endblock %}

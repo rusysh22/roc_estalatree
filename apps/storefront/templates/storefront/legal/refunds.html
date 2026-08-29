@@ -1,0 +1,109 @@
+{% extends "storefront/legal/_layout.html" %}
+
+{% block legal_intro %}
+<p class="text-sm text-ink-500 leading-relaxed">
+  This Refund Policy explains when a purchase made on Berlanggan can be refunded, how refunds are
+  paid, and how to request one. It forms part of the <a href="{% url 'storefront:terms' %}">Terms
+  of Service</a> and applies to every order unless a seller's Product page offers more generous
+  terms.
+</p>
+{% endblock %}
+
+{% block legal_body %}
+<section>
+  <h2 id="s-1">1. Digital goods &mdash; the general rule</h2>
+  <p>Products on Berlanggan are digital and are delivered and consumed immediately. Because of
+  this, <strong>all sales are final once the Product has been delivered</strong> and you do not
+  have a general right to change your mind. The exceptions below still apply, and nothing in this
+  Policy limits rights you have under mandatory consumer law.</p>
+</section>
+
+<section>
+  <h2 id="s-2">2. When you are entitled to a refund</h2>
+  <p>You can request a refund within <strong>7 days</strong> of the order date if any of the
+  following applies:</p>
+  <ul>
+    <li><strong>Not delivered</strong> &mdash; you did not receive the license key, download,
+      or access, and the seller has not resolved it within a reasonable time after you contacted
+      them.</li>
+    <li><strong>Defective or broken</strong> &mdash; the Product does not work, is corrupted, or
+      cannot be accessed, and the seller cannot fix it.</li>
+    <li><strong>Materially not as described</strong> &mdash; the Product is significantly
+      different from what the Product page and plan stated at the time of purchase.</li>
+    <li><strong>Duplicate charge</strong> &mdash; you were charged more than once for the same
+      order due to a technical error.</li>
+    <li><strong>Unauthorised transaction</strong> &mdash; the purchase was made without your
+      authorisation (we may ask you to verify this and may involve the payment processor).</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-3">3. When a refund will not be given</h2>
+  <ul>
+    <li>You changed your mind, no longer need the Product, or bought it by mistake, after it was
+      delivered and worked as described.</li>
+    <li>You do not have the technical setup, skills, or third-party accounts the Product page
+      clearly said were required.</li>
+    <li>The request is made more than 7 days after the order date (unless mandatory law says
+      otherwise).</li>
+    <li>The Product has been substantially used, downloaded in full, or its license key or access
+      has been redeemed, activated, or shared.</li>
+    <li>Abuse of this Policy, such as repeated buy-and-refund patterns.</li>
+    <li>Wallet top-ups that have not been spent &mdash; these are covered by section 5, not this
+      section.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 id="s-4">4. How refunds are paid</h2>
+  <p><strong>Approved refunds are credited to your Berlanggan wallet</strong> as closed-loop
+  balance, not returned to your original payment method, unless:</p>
+  <ul>
+    <li>mandatory law requires a refund to the original method; or</li>
+    <li>the charge was a duplicate or unauthorised transaction, in which case we work with the
+      payment processor to reverse it to the original method where possible.</li>
+  </ul>
+  <p>Wallet balance from a refund can be used for any future purchase on the Platform. It cannot
+  be withdrawn or transferred (see <a href="{% url 'storefront:terms' %}">Terms</a> section 3).
+  Payment-processor fees are non-refundable.</p>
+  <p>For <strong>direct-payment orders</strong> (for example static QRIS paid straight to the
+  seller), the seller is responsible for making the refund directly; Berlanggan can help mediate
+  but does not hold those funds.</p>
+</section>
+
+<section>
+  <h2 id="s-5">5. Unspent wallet top-ups</h2>
+  <p>If you topped up your wallet and have not spent the balance, you may request a return of the
+  unspent amount to your original payment method within <strong>14 days</strong> of the top-up,
+  less any non-refundable processing fee. After that, top-ups remain as closed-loop balance and
+  are non-refundable, except where mandatory law provides otherwise.</p>
+</section>
+
+<section>
+  <h2 id="s-6">6. Subscriptions</h2>
+  <p>Cancelling a subscription stops future renewals. The current paid period is not refunded
+  unless the Product failed under section 2. If a renewal charge was taken after you cancelled
+  auto-renew, contact us within 7 days for a refund of that renewal.</p>
+</section>
+
+<section>
+  <h2 id="s-7">7. How to request a refund</h2>
+  <ol>
+    <li>Contact the seller first through your order page &mdash; most issues are delivery or setup
+      problems the seller can fix quickly.</li>
+    <li>If the seller does not resolve it within <strong>3 days</strong>, open a refund request
+      from the order page or email <a href="mailto:support@berlanggan.com">support@berlanggan.com</a>
+      with your order number and a description of the problem (screenshots help).</li>
+    <li>We review the request, ask the seller for their side, and decide within a reasonable time,
+      usually <strong>5 business days</strong>. Our decision on platform-mediated refunds is
+      final.</li>
+  </ol>
+</section>
+
+<section>
+  <h2 id="s-8">8. Chargebacks</h2>
+  <p>Please contact us before starting a chargeback with your bank or payment provider &mdash; we
+  can usually resolve issues faster. Filing a chargeback for an order you received and used as
+  described may lead to suspension of your account and wallet balance pending resolution.</p>
+</section>
+{% endblock %}

@@ -907,6 +907,8 @@ def apply(request):
         slug_candidate = slugify(name)
         if not name:
             messages.error(request, "Store name is required.")
+        elif not request.POST.get("agree_seller_terms"):
+            messages.error(request, "You must accept the Seller Agreement to start selling.")
         elif SellerProfile.objects.filter(slug=slug_candidate).exists():
             messages.error(request, "That store name is already taken.")
         else:
@@ -916,6 +918,7 @@ def apply(request):
                 slug=slug_candidate,
                 is_approved=True,
                 onboarding_completed=False,
+                agreement_accepted_at=timezone.now(),
             )
             messages.success(request, "You're in! Let's set up your store.")
             return redirect("seller:onboarding")

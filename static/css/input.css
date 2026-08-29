@@ -138,6 +138,27 @@
   }
 }
 
+/* ── Legal document typography ──────────────────────────────────────────────── */
+@layer components {
+  .legal-body { @apply text-sm leading-relaxed text-ink-600; }
+  .legal-body h2 { @apply text-base font-extrabold text-ink-900 mb-2 scroll-mt-24; }
+  .legal-body h3 { @apply text-sm font-bold text-ink-900 mt-4 mb-1.5; }
+  .legal-body p { @apply mb-3; }
+  .legal-body p:last-child { @apply mb-0; }
+  .legal-body ul { @apply space-y-1.5 mb-3 pl-1; }
+  .legal-body ul > li { @apply relative pl-5; }
+  .legal-body ul > li::before {
+    content: ""; @apply absolute left-0 top-[0.55em] w-1.5 h-1.5 rounded-full bg-primary-400;
+  }
+  .legal-body ol { @apply space-y-1.5 mb-3 pl-5 list-decimal marker:text-ink-400 marker:font-semibold; }
+  .legal-body ol > li { @apply pl-1.5; }
+  .legal-body strong { @apply font-bold text-ink-900; }
+  .legal-body a { @apply text-primary-600 font-semibold hover:underline; }
+  .legal-body table { @apply w-full text-xs my-3 border border-ink-100 rounded-xl overflow-hidden; }
+  .legal-body th { @apply bg-cream text-left font-bold text-ink-700 px-3 py-2; }
+  .legal-body td { @apply border-t border-ink-100 px-3 py-2 align-top; }
+}
+
 /* ── Landing page (marketplace home) ──────────────────────────────────────── */
 @layer components {
   .landing-btn-primary {

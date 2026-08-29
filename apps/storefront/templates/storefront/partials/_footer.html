@@ -33,6 +33,11 @@
         <ul class="mt-3 space-y-2 text-sm">
           <li><a href="{% url 'storefront:terms' %}" class="hover:text-cream transition-colors">Terms of service</a></li>
           <li><a href="{% url 'storefront:privacy' %}" class="hover:text-cream transition-colors">Privacy policy</a></li>
+          <li><a href="{% url 'storefront:refunds' %}" class="hover:text-cream transition-colors">Refund policy</a></li>
+          <li><a href="{% url 'storefront:purchase_agreement' %}" class="hover:text-cream transition-colors">Purchase agreement</a></li>
+          <li><a href="{% url 'storefront:seller_agreement' %}" class="hover:text-cream transition-colors">Seller agreement</a></li>
+          <li><a href="{% url 'storefront:acceptable_use' %}" class="hover:text-cream transition-colors">Acceptable use</a></li>
+          <li><a href="{% url 'storefront:legal_index' %}" class="hover:text-cream transition-colors">All policies</a></li>
         </ul>
       </div>
     </div>
@@ -53,7 +58,7 @@
   <div class="max-w-7xl mx-auto px-5 sm:px-8 py-4 flex flex-wrap items-center justify-between gap-3">
     <p class="text-sm text-ink-600 flex-1 min-w-0">
       We use cookies to keep you signed in and to understand how our site is used.
-      See our <a href="{% url 'storefront:privacy' %}" class="text-primary-600 hover:underline">Privacy Policy</a> for details.
+      See our <a href="{% url 'storefront:cookies' %}" class="text-primary-600 hover:underline">Cookie Policy</a> for details.
     </p>
     <div class="flex items-center gap-2 shrink-0">
       <button onclick="cookieDecline()"

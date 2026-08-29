@@ -145,6 +145,8 @@ ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_EMAIL_VERIFICATION = "optional"
+ACCOUNT_FORMS = {"signup": "apps.accounts.forms.SignupForm"}
+SOCIALACCOUNT_FORMS = {"signup": "apps.accounts.forms.SocialSignupForm"}
 LOGIN_REDIRECT_URL = "/dashboard/"
 SOCIALACCOUNT_PROVIDERS = {
     "google": {

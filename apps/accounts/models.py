@@ -113,6 +113,10 @@ class SellerProfile(TimestampedModel):
     # Seller plan & KYC
     plan = models.CharField(max_length=10, choices=Plan.choices, default=Plan.FREE)
     kyc_verified = models.BooleanField(default=False)
+    agreement_accepted_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="When the seller accepted the Seller Agreement.",
+    )
 
     # Payout bank details (required before withdrawal can be approved)
     payout_bank_name = models.CharField(max_length=100, blank=True)
@@ -180,6 +184,10 @@ class Customer(TimestampedModel):
     notif_promo = models.BooleanField(
         default=False,
         help_text="Explicit opt-in for promotional messages (separate from transactional).",
+    )
+    terms_accepted_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="When the user accepted the Terms of Service and Privacy Policy.",
     )
     notes = models.TextField(blank=True)
 
